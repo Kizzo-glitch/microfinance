@@ -17,9 +17,9 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['microfinance-production-434c.up.railway.app', 'https://microfinance-production-434c.up.railway.app']
 
-CSRF_TRUSTED_ORIGINS = []
+CSRF_TRUSTED_ORIGINS = ['microfinance-production-434c.up.railway.app', 'https://microfinance-production-434c.up.railway.app']
 
 
 # Application definition
