@@ -1,1 +1,1 @@
-web: gunicorn microfinance.wsgi --log-file
+web: gunicorn microfinance.wsgi 
