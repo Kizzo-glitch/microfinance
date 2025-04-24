@@ -86,7 +86,7 @@ WSGI_APPLICATION = 'microfinance.wsgi.application'
 #    }
 #}
 
-DATABASES = {
+'''DATABASES = {
    'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'railway',
@@ -95,7 +95,19 @@ DATABASES = {
         'HOST': 'metro.proxy.rlwy.net',
         'PORT': '58930',
     }
-} #metro.proxy.rlwy.net:58930
+}'''
+
+
+DATABASES = {
+   'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'railway',
+        'USER': 'postgres',
+        'PASSWORD': os.environ['FG2_PASSWORD'],
+        'HOST': 'crossover.proxy.rlwy.net',
+        'PORT': '22309',
+    }
+}  
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
