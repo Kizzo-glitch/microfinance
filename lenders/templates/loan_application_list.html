@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+    <!-- Begin Page Content -->
+    <div class="container-fluid">
+
+        <h1>Loan Applications</h1>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Borrower</th>
+                    <th>Loan Amount</th>
+                    <th>Loan Term</th>
+                    
+                    <th>First Payment</th>
+                    <th>Monthly Installment</th>
+                    <th>Total Repayable</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for application in loan_applications %}
+                <tr>
+                    <td>{{ application.borrower.full_name}}</td>
+                    <td>{{ application.loan_amount }}</td>
+                    <td>{{ application.loan_term }}</td>
+                    
+                    <td>R{{ application.first_payment }}</td>
+                    <td>R{{ application.monthly_installment }}</td>
+                    <td>R{{ application.total_repayable }}</td>
+                    <td>{{ application.status }}</td>
+                    <td>
+                        <a href="{% url 'loan-application-update' application.pk %}">Review</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+    <!-- /.container-fluid -->
+
+{% endblock %}

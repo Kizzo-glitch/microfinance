@@ -1,0 +1,44 @@
+{% extends 'borrower_base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">My Loan Applications</h2>
+
+    {% if loan_applications %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Date Applied</th>
+                        <th>Lender</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Reason (if any)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for application in loan_applications %}
+                        <tr>
+                            <td>{{ application.date_applied|date:"M d, Y" }}</td>
+                            <td>{{ application.lender.company_name }}</td>
+                            <td>R {{ application.loan_amount }}</td>
+                            <td>
+                                {% if application.status == "approved" %}
+                                    <span class="badge bg-success">Approved</span>
+                                {% elif application.status == "pending" %}
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                {% elif application.status == "rejected" %}
+                                    <span class="badge bg-danger">Rejected</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ application.status_reason|default:"—" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">You have not applied for any loans yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

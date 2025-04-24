@@ -1,0 +1,79 @@
+{% extends 'borrower_base.html' %}
+{% load static %}
+
+{% block content %}
+
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f5f5f5; }
+        .container { max-width: 900px; margin: 50px auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+        .status-approved { color: green; font-weight: bold; }
+        .status-pending { color: orange; font-weight: bold; }
+        .status-rejected { color: red; font-weight: bold; }
+        .btn { padding: 5px 10px; text-decoration: none; color: white; border-radius: 5px; }
+        .btn-details { background-color: #007bff; }
+        .btn-pay { background-color: #28a745; }
+    </style>
+
+    <div class="container">
+        <h2>My Approved Loan List</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Loan ID</th>
+                    <th>Borrower</th>
+                    <th>Term</th>
+                    <th>Amount</th>
+                    <th>First Payment</th>
+                    <th>Monthly Installments</th>
+                    <th>Total Repayable</th>
+
+                    <th>Total Paid</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loan in loans %}
+                    <tr>
+                        <td>{{ loan.id }}</td>
+                        <td>{{ loan.borrower.user.username }}</td>
+                        <td>{{ loan.loan_term }} Months</td>
+                        <td>R{{ loan.amount }}</td>
+                        <td>R{{ loan.first_payment|floatformat:2 }}</td>
+                        <td>R{{ loan.monthly_installment }}</td>
+                        <td>R{{ loan.total_repayable }}</td>
+                    
+                        <td>R{{ loan.total_paid }}</td>
+
+                        <td class="status-{{ loan.status }}">
+                            {% if loan.outstanding_balance == 0 %}
+                                <span class="text-success font-weight-bold">Fully Paid</span>
+                            {% else %}
+                                {{ loan.get_status_display }}
+                            {% endif %}
+                        </td>
+                        <!--<td class="status-{{ loan.status }}">
+                            {{ loan.get_status_display }}
+                        </td>-->
+                        <td>
+                            <a href="{% url 'loan-details' loan.id %}" class="btn btn-details">View</a>
+                            <br><br>
+                            {% if loan.status == 'approved' and loan.outstanding_balance > 0 %}
+                                <a href="{% url 'record-payment' loan.id %}" class="btn btn-pay">Pay</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center;">No loans available</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends 'borrower_base.html' %}
+{% load static %}
+
+{% block content %}
+
+        <div class="container">
+            <h1>Apply for a Loan</h1>
+            <form id="loan-application-form" method="post">
+                {% csrf_token %}
+                <div>
+                    <label for="id_loan_amount">Loan Amount:</label>
+                    <input type="number" id="id_loan_amount" name="loan_amount" step="0.01" min="0" required>
+                </div>
+                <div>
+                    <label for="id_loan_term">Loan Term:</label>
+                    <select id="id_loan_term" name="loan_term" required>
+                        <option value="3">3 Months</option>
+                        <option value="6">6 Months</option>
+                        <option value="12">12 Months</option>
+                        <option value="24">24 Months</option>
+                        <option value="36">36 Months</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="total-repayable">Total Repayable:</label>
+                    <span id="total-repayable">R0.00</span>
+                </div>
+                <div>
+                    <label for="monthly-installment">Monthly Installment:</label>
+                    <span id="monthly-installment">R0.00</span>
+                </div>
+                <button type="submit">Apply</button>
+            </form>
+        </div>
+
+            <script>
+                // Dynamically fetch the lender's interest rate from the server
+                const lenderInterestRate = parseFloat('{{ lender_interest_rate | floatformat:"2" }}');
+
+                // Function to calculate total repayable
+                function calculateTotalRepayable(loanAmount, interestRate) {
+                    return loanAmount * (1 + (interestRate / 100));
+                }
+
+                // Function to calculate monthly installment
+                function calculateMonthlyInstallment(totalRepayable, loanTerm) {
+                    return totalRepayable / loanTerm;
+                }
+
+                // Attach event listeners to update total repayable and monthly installment
+                document.getElementById('id_loan_amount').addEventListener('input', updateCalculations);
+                document.getElementById('id_loan_term').addEventListener('change', updateCalculations);
+
+                
+
+                function updateCalculations() {
+                    const loanAmount = parseFloat(document.getElementById('id_loan_amount').value) || 0;
+                    const loanTerm = parseInt(document.getElementById('id_loan_term').value) || 3;
+
+                    if (loanAmount > 0 && loanTerm > 0) {
+                        const totalRepayable = calculateTotalRepayable(loanAmount, lenderInterestRate);
+                        const monthlyInstallment = calculateMonthlyInstallment(totalRepayable, loanTerm);
+
+                        document.getElementById('total-repayable').textContent = `R${totalRepayable.toFixed(2)}`;
+                        document.getElementById('monthly-installment').textContent = `R${monthlyInstallment.toFixed(2)}`;
+                    } else {
+                        // Clear values if inputs are invalid
+                        document.getElementById('total-repayable').textContent = 'R0.00';
+                        document.getElementById('monthly-installment').textContent = 'R0.00';
+                    }
+                }
+
+                // Initialize calculations on page load (if values are pre-filled)
+                updateCalculations();
+            </script>
+               
+                 <style>
+        .form-control::placeholder {
+            color: #999;
+            font-style: italic;
+           
+        }
+      
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+    </style>
+
+           
+
+    <br><br><br><br><br><br><br><br><br><br><br><br>
+   
+      

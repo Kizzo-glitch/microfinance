@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+
+
+<div class="card mb-3">
+   
+        <div class="card-body">
+<h2 class="card-header">Borrower's Payment History</h2>
+<p><strong>Loan ID:</strong> {{ loan.id }}</p>
+<p><strong>Borrower:</strong> {{ loan.borrower.user.username }}</p>
+<p><strong>Loan Amount:</strong> R{{ loan.amount }}</p>
+<p><strong>Total Repayable:</strong> R{{ loan.total_repayable }}</p>
+<p><strong>Outstanding Balance:</strong> R{{ outstanding_balance }}</p>
+<p><strong>Months Left:</strong> {{ months_left }}</p>
+
+<h4 class="card-header">Payments</h4>
+{% if payments %}
+<table class="table" border="1">
+    <tr>
+        <th>Date Paid</th>
+        <th>Amount Paid</th>
+        <th>Outstanding</th>
+        <th>Payment Method</th>
+    </tr>
+    {% for payment in payments %}
+    <tr>
+        <td>{{ payment.date_paid|date:"F j, Y" }}</td>
+        <td>R{{ payment.amount }}</td>
+        <td>R{{ outstanding_balance }}</td>
+        <td>{{ payment.get_payment_method_display }}</td>
+    </tr>
+    {% endfor %}
+</table>
+</div>
+{% else %}
+<p>No payments made yet.</p>
+{% endif %}
+</div>
+
+
+{% endblock %}

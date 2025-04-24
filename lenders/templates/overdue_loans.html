@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <h3>📅 Overdue Loans</h3>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Borrower</th>
+                <th>Outstanding</th>
+                <th>Due Date</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for loan in overdue_loans %}
+            <tr>
+                <td>{{ loan.borrower.user.get_full_name }}</td>
+                <td>R{{ loan.outstanding_balance }}</td>
+                <td>{{ loan.due_date }}</td>
+                <td><span class="badge bg-danger">Overdue</span></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center">No overdue loans.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+
+</div>
+{% endblock %}

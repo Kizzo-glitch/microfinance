@@ -1,0 +1,92 @@
+{% load static %} 
+
+<nav class="sb-sidenav accordion sb-sidenav-dark" id="sidenavAccordion">
+                    <div class="sb-sidenav-menu">
+                        <div class="nav">
+                            <div class="sb-sidenav-menu-heading">Core</div>
+                            <a class="nav-link" href="{% url 'borrower_index' %}">
+                                <div class="sb-nav-link-icon"><i class="fas fa-home"></i></div>
+                                My Dashboard
+                            </a>
+                            <div class="sb-sidenav-menu-heading"><i class="fas fa-book-open"></i>My Book</div>
+                            <a class="nav-link collapsed {% if request.path == '/borrowers/' %}active-link{% endif %}" href="#" data-bs-toggle="collapse" data-bs-target="#collapseLayouts" aria-expanded="false" aria-controls="collapseLayouts">
+                                <div class="sb-nav-link-icon"><i class="fas fa-hand-holding-usd"></i></div> 
+                                Loans
+                                <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+                            </a>
+                            <div class="collapse" id="collapseLayouts" aria-labelledby="headingOne" data-bs-parent="#sidenavAccordion">
+                                <nav class="sb-sidenav-menu-nested nav">
+                                    
+                                    <a class="nav-link {% if request.path == '/borrowers/apply-for-loan-list/' %}active-link{% endif %}" href="{% url 'apply-for-loan-list' %}">Apply For a Loan</a>
+
+                                    <a class="nav-link {% if request.path == '/borrowers/my-loan-applications/' %}active-link{% endif %}" href="{% url 'my-loan-applications' %}">My Loan Applications</a>
+
+                                    <a class="nav-link {% if request.path == '/borrowers/my-active-loans/' %}active-link{% endif %}" href="{% url 'my-active-loans' %}">My Active Loans</a>
+
+                                   
+                                    
+                                    <a class="nav-link" href="{% url 'upload_documents' %}">Upload Supporting Documents</a>
+                                    <!--<a class="nav-link" href="layout-sidenav-light.html">Past Loans</a>-->
+                                    
+                                    <a class="nav-link" href="{% url 'my-loan-list' %}">My Loans</a>
+                                    
+                                </nav>
+                            </div>
+                            <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#collapsePages" aria-expanded="false" aria-controls="collapsePages">
+                                <div class="sb-nav-link-icon"><i class="fas fa-chart-bar"></i></div>
+                                 Reports & Insights
+                                <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+                            </a>
+                            <div class="collapse" id="collapsePages" aria-labelledby="headingTwo" data-bs-parent="#sidenavAccordion">
+                                <nav class="sb-sidenav-menu-nested nav accordion" id="sidenavAccordionPages">
+                                    <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#pagesCollapseAuth" aria-expanded="false" aria-controls="pagesCollapseAuth">
+                                        Repayments
+                                        <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+                                    </a>
+                                    <div class="collapse" id="pagesCollapseAuth" aria-labelledby="headingOne" data-bs-parent="#sidenavAccordionPages">
+                                        <nav class="sb-sidenav-menu-nested nav">
+                                            <a class="nav-link" href="#">Monthly Payments</a>
+                                            <a class="nav-link" href="register.html">Yearly Payments</a>
+                                            <a class="nav-link" href="password.html">Forgot Password</a>
+                                        </nav>
+                                    </div>
+                                    
+                                    <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#pagesCollapseError" aria-expanded="false" aria-controls="pagesCollapseError">
+                                        My Risk analysis
+                                        <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+                                    </a>
+                                    <div class="collapse" id="pagesCollapseError" aria-labelledby="headingOne" data-bs-parent="#sidenavAccordionPages">
+                                        <nav class="sb-sidenav-menu-nested nav">
+                                            <a class="nav-link" href="401.html">Due to Skipped payments</a>
+                                            <a class="nav-link" href="404.html">Due to Defaulted Loans</a>
+                                            <a class="nav-link" href="500.html">Due to Credit Score</a>
+                                        </nav>
+                                    </div>
+                                </nav>
+                            </div>
+                            <div class="sb-sidenav-menu-heading">Addons</div>
+                            <a class="nav-link" href="{% url 'borrower-notifications' %}">
+                                <div class="sb-nav-link-icon"><i class="fas fa-bell"></i></div>
+                                Notifications
+                            </a>
+                            <a class="nav-link" href="{% url 'borrower_profile' %}">
+                                <div class="sb-nav-link-icon"><i class="fas fa-table"></i></div>
+                                My Profile
+                            </a>
+                        </div>
+                    </div>
+                    <div class="sb-sidenav-footer">
+                        <div class="small">Logged in as:</div>
+                        {{ user.username }}
+                    </div>
+                </nav>
+
+
+                <style>
+                    .active-link {
+                    border-left: 4px solid #007bff; /* Blue left border */
+                    background-color: #f0f8ff;      /* Light blue background */
+                    font-weight: bold;
+                    color: #007bff !important;
+                }
+                </style>

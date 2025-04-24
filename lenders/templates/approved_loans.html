@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+	<h2 class="mb-4">✅ Approved Loans</h2>
+	{% if approved_loans %}
+		<table class="table table-hover">
+			<thead>
+				<tr>
+					<th>Borrower</th>
+					<th>Amount</th>
+					<th>Monthly Installment</th>
+					<th>Total Repayable</th>
+					<th>Status</th>
+					<th>Payment History</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for loan in approved_loans %}
+					<tr>
+						<td>{{ loan.borrower.user.username }}</td>
+						<td>R{{ loan.loan_amount }}</td>
+						<td>R{{ loan.monthly_installment }}</td>
+						<td>R{{ loan.total_repayable }}</td>
+						<td><span class="badge bg-success">Approved</span></td>
+						<td><a href="{% url 'my-borrower-payment-history' loan.id %}" class="btn btn-sm btn-outline-primary">View</a></td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	{% else %}
+		<p>No approved loans found.</p>
+	{% endif %}
+</div>
+{% endblock %}
+
+

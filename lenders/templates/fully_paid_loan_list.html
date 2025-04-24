@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+    <!-- Begin Page Content -->
+    <div class="container-fluid">
+
+     <h1>Rejected Loans</h1>
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Loan ID</th>
+                    <th>Borrower</th>
+                    <th>Loan Amount</th>
+                    <th>Total Repayable</th>
+                    <th>Outstanding Balance</th>
+                    <th>Months Left:</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for loan in paid_loans %}
+                <tr>
+                    <td>{{ loan.id }}</td>
+                    <td>{{ loan.borrower.full_name }}</td>
+                    <td>R{{ loan.loan_amount }}</td>
+                    <td>R{{ loan.total_repayable }}</td>
+                    <td>{{ outstanding_balance }}</td>
+                    <td>{{ months_left }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+    <!-- /.container-fluid -->
+
+{% endblock %}

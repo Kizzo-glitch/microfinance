@@ -1,0 +1,269 @@
+{% extends 'borrower_base.html' %}
+{% load static %}
+{% load custom_filters %}
+{% load loan_extras %}
+
+
+{% block content %}
+
+                <div class="container mt-5">
+                    <div class="card shadow">
+                        <div class="card-header bg-secondary text-white">
+                            <h2 class="card-title mb-0">{{ lender.company_name }}</h2>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong>Address:</strong> {{ lender.office_address }}
+                            </p>
+                            <p class="card-text">
+                                <strong>Interest Rate:</strong> {{ lender.interest_rate }}%
+                            </p>
+                            <p class="card-text">
+                                <strong>Minimum Loan:</strong> M{{ lender.min_loan }}
+                            </p>
+                            <p class="card-text">
+                                <strong>Maximum Loan:</strong> M{{ lender.max_loan }}
+                            </p>
+                            <p class="card-text">
+                                <strong>Contact:</strong> {{ lender.phone_number }}
+                            </p>
+                            <p class="card-text">
+                                <strong>Missed Payment Policy:</strong> {{ lender.missed_payment_policy }}
+                            </p>
+
+                             <p>Average Rating: 
+                                <span>
+                                    {% for _ in rating_range %}
+                                        <i class="fas fa-star"style="color:blue"></i>
+                                    {% endfor %}
+                                    {% if rating_range|length == 0 %}
+                                        No ratings yet
+                                    {% endif %}
+                                </span>
+                            </p>
+
+                        
+                            <br>
+
+                            
+                        </div>
+                    </div>
+                     <br>
+
+                    <div class="card shadow">
+                        <div class="card-body">
+                        <!-- Display ratings -->
+                        <div class="card-header bg-secondary text-white">
+                            <!--<h5>My Rating:</h5>
+                            {% if existing_rating %}
+                                <p>I gave {{ lender.company_name }}: {{ existing_rating.rating }} ★s</p>
+                            {% else %}
+                                <p>I have not rated this lender yet.</p>
+                            {% endif %}-->
+                            <h5>My Rating:</h5></div><br>
+                            <ul>
+                                <!--<{% for rating in ratings %}
+                                    <li>I gave {{ rating.lender.company_name }}: {{ rating.rating }} ★s</li>
+                                {% empty %}
+                                    <li>No ratings available for this lender.</li>
+                                {% endfor %}-->
+                                {% if existing_rating %}
+                                <p>You Last Rated {{ lender.company_name }}: {{ existing_rating.rating }} <i class="fas fa-star"style="color:blue"></i>s</p>
+                            {% else %}
+                                <p>You have not rated this lender yet.</p>
+                            {% endif %}
+                            </ul>
+                            <div class="card-header bg-secondary text-white">
+
+                            <h5>Rate The Lender</h5></div><br>
+                            {% if user.is_authenticated %}
+                                <form method="post">
+                                    {% csrf_token %}
+                                    {{ form.as_p }}
+                                    <button type="submit" class="btn btn-primary">
+                                        {% if existing_rating %}
+                                            Update Rating
+                                        {% else %}
+                                            Submit Rating
+                                        {% endif %}
+                                    </button>
+                                </form>
+                                {% if existing_rating %}
+                                    <p class="text-muted mt-2">You rated this lender: {{ existing_rating.rating }} Stars</p>
+                                {% endif %}
+                            {% else %}
+                                <p class="text-danger">You must <a href="{% url 'login' %}">log in</a> to rate this lender.</p>
+                            {% endif %}
+                            <br><br>
+                            <center>
+                            <!-- From Uiverse.io by Madflows --> 
+                            <!--<button alt="Apply for Loan" class="button" onclick="window.location.href='{% url 'loan_application' %}?'">
+                              <span class="button-content">
+                                <i class="fas fa-arrow-right"></i> Apply for Loan
+                              </span>
+                            </button>-->
+
+
+                            <!-- From Uiverse.io by gharsh11032000 --> 
+                            <button class="animated-button" onclick="window.location.href='{% url 'loan-calculator' %}?'">
+                              <svg viewBox="0 0 24 24" class="arr-2" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                  d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"
+                                ></path>
+                              </svg>
+                              <span class="text">Apply from this Lender</span>
+                              <span class="circle"></span>
+                              <svg viewBox="0 0 24 24" class="arr-1" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                  d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"
+                                ></path>
+                              </svg>
+                            </button>
+
+
+                            <!--<a href="{% url 'loan_application' %}" class="btn btn-secondary mt-3">
+                                <i class="fas fa-arrow-right"></i> Apply for Loan
+                            </a>-->
+
+                        </center>                       
+                            <br>
+                    </div>
+                    </div>
+                </div>
+
+                <style>
+                    /* From Uiverse.io by Madflows */ 
+                    .button {
+                      position: relative;
+                      overflow: hidden;
+                      height: 3rem;
+                      padding: 0 2rem;
+                      border-radius: 1.5rem;
+                      background: #3d3a4e;
+                      background-size: 400%;
+                      color: #fff;
+                      border: none;
+                      cursor: pointer;
+                    }
+
+                    .button:hover::before {
+                      transform: scaleX(1);
+                    }
+
+                    .button-content {
+                      position: relative;
+                      z-index: 1;
+                    }
+
+                    .button::before {
+                      content: "";
+                      position: absolute;
+                      top: 0;
+                      left: 0;
+                      transform: scaleX(0);
+                      transform-origin: 0 50%;
+                      width: 100%;
+                      height: inherit;
+                      border-radius: inherit;
+                      background: linear-gradient(
+                        82.3deg,
+                        rgba(150, 93, 233, 1) 10.8%,
+                        rgba(99, 88, 238, 1) 94.3%
+                      );
+                      transition: all 0.475s;
+                    }
+
+
+                    /* From Uiverse.io by gharsh11032000 */ 
+                    .animated-button {
+                      position: relative;
+                      display: flex;
+                      align-items: center;
+                      gap: 4px;
+                      padding: 16px 36px;
+                      border: 4px solid;
+                      border-color: transparent;
+                      font-size: 16px;
+                      background-color: inherit;
+                      border-radius: 100px;
+                      font-weight: 600;
+                      color: green;
+                      box-shadow: 0 0 0 2px green;
+                      cursor: pointer;
+                      overflow: hidden;
+                      transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+                    }
+
+                    .animated-button svg {
+                      position: absolute;
+                      width: 24px;
+                      fill: green;
+                      z-index: 9;
+                      transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+                    }
+
+                    .animated-button .arr-1 {
+                      right: 16px;
+                    }
+
+                    .animated-button .arr-2 {
+                      left: -25%;
+                    }
+
+                    .animated-button .circle {
+                      position: absolute;
+                      top: 50%;
+                      left: 50%;
+                      transform: translate(-50%, -50%);
+                      width: 20px;
+                      height: 20px;
+                      background-color: greenyellow;
+                      border-radius: 50%;
+                      opacity: 0;
+                      transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+                    }
+
+                    .animated-button .text {
+                      position: relative;
+                      z-index: 1;
+                      transform: translateX(-12px);
+                      transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+                    }
+
+                    .animated-button:hover {
+                      box-shadow: 0 0 0 12px transparent;
+                      color: #212121;
+                      border-radius: 12px;
+                    }
+
+                    .animated-button:hover .arr-1 {
+                      right: -25%;
+                    }
+
+                    .animated-button:hover .arr-2 {
+                      left: 16px;
+                    }
+
+                    .animated-button:hover .text {
+                      transform: translateX(12px);
+                    }
+
+                    .animated-button:hover svg {
+                      fill: #212121;
+                    }
+
+                    .animated-button:active {
+                      scale: 0.95;
+                      box-shadow: 0 0 0 4px greenyellow;
+                    }
+
+                    .animated-button:hover .circle {
+                      width: 220px;
+                      height: 220px;
+                      opacity: 1;
+                    }
+
+
+                </style>
+                    
+{% endblock %}

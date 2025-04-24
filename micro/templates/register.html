@@ -1,0 +1,88 @@
+{% extends 'micro_base.html' %}
+{% load static %}
+
+{% block content %}
+        
+            <div class="container mt-5">
+                <h2 class="text-center">Register As Borrower OR Lender</h2>
+                <form method="post" action="{% url 'register' %}">
+                    {% csrf_token %}
+
+
+                    {% for field in form %}
+                        {% if field.name != 'role' %}
+                            <div class="mb-3">
+                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                    <div class="form-text">{{ field.help_text }}</div>
+                                {% endif %}
+                                {% for error in field.errors %}
+                                    <div class="text-danger">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Custom rendering for Role field -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold d-block">Registering as (Please Make sure you register for the correct ROLE):</label>
+                        <div class="role-option-container">
+                            <label class="role-option" for="id_role_0">
+                                <input type="radio" name="role" id="id_role_0" value="lender" required>
+                                <span class="role-label">Lender<br><small class="text-muted">Provide loans to borrowers</small></span>
+                            </label>
+
+                            <label class="role-option" for="id_role_1">
+                                <input type="radio" name="role" id="id_role_1" value="borrower" required>
+                                <span class="role-label">Borrower<br><small class="text-muted">Apply for and manage loans</small></span>
+                            </label>
+                        </div>
+                    </div>
+
+
+                    <!--{{ form.as_p }}-->
+                    <button type="submit" class="btn btn-primary">Sign Up</button>
+                </form>
+            </div>
+        <style>
+             .role-option-container {
+                display: flex;
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+                justify-content: center;
+            }
+
+            .role-option {
+                flex: 1;
+                border: 2px solid #dee2e6;
+                border-radius: 8px;
+                padding: 1rem;
+                text-align: center;
+                background-color: #f8f9fa;
+                cursor: pointer;
+                transition: all 0.3s ease-in-out;
+            }
+
+            .role-option:hover {
+                background-color: #e9ecef;
+                border-color: #0d6efd;
+            }
+
+            .role-option input[type="radio"] {
+                margin-right: 0.5rem;
+                vertical-align: middle;
+            }
+
+            .role-option input[type="radio"]:checked + .role-label {
+                color: #0d6efd;
+                font-weight: bold;
+            }
+
+            .role-label {
+                display: inline-block;
+                vertical-align: middle;
+            }
+        </style>   
+
+{% endblock %}

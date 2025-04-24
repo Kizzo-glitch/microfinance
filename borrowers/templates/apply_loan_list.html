@@ -1,0 +1,23 @@
+{% extends 'borrower_base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-3">Choose a Lender to Apply for a Loan</h2>
+    <div class="row">
+        {% for lender in lenders %}
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm p-3 rounded bg-light">
+                    <h4 class="text-dark">{{ lender.company_name }}</h4>
+                    <p>Interest Rate: {{ lender.interest_rate }}%</p>
+                    <p>Contact: {{ lender.phone_number }}</p>
+                    <p>Address: {{ lender.office_address }}</p>
+                    <a href="{% url 'lender_details' lender.id %}" class="btn btn-outline-primary btn-sm">View Details</a>
+                    <br>
+                    <a href="{% url 'apply-loan' %}" class="btn btn-primary btn-sm">Apply for Loan</a>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+

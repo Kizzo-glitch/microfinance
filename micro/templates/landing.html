@@ -1,0 +1,185 @@
+{% extends 'micro_base.html' %}
+{% load static %}
+
+{% block content %}
+
+
+
+        <!-- Header-->
+        <header class="cta text-white text-center py-5">
+            <div class="container">
+                <h1 class="fw-light fw-bold">Welcome to Fedha-Grow</h1>
+                <p class="lead">Connecting Borrowers and Lenders Seamlessly.</p>
+                <div class="d-flex justify-content-center">
+                    {% if user.role == 'borrower' %}
+                    <a href="{% url 'borrower_index' %}" class="btn btn-light btn-lg text-primary me-3">Go to DashBoard</a>
+                    &nbsp;
+                        {% else %}
+                        <button alt="Go to Dashboard" onclick="window.location.href='{% url 'lender_index' %}?'"> 
+                          <i>g</i>
+                          <i>o</i>
+                          <i>&nbsp;</i>
+                          <i>t</i>
+                          <i>o</i>
+                          <i>&nbsp;</i>
+                          <i>D</i>
+                          <i>a</i>
+                          <i>s</i>
+                          <i>h</i>
+                          <i>b</i>
+                          <i>o</i>
+                          <i>a</i>
+                          <i>r</i>
+                          <i>d</i>
+                        </button>
+                    <!--<a href="{% url 'lender_index' %}?" class="btn btn-outline-light btn-lg">Go to DashBoard</a>-->
+                    {% endif %}
+                    
+                </div>
+            </div>
+        </header>
+        <br><br>
+        
+        <!--<header class="py-5">
+            <div class="container px-lg-5">
+                <div class="p-4 p-lg-5 bg-light rounded-3 text-center">
+                    <div class="m-4 m-lg-5">
+                        <h1 class="display-5 fw-bold">A warm welcome!</h1>
+                        <p class="fs-4">Bootstrap utility classes are used to create this jumbotron since the old component has been removed from the framework. Why create custom CSS when you can use utilities?</p>
+                        <a class="btn btn-primary btn-lg" href="#!">Call to action</a>
+                    </div>
+                </div>
+            </div>
+        </header>-->
+
+        <!-- Page Content-->
+
+        <section class="pt-4">
+            <div class="container px-lg-5">
+                <!-- Page Features-->
+                <div class="row gx-lg-5">
+                    <div class="col-lg-6 col-xxl-4 mb-5">
+                        <div class="card border-left-success shadow bg-faded border-0 h-100">
+                            <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
+                                <div class="feature bg-brown bg-gradient text-white rounded-3 mb-4 mt-n4"><i class="bi bi-collection"></i></div>
+                                <h2 class="fs-4 fw-bold text-success">Fast Loan Approval</h2>
+                                <p class="mb-0">Get access to funds quickly with our seamless application process.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-xxl-4 mb-5">
+                        <div class="card border-left-info shadow bg-faded border-0 h-100">
+                            <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
+                                <div class="feature bg-brown bg-gradient text-white rounded-3 mb-4 mt-n4"><i class="bi bi-cloud-download"></i></div>
+                                <h2 class="fs-4 fw-bold text-info">Competitive Interest Rates</h2>
+                                <p class="mb-0">Flexible rates tailored to meet borrower and lender expectations.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-xxl-4 mb-5">
+                        <div class="card border-left-primary shadow bg-light border-0 h-100">
+                            <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
+                                <div class="feature bg-brown bg-gradient text-white rounded-3 mb-4 mt-n4"><i class="bi bi-card-heading"></i></div>
+                                <h2 class="fs-4 fw-bold text-primary">Secure Transactions</h2>
+                                <p class="mb-0">Your data and transactions are safe with state-of-the-art encryption.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-xxl-4 mb-5">
+                        <div class="card border-left-primary shadow bg-light border-0 h-100">
+                            <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
+                                <div class="feature bg-brown bg-gradient text-white rounded-3 mb-4 mt-n4"><i class="bi bi-bootstrap"></i></div>
+                                <h2 class="fs-4 fw-bold text-primary">Business Model Optimisation</h2>
+                                <p class="mb-0">We analyse the business models to best suit both the lenders and the borrowers.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-xxl-4 mb-5">
+                        <div class="card border-left-warning shadow bg-light border-0 h-100">
+                            <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
+                                <div class="feature bg-brown bg-gradient text-white rounded-3 mb-4 mt-n4"><i class="bi bi-code"></i></div>
+                                <h2 class="fs-4 fw-bold text-warning">High Risk Analysis</h2>
+                                <p class="mb-0">We keep your money safe by flagging high risk clients.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-xxl-4 mb-5">
+                        <div class="card border-left-warning shadow bg-light border-0 h-100">
+                            <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
+                                <div class="feature bg-brown bg-gradient text-white rounded-3 mb-4 mt-n4"><i class="bi bi-patch-check"></i></div>
+                                <h2 class="fs-4 fw-bold text-warning">Seamless Data Capturing</h2>
+                                <p class="mb-0">We make sure data is thoroughly and correctly updated.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="how-it-works">
+            <div class="container">
+                <div class="card shadow">
+                    <div class="card-header cta text-white">
+                        <h2 class="text-center mb-4">How It Works</h2>
+                    </div>
+                    <div class="card-body">
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h4 class="fs-4 fw-bold text-primary">For Borrowers</h4>
+                        <ul>
+                            <li>Register and complete your profile.</li>
+                            <li>Upload the required documents</li>
+                            <li>Apply for a loan with flexible terms.</li>
+                            <li>Receive funds directly to your account.</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h4 class="fs-4 fw-bold text-primary">For Lenders</h4>
+                        <ul>
+                            <li>Create an account and set your interest rates.</li>
+                            <li>Review borrower applications.</li>
+                            <li>Earn returns on your investments.</li>
+                            <li>Review risky clients and protect your business</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            </div>
+            </div>
+        </section>
+
+        <br>
+
+        <section id="testimonials" class="bg-faded py-5">
+            <div class="container">
+                <h2 class="text-center mb-4 text-primary">What Our Users Say</h2>
+                <div class="row">
+                    <div class="col-md-4">
+                        <blockquote class="blockquote">
+                            <p class="mb-0">"This platform made it easy for me to get the funds I needed for my small business."</p>
+                            <br>
+                            <footer class="blockquote-footer">Jane, Borrower</footer>
+                        </blockquote>
+                    </div>
+                    <div class="col-md-4">
+                        <blockquote class="blockquote">
+                            <p class="mb-0">"Investing with this platform has been a profitable and secure experience."</p>
+                            <br>
+                            <footer class="blockquote-footer">John, Lender</footer>
+                        </blockquote>
+                    </div>
+                    <div class="col-md-4">
+                        <blockquote class="blockquote">
+                            <p class="mb-0">"I appreciate how transparent and user-friendly this app is."</p>
+                            <br>
+                            <footer class="blockquote-footer">Emma, Borrower</footer>
+                        </blockquote>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+         <!-- EndPage Content-->
+
+{% endblock %}

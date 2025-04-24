@@ -1,0 +1,40 @@
+{% extends 'borrower_base.html' %}
+{% load static %}
+
+{% block content %}
+      
+      <div class="container mt-4">
+        <h2>Record a Payment</h2>
+        <p>Loan ID: {{ loan.id }} | Total Repayable: R{{ loan.total_repayable }}</p>
+        <p>Monthly Installments: R{{ loan.monthly_installment }}</p>
+        <p>Outstanding balance: R{{ loan.outstanding_balance }}</p>
+        
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-success">Submit Payment</button>
+        </form>
+
+        <a href="{% url 'loan-details' loan.id %}" class="btn btn-secondary mt-3">Back to Loan Details</a>
+    </div>
+         
+         <style>
+        .form-control::placeholder {
+            color: #999;
+            font-style: italic;
+           
+        }
+      
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+    </style>
+
+           
+
+    <br><br><br><br><br><br><br><br><br><br><br><br>
+ 
+{% endblock %}
+   

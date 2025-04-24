@@ -1,0 +1,114 @@
+{% extends 'borrower_base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Summary Active Loans</h2>
+
+    {% if active_loans %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Lender</th>
+                        <th>Amount</th>
+                        <th>Interest Rate</th>
+                        <th>Total Repayable</th>
+                        <th>Outstanding Balance</th>
+                        <th>Loan Term</th>
+                        <th>Due Date</th>
+                        <th>Progress</th>
+                        <th>History</th>
+                        
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for loan in active_loans %}
+                        <tr>
+                            <td>{{ loan.lender.company_name }}</td>
+                            <td>R {{ loan.amount }}</td>
+                            <td>{{ loan.interest_rate }}%</td>
+                            <td>R {{ loan.total_repayable }}</td>
+                            <td>R {{ loan.outstanding_balance }}</td>
+                            <td>{{ loan.loan_term }} months</td>
+                            <td>{{ loan.due_date|date:"M d, Y" }}</td>
+                            <td>
+                                <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar" role="progressbar"
+                                     style="width: {{ loan.progress_percent }}%;"
+                                     aria-valuenow="{{ loan.progress_percent }}" aria-valuemin="0" aria-valuemax="100">
+                                    {{ loan.progress_percent }}%
+                                </div>
+                            </div>
+                                </td>
+                            <td>
+                                <a href="{% url 'loan-details' loan.id %}" class="btn btn-details">View</a>
+                            </td>
+
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">You don’t have any active loans at the moment.</div>
+    {% endif %}
+<br>
+    <h2 class="mb-4">Detailed Active Loans View</h2>
+
+    {% for loan in active_loans %}
+    <div class="card mb-4 p-3 shadow-sm">
+         <h5>Loan #{{ loan.id }} - R{{ loan.amount }}</h5>
+        <p><strong>Total Repayable:</strong> R{{ loan.total_repayable }}</p>
+        <p><strong>Outstanding Balance:</strong> R{{ loan.outstanding_balance }}</p>
+        <p><strong>Monthly Installment:</strong> R{{ loan.monthly_installment }}</p>
+        <p><strong>Loan Approval Date:</strong></p>
+
+        <p>
+          <strong>First Payment Due:</strong> 
+          {{ loan.first_payment_date }}
+          {% if loan.is_first_payment_overdue %}
+            <span class="badge bg-danger">Overdue</span>
+          {% else %}
+            <span class="badge bg-success">{{ loan.days_until_first_payment }} days left</span>
+          {% endif %}
+        </p>
+        <p><strong>Next Expected Payment:</strong> {{ loan.next_payment_date|date:"F j, Y" }}</p>
+
+        <div class="alert alert-info">
+            <p>Expected Payment This Month (Based On Lender's Recalculation Policy On Skipped Payments): <strong>R{{ adjusted_payment }}</strong></p>
+        </div>
+
+
+        <div class="mt-3">
+          <h5>Monthly Payment Status</h5>
+          <ul class="list-group">
+            {% for month in loan.monthly_status %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ month.month }}
+                {% if month.status == "Paid" %}
+                  <span class="badge bg-success">{{ month.status }}</span>
+                {% else %}
+                  <span class="badge bg-danger">{{ month.status }}</span>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <!-- Progress Bar -->
+        <strong>Payment Progress:</strong><div class="progress mb-2" style="height: 25px;">
+            <div class="progress-bar {{ loan.progress_color }}" role="progressbar"
+                 style="width: {{ loan.progress_percent }}%;"
+                 aria-valuenow="{{ loan.progress_percent }}" aria-valuemin="0" aria-valuemax="100">
+                {{ loan.progress_percent }}%
+            </div>
+        </div>
+
+        <a class="btn btn-outline-primary" href="{% url 'loan-details' loan.id %}">View History</a>
+    </div>
+{% empty %}
+    <p>No Detailed Active Loans.</p>
+{% endfor %}
+
+</div>
+{% endblock %}

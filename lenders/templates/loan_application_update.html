@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+        <!-- Begin Page Content -->
+        <div class="container-fluid">
+         <center>
+            <h1>Review Loan Application</h1>
+         </center>
+
+            <h2>Borrower Information</h2>
+            <!--<p><strong>Name:</strong> {{ borrower.full_name }}</p>
+            <p><strong>Marital Status:</strong> {{ marital_status }}</p>
+            <p><strong>Income Amount:</strong> R{{ income_amount }}</p>-->
+            <div class="card shadow">
+             <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Borrower</th>
+                        <th>Title</th>
+                        <th>Marital Status</th>
+                        <th>Date of Birth</th>
+                        <th>Phone Number</th>
+                        <th>Email Address</th>                           
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>{{ borrower.full_name }}</td>
+                        <td>{{ borrower.title }}</td>
+                        <td>{{ borrower.marital_status }}</td> 
+                        <td>{{ borrower.date_of_birth }}</td> 
+                        <td>{{ borrower.phone_number }}</td> 
+                        <td>{{ borrower.email_address }}</td>                 
+                    </tr>
+                  
+                </tbody>
+            </table>
+            </div> 
+            <br>
+            <div class="card shadow">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Identity Number</th>
+                        <th>Home Address</th>
+                        <th>Work Address</th>
+                        <th>Pay Day</th>
+                        <th>Type of Income</th>
+                                                  
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>{{ borrower.id_number }}</td>
+                        <td>{{ borrower.home_address }}</td>
+                        <td>{{ borrower.employer_address }}</td> 
+                        <td>{{ borrower.pay_day }}</td> 
+                        <td>{{ borrower.income_type }}</td> 
+                                    
+                    </tr>
+                  
+                </tbody>
+            </table>
+            </div>
+            <br>
+
+            <div class="card shadow">
+                 <center> 
+            {% if overdue_loans > 0 %}
+                <p class="text-danger"><strong>Warning:</strong> This Borrower has {{ overdue_loans }} overdue loans!</p>
+            {% elif outstanding_loans > 0 %}
+                <p class="text-warning" style="font-size:18px"><strong>Note:</strong> This Borrower already has {{ outstanding_loans }} outstanding loans.</p>
+            {% else %}
+                <p class="text-success"><strong>No Issues:</strong> Borrower has no outstanding loans.</p>
+            {% endif %}
+            </center>  
+            </div>
+            <br>
+
+            <h2>Loan Details</h2>
+            <div class="card shadow">
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Loan Amount:</th>
+                        <th>Loan Term:</th>
+                        <th>First Payment:</th>
+                        <th>Monthly Installment:</th>
+                        <th>Total Repayable:</th>
+                                                  
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>R{{ loan_amount }}</td>
+                        <td>{{ loan_term }} months</td>
+                        <td>R{{ first_payment }}</td> 
+                        <td>R{{ monthly_installment }}</td> 
+                        <td>R{{ total_repayable }}</td> 
+                                    
+                    </tr>
+                  
+                </tbody>
+            </table>
+            </div>
+            <br> 
+            <!--<p><strong>Loan Amount:</strong> R{{ loan_amount }}</p>
+            <p><strong>Loan Term:</strong> {{ loan_term }} months</p>
+            
+            <p><strong>First Payment:</strong> R{{ first_payment }}</p>
+            <p><strong>Monthly Installment:</strong> R{{ monthly_installment }}</p>
+            <p><strong>Total Repayable:</strong> R{{ total_repayable }}</p>-->
+
+        <!--<form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Save</button>
+        </form>-->
+        <center>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-success btn-icon-split">
+                <span class="icon text-white-50">
+                    <i class="fas fa-save"></i> <!-- Font Awesome Save Icon -->
+                </span>
+                <span class="text">Approve/Reject Loan</span>
+            </button>
+        </form>
+        </center>
+
+        </div>
+        <!-- /.container-fluid -->
+        
+   
+{% endblock %}

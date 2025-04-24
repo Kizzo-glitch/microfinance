@@ -1,0 +1,391 @@
+{% extends 'micro_base.html' %}
+{% load static %}
+
+{% block content %}
+        
+    <div class="container">
+        <h1>My Profile Information</h1>
+        <br><br>
+
+        <form method="POST" action="{% url 'lender_profile' %}">
+            {% csrf_token %}
+            <div class="border">
+                <center>
+            <h4>Business Information</h4>
+            </center>
+
+            <div class="row mb-3" style="padding: 0 20px;">
+                <div class="col-md-4">
+                     <label for="company_name">Company Name</label>
+                    <!--<label for="nameMiddle" class="form-label">Name of Business</label>
+                    <input type="text" class="form-control" id="nameMiddle">-->
+                    {{ form.company_name }}
+                </div>
+                
+                <div class="col-md-4">
+                     <label for="ceo_first_name">CEO's First Name</label>
+                    <!--<label for="nameLast" class="form-label">CEO First Name</label>
+                    <input type="text" class="form-control" id="nameLast">-->
+                    {{ form.ceo_first_name }}
+                </div>
+                <div class="col-md-4">
+                    <label for="ceo_first_name">CEO's Last Name</label>
+                    <!--<label for="nameFirst" class="form-label">CEO Last Name</label>
+                    <input type="text" class="form-control" id="nameFirst">-->
+                    {{ form.ceo_last_name }}
+                </div>
+                
+            </div>
+
+            <div class="row mb-3" style="padding: 0 20px;">
+                <div class="col-md-4">
+                    <label for="business_email_ddress">Business Email Address</label>
+                    <!--<label for="nameLast" class="form-label">Email Address</label>
+                    <input type="text" class="form-control" id="nameLast">-->
+                    {{ form.business_email_ddress }}
+                </div>
+               
+                <div class="col-md-4">
+                    <label for="date_of_stablishment">Date of Establishment</label>
+                    <!--<label for="date" class="form-label">Date of Establishment</label>
+                    <input type="date" class="form-control" id="date">-->
+                    {{ form.date_of_stablishment }}
+                </div>
+
+                <div class="col-md-4">
+                    <label for="phone_number">Phone Number</label>
+                    <!--<label for="nameMiddle" class="form-label">Business Number</label>
+                    <input type="text" class="form-control" id="nameMiddle">-->
+                    {{ form.phone_number }}
+                </div>
+            </div>
+
+            <div class="row mb-3" style="padding: 0 20px;">
+                <div class="col-md-4">
+                    <label for="min_loan">Minimun Loan Amount</label>
+                    <!--<label for="nameLast" class="form-label">Minimum Loan</label>
+                    <input type="text" class="form-control" id="nameLast">-->
+                    {{ form.min_loan }}
+                </div>
+                <div class="col-md-4">
+                    <label for="max_loan">Maximum Loan Amount</label>
+                    <!--<label for="nameFirst" class="form-label">Maximum Loan</label>
+                    <input type="text" class="form-control" id="nameFirst">-->
+                    {{ form.max_loan }}
+                </div>
+                <div class="col-md-4">
+                    <label for="interest_rate">Interest Rate</label>
+                    <!--<label for="nameMiddle" class="form-label">Interest Rate</label>
+                    <input type="text" class="form-control" id="nameMiddle">-->
+                    {{ form.interest_rate }}
+                </div>
+            </div>
+
+            
+
+            <div class="mb-3" style="padding: 0 20px;">
+                <label for="office_address">Office Address</label>
+                <!--<label for="businessName" class="form-label">Business Address </label>
+                <input type="text" class="form-control" id="businessName">-->
+                {{ form.office_address }}
+            </div>
+
+            
+            </div>
+
+            <br>
+            <div class="border">
+                <center>
+            <h4>Legal Information</h4>
+            </center>
+            <div class="row mb-3" style="padding: 0 20px;">
+            <div class="col-md-4">
+                <label for="registration_no">Registration Number</label>
+                    <!--<label for="nameMiddle" class="form-label">Business Registration Number</label>
+                    <input type="text" class="form-control" id="nameMiddle">-->
+                    {{ form.registration_no }}
+                </div>
+                
+            
+            <div class="col-md-4">
+                <label for="licence_no">Licence Number</label>
+                    <!--<label for="nameMiddle" class="form-label">License Number</label>
+                    <input type="text" class="form-control" id="nameMiddle">-->
+                    {{ form.licence_no }}
+                </div>
+                
+
+            
+                <div class="col-md-4">
+                    <label for="ownership">Ownership</label>
+                  {{ form.ownership }}
+                    
+                    <!--<label for="nameFirst" class="form-label">Ownership</label>
+                    <select class="form-select" id="select{{form.ownership}}">
+                        
+                      <option selected>Ownership</option>
+                      <option value="1">Sole Proprietorship</option>
+                      <option value="2">Partnership</option>
+                      <option value="3">Limited Liability Company</option>
+                      <option value="3">Coorporation</option>
+                      <option value="3">Coorperative</option>
+                    </select>-->
+
+                    <br>
+                </div>
+
+            </div>           
+            </div>
+
+            <br>
+            <div class="border">
+                <center>
+            <h4>Regulatory Compliance</h4>
+            </center>
+
+            <div class="row mb-3" style="padding: 0 20px;">
+                <div class="col-md-4">
+                    <label for="regulatory_body_name">Regulatory Body Name</label>
+                    <!--<label for="nameLast" class="form-label">Regulatory Body Name</label>
+                    <input type="text" class="form-control" id="nameLast">-->
+                    {{ form.regulatory_body_name }}
+                </div> 
+           
+
+            
+                <div class="col-md-4">
+                    <label for="regulatory_body_no">Regulatory Body Number</label>
+                    <!--<label for="nameLast" class="form-label">Regulatory Body Number</label>
+                    <input type="text" class="form-control" id="nameLast">-->
+                    {{ form.regulatory_body_no }}
+                </div> 
+            
+
+            
+                <div class="col-md-4">
+                    <label for="kyc_policy_implementation">KYC Policy Implementation</label>
+                    {{ form.kyc_policy_implementation }}
+
+                    <!--<label for="nameFirst" class="form-label">KYC Policy Implementation</label>
+                    <select class="form-select" aria-label="Default select example">
+                        
+                      <option selected>Select</option>
+                      <option value="1">Yes</option>
+                      <option value="2">No</option>                     
+                    </select>-->
+
+                    <br>
+                </div>
+          
+                <br>
+            
+                <div class="col-md-4">
+                    <label for="aml_policy_implementation">AML Policy Implementation</label>
+                    {{ form.aml_policy_implementation }}
+                    <!--<label for="nameFirst" class="form-label">AML Policy Implementation</label>
+                    <select class="form-select" aria-label="Default select example">
+                        
+                      <option selected>Select</option>
+                      <option value="1">Yes</option>
+                      <option value="2">No</option>                     
+                    </select>-->
+
+                    <br>
+                </div>
+           
+                <div class="col-md-4">
+                    <label for="data_protection_policy_implementation">Data Protection Policy Implementation</label>
+                    {{ form.data_protection_policy_implementation }}
+                    <!--<label for="nameFirst" class="form-label">Data Protection Policy Implementation</label>
+                    <select class="form-select" aria-label="Default select example">
+                        
+                      <option selected>Select</option>
+                      <option value="1">Yes</option>
+                      <option value="2">No</option>                     
+                    </select>-->
+
+                    <br>
+                </div>
+            
+
+            </div>
+            </div>
+
+            <br>
+            <div class="border">
+                <center>
+            <h4>Business Tax Compliance</h4>
+            </center>
+
+            <div class="mb-3" style="padding: 0 20px;">
+                <div class="col-md-4">
+                    <label for="tax_number">Tax Number</label>
+                {{ form.tax_number }}
+                <!--<label for="businessName" class="form-label">Tax Number</label>
+                <input type="text" class="form-control" id="businessName">-->
+                
+            </div>          
+            </div>
+            </div>
+
+             <br>
+            
+            <div class="border">
+                <center>
+            <h4>Staff</h4>
+            </center>
+
+            <div class="mb-3" style="padding: 0 20px;">
+                <div class="col-md-4">
+                    <label for="code_of_ethics">Code of Ethics</label>
+                    {{ form.code_of_ethics }}
+                    <!--<label for="nameFirst" class="form-label">Code of Ethics</label>
+                    <select class="form-select" aria-label="Default select example">
+                        {{ form.code_of_ethics }}
+                      <option selected>Select</option>
+                      <option value="1">Yes</option>
+                      <option value="2">No</option>                     
+                    </select>-->
+
+                    <br>
+                </div>
+            </div>          
+            </div>
+
+            <br>
+            <div class="border">
+                <center>
+            <h4>Industry Associations</h4>
+            </center>
+
+            <div class="row mb-3" style="padding: 0 20px;">
+                <div class="col-md-4">
+                    <label for="association_name">Association Name</label>
+                    {{ form.association_name }}
+                    <!--<label for="businessName" class="form-label">Association Name</label>
+                    <input type="text" class="form-control" id="businessName">-->
+                
+                </div> 
+
+                <div class="col-md-4">
+                    <label for="membership_no">Membership No</label>
+                    {{ form.membership_no }}
+                    <!--<label for="businessName" class="form-label">Membership Number</label>
+                    <input type="text" class="form-control" id="businessName">-->
+                    
+                </div> 
+
+            
+                <div class="col-md-4">
+                    <label for="benchmarking">Benchmarking</label>
+                    {{ form.benchmarking }}
+                    <!--<label for="nameFirst" class="form-label">Benchmarking</label>
+                    <select class="form-select" aria-label="Default select example">
+                        
+                      <option selected>Select</option>
+                      <option value="1">Yes</option>
+                      <option value="2">No</option>                     
+                    </select>-->
+                    <br>                
+                </div>
+
+            </div>
+            </div>
+
+             <br>
+            <div class="border">
+                <center>
+            <h4>Monitoring</h4>
+            </center>
+
+            <div class="mb-3" style="padding: 0 20px;">
+                <div class="col-md-4">
+                    <label for="reporting">Reporting</label>
+                    {{ form.reporting }}
+                    <!--<label for="nameFirst" class="form-label">Reporting</label>
+                    <select class="form-select" aria-label="Default select example">
+                        
+                      <option selected>Select</option>
+                      <option value="1">Yes</option>
+                      <option value="2">No</option>                     
+                    </select>-->
+
+                    <br>
+                </div>
+            </div>          
+            </div>
+            <br>
+
+            <div class="border">
+                <center>
+            <h4>Lending Policy</h4>
+            </center>
+
+            <div class="mb-3" style="padding: 0 20px;">
+                <div class="col-md-4">
+                    <label for="reporting">Missed Payments Recalculations</label>
+                    {{ form.missed_payment_policy }}
+                    <!--<label for="nameFirst" class="form-label">Reporting</label>
+                    <select class="form-select" aria-label="Default select example">
+                        
+                      <option selected>Select</option>
+                      <option value="1">Yes</option>
+                      <option value="2">No</option>                     
+                    </select>-->
+
+                    <br>
+                </div>
+            </div>          
+            </div>
+            <br><br>
+            <br>
+
+
+            <div class="form-check">
+                    {{ form.agrees_to_terms }}
+                    <label for="id_is_over_18" class="form-check-label">I hereby certify that the information contained herein is complete and accurate.</label>
+                </div>
+
+
+                <div class="form-check">
+                    {{ form.agrees_to_credit_conditions }}
+                    <label for="id_is_over_18" class="form-check-label">This information has been furnished with the understanding that it is to be used to fairly disburse loans to borrowers.</label>
+                </div>
+
+            
+            <!--<div class="mb-3">
+                <div class="form-check">
+                    {{ form.agrees_to_terms }}
+                    <input type="checkbox" class="form-check-input" id="checkbox1">
+                    <label class="form-check-label" for="checkbox1">I hereby certify that the information contained herein is complete and accurate.</label>
+                </div>
+                <div class="form-check">
+                    {{ form.agrees_to_terms }}
+                    <input type="checkbox" class="form-check-input" id="checkbox2">
+                    <label class="form-check-label" for="checkbox2">This information has been furnished with the understanding that it is to be used to fairly disburse loans to borrowers.</label>
+                </div>
+            </div>-->
+
+            
+            
+
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </form>
+         <br><br>
+    </div>
+
+    <style>
+        .form-control::placeholder {
+            color: #999;
+            font-style: italic;
+           
+        }
+      
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+    </style>
+
+ {% endblock %}

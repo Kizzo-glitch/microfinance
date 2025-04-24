@@ -1,0 +1,51 @@
+{% extends 'borrower_base.html' %}
+{% load static %}
+
+{% block content %}
+<h2>Record Payment for Loan #{{ loan.id }}</h2>
+
+<p>Loan ID: {{ loan.id }} | Total Repayable: R{{ loan.total_repayable }}</p>
+<p><strong>Monthly Payments:</strong> R{{ loan.monthly_installment }}</p>
+{% if adjusted_payment %}
+    <div class="alert alert-info">
+        Based on your missed payments, your adjusted expected payment is:
+        <strong>R{{ adjusted_payment }}</strong>
+    </div>
+{% endif %}
+
+
+<p><strong>Outstanding Balance:</strong> R{{ loan.outstanding_balance }}</p>
+
+{% if loan.outstanding_balance == 0 %}
+    <p class="text-success"><strong>This loan has been fully paid. No further payments are required.</strong></p>
+{% else %}
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="id_amount">Payment Amount:</label>
+            {{ form.amount }}
+        </div>
+        <br>
+        <div class="form-group">
+            <label for="id_payment_method">Payment Method:</label>
+            {{ form.payment_method }}
+        </div>
+        <br><br>
+        <button type="submit" class="btn btn-primary">Submit Payment</button>
+    </form>
+{% endif %}
+
+<a href="{% url 'loan-details' loan.id %}" class="btn btn-secondary mt-3">Back to Loan Details</a>
+
+<style>
+    .form-control::placeholder {
+        color: #999;
+        font-style: italic;
+    }
+    label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}

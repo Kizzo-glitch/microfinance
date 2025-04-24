@@ -1,0 +1,35 @@
+{% extends 'borrower_base.html' %}
+
+{% block content %}
+<h2 class="text-xl font-bold mb-4">Your Notifications</h2>
+
+<!-- Filter Tabs -->
+<div class="flex space-x-4 mb-4">
+  {% for label, value in filters %}
+    <a href="?filter={{ value }}" class="px-4 py-2 rounded-lg border 
+       {% if current_filter == value %}
+         bg-blue-600 text-white
+       {% else %}
+         bg-white text-gray-700 hover:bg-blue-100
+       {% endif %}">
+      {{ label }}
+    </a>
+  {% endfor %}
+</div>
+
+<!-- Notifications List -->
+<div class="space-y-4">
+  {% for note in notifications %}
+    <div class="p-4 rounded-md border shadow-sm 
+      {% if note.category == 'loan_approved' %}bg-green-100
+      {% elif note.category == 'loan_rejected' %}bg-red-100
+      {% elif note.category == 'loan_pending' %}bg-yellow-100
+      {% endif %}">
+      <p class="font-medium">{{ note.message }}</p>
+      <small class="text-gray-600">{{ note.timestamp|date:"M d, Y - H:i" }}</small>
+    </div>
+  {% empty %}
+    <p class="text-gray-500">No notifications to show.</p>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends 'borrower_base.html' %}
+{% load static %}
+
+{% block content %}
+
+        <div class="container">
+            <h1 class="mb-4">Upload These Required Documents</h1>
+
+
+                <form id="uploadForm" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <!-- ID Proof -->
+                    <div class="border p-3 mb-4">
+                        <div class="form-group">
+                            <label for="idProof" class="form-label">ID Proof:</label>
+                            {{ form.id_proof }}
+                            
+                            <!--<input type="file" name="id_proof" class="form-control" id="idProof" required>-->
+                        </div>
+                    </div>
+
+                    <!-- Bank Statement -->
+                    <div class="border p-3 mb-4">
+                        <div class="form-group">
+                            <label for="bankStatement" class="form-label">Bank Statement:</label>
+                            {{ form.bank_statement }}
+                            
+                            <!--<input type="file" name="bank_statement" class="form-control" id="bankStatement" required>-->
+                        </div>
+                    </div>
+
+                    <!-- Payslip -->
+                    <div class="border p-3 mb-4">
+                        <div class="form-group">
+                            <label for="payslip" class="form-label">Payslip:</label>
+                            {{ form.payslip }}
+                            
+                            <!--<input type="file" name="payslip" class="form-control" id="payslip" required>-->
+                        </div>
+                    </div>
+
+                    <!-- Chief's Letter -->
+                    <div class="border p-3 mb-4">
+                        <div class="form-group">
+                            <label for="chief_letter" class="form-label">Chief's Letter:</label>
+                            {{ form.chief_letter }}
+                            
+                            <!--<input type="file" name="chief_letter" class="form-control" id="chief_letter" required>-->
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="progress mb-4">
+                        <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <center>
+                    <button type="submit" class="btn btn-primary">Upload Documents</button>
+                    </center>
+                </form>
+
+                <div id="response" class="mt-3"></div>
+            </div>
+
+            <script>
+                
+                const form = document.getElementById('uploadForm');
+                const progressBar = document.querySelector('.progress-bar');
+                const responseDiv = document.getElementById('response');
+
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    const formData = new FormData(form);
+
+                    // Initialize progress
+                    progressBar.style.width = '0%';
+                    progressBar.textContent = '0%';
+
+                    fetch("{% url 'upload_documents' %}", {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: formData
+                    }).then(response => response.json())
+                      .then(data => {
+                          if (data.success) {
+                              progressBar.style.width = '100%';
+                              progressBar.textContent = '100%';
+                              responseDiv.innerHTML = `<div class="alert alert-success">${data.success}</div>`;
+                              setTimeout(() => {
+                                window.location.href = data.redirect_url;
+                                }, 2000);
+                          } else if (data.error) {
+                              responseDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                          }
+                      }).catch(error => {
+                          responseDiv.innerHTML = `<div class="alert alert-danger">An error occurred. Please try again later.</div>`;
+                      });
+                });
+
+                // Update progress bar dynamically based on file input
+                form.addEventListener('change', function () {
+                    const totalFiles = form.querySelectorAll('input[type="file"]').length;
+                    const uploadedFiles = Array.from(form.querySelectorAll('input[type="file"]')).filter(input => input.files.length > 0).length;
+                    const progress = Math.floor((uploadedFiles / totalFiles) * 100);
+
+                    progressBar.style.width = `${progress}%`;
+                    progressBar.textContent = `${progress}%`;
+                });
+            </script>
+
+           
+  <style>
+        .form-control::placeholder {
+            color: #999;
+            font-style: italic;
+           
+        }
+      
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+    </style>
+
+
+    <br><br><br><br><br><br><br><br><br><br><br><br>
+     
+   
+
+   {% endblock %}

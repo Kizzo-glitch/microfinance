@@ -1,0 +1,143 @@
+{% extends 'borrower_base.html' %}
+{% load static %}
+
+{% block content %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Calculator</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link href="{% static 'borrower/css/styles.css' %}" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f5f5f5; }
+        .container { max-width: 700px; margin: 50px auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); }
+        .loan-calculator h2 { font-size: 20px; }
+        .loan-amount-input { width: 100%; padding: 10px; font-size: 18px; }
+        .loan-terms { display: flex; justify-content: space-between; margin-top: 10px; }
+        .loan-terms button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; background-color: #ddd; }
+        .loan-terms button.active { background-color: #ff5733; color: white; }
+        .repayment-details { background-color: #f8f9fa; padding: 15px; border-radius: 10px; margin-top: 15px; }
+        .repayment-details h4 { font-size: 16px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!--<div class="loan-calculator">
+            <h2>How much do you need?</h2>
+            <input type="number" id="loan_amount" class="loan-amount-input" value="80000" min="10000" step="1000">
+
+            <h3>For how long?</h3>
+            <div class="loan-terms">
+                <button class="loan-term active" data-term="3">3 months</button>
+                <button class="loan-term" data-term="6">6 months</button>
+                <button class="loan-term" data-term="9">9 months</button>
+                <button class="loan-term" data-term="12">12 months</button>
+            </div>
+
+            {% if lender %}
+            <h3>{{ lender.company_name }} | Interest Rate: {{ lender.interest_rate }}%</h3>
+            {% else %}
+            <h3>No lender ID</h3>
+            {% endif %}
+            
+
+            <div class="repayment-details">
+                <h4>First repayment: <span id="first_repayment">R0</span></h4>
+                <h4>Next repayments: <span id="next_repayments">R0</span></h4>
+                <h3>Total repayment: <span id="total_repayable">R0</span></h3>
+            </div>
+        </div>-->
+
+        <form id="loanApplicationForm" method="POST" action="{% url 'apply-loan' %}">
+                {% csrf_token %}
+                
+                <div class="loan-calculator">
+                    <h2>How much do you need?</h2>
+                    <input type="number" name="loan_amount" id="loan_amount" class="loan-amount-input" value="80000" min="100" step="1000">
+                    <br><br><br>
+                    <h3>For how long?</h3>
+                    <div class="loan-terms">
+                        <button type="button" class="loan-term active" data-term="3">3 months</button>
+                        <button type="button" class="loan-term" data-term="6">6 months</button>
+                        <button type="button" class="loan-term" data-term="9">9 months</button>
+                        <button type="button" class="loan-term" data-term="12">12 months</button>
+                    </div>
+                    <input type="hidden" name="loan_term" id="selected_loan_term" value="3">
+
+                    <!--<h3>Select Lender:</h3>
+                    <select name="lender_id" id="lender_id">
+                        {% for lender in lenders %}
+                            <option value="{{ lender.id }}">{{ lender.user.username }} ({{ lender.interest_rate }}%)</option>
+                        {% endfor %}
+                    </select>-->
+                    <br><br>
+                    {% if lender %}
+                    <h3>{{ lender.company_name }} | Interest Rate: {{ lender.interest_rate }}%</h3>
+                    {% else %}
+                    <h3>No lender ID</h3>
+                    {% endif %}
+
+                   <!-- <h5>Provide Collateral:</h5>
+                    <input type="text" name="collateral" required>
+
+                    <h5>Payment Plan:</h5>
+                    <input type="text" name="payment_plan" required>-->
+                    <br><br>
+                    <div class="repayment-details">
+                        <!--<h4>First repayment: <span id="first_repayment">R0</span></h4>-->
+                        <h4>Monthly repayments: <span id="next_repayments">R0</span></h4>
+                        <h3>Total repayment: <span id="total_repayable">R0</span></h3>
+                    </div>
+
+                    <button type="submit" id="applyLoanBtn" class="btn btn-primary">Apply for Loan</button>
+                </div>
+            </form>
+
+    </div>
+
+    <script>
+    $(document).ready(function() {
+        let amountInput = $("#loan_amount");
+        let termButtons = $(".loan-term");
+        let lenderDropdown = $("#lender_id");
+        let loanTermInput = $("#selected_loan_term");
+
+        function fetchLoanDetails() {
+            let amount = amountInput.val();
+            let term = $(".loan-term.active").data("term");
+            let lenderId = lenderDropdown.val();
+
+            loanTermInput.val(term);
+
+            $.ajax({
+                url: "/borrowers/calculate-loan/",
+                type: "GET",
+                data: { amount: amount, term: term, lender_id: lenderId },
+                success: function(data) {
+                    $("#total_repayable").text("R" + data.total_repayable);
+                    //$("#first_repayment").text("R" + data.first_repayment);
+                    $("#next_repayments").text("R" + data.next_repayments);
+                }
+            });
+        }
+
+        amountInput.on("input", fetchLoanDetails);
+        lenderDropdown.on("change", fetchLoanDetails);
+        termButtons.on("click", function() {
+            termButtons.removeClass("active");
+            $(this).addClass("active");
+            fetchLoanDetails();
+        });
+
+        fetchLoanDetails();
+    });
+    </script>
+
+</body>
+</html>
+{% endblock %}

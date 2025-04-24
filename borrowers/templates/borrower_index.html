@@ -1,0 +1,305 @@
+{% extends 'borrower_base.html' %}
+{% load static %}
+
+{% block content %}
+
+
+                        <h1 class="mt-4">My Dashboard</h1>
+                        <ol class="breadcrumb mb-4">
+                            <li class="breadcrumb-item active">Click on any of the Lenders below to see who best suit your needs</li>
+                        </ol>
+                        <div class="row">
+                            {% for lender in lenders %}
+
+                            <div class="col-xl-3 col-md-6">
+                                <div class="card text-white mb-4" style="background-color: {{ lender.bg_color }}; font-weight: bold;">
+                                    <div class="card-body"><h5>{{ lender.company_name }}</h5>
+                                        <p>Average Rating: 
+                                            {% if lender.average_rating %}
+                                                {{ lender.average_rating|floatformat:1 }}
+                                                <i class="fas fa-star"style="color:yellow"></i>s
+                                            {% else %}
+                                                Not Rated Yet
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    <div class="card-footer d-flex align-items-center justify-content-between">
+                                        <a class="small text-white stretched-link" href="{% url 'lender_details' lender.id %}">View Details</a>
+                                        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% empty %}
+                            <center>
+                                <h1>No lenders available at this time.</h1>
+                                <br>
+                            </center>
+                            {% endfor %}
+                        </div>
+
+                        <!--<canvas id="myAreaChart" width="100%" height="30"></canvas>
+                        <canvas id="myBarChart" width="100%" height="30"></canvas>
+                        <canvas id="myPieChart" width="100%" height="30"></canvas>-->
+                        
+
+                        <!--<div class="row">
+                          <div class="col-lg-6">
+                            <canvas id="repaymentsBarChart"></canvas>
+                          </div>
+                          <div class="col-lg-6">
+                            <canvas id="balanceLineChart"></canvas>
+                          </div>
+                          <div class="col-lg-6 mt-4">
+                            <canvas id="paidVsOutstandingPieChart"></canvas>
+                          </div>
+                        </div>-->
+
+                        <div class="row">
+                            <div class="col-xl-6">
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <i class="fas fa-chart-bar me-1"></i>
+                                        average monthly repayments
+                                    </div>
+                                    
+                                    <div class="card-body"><canvas id="repaymentsBarChart"></canvas></div>
+                                </div>
+                            </div>
+                            <div class="col-xl-6">
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <i class="fas fa-chart-area me-1"></i>
+                                        outstanding balance over time
+                                    </div>
+                                   
+                                    <div class="card-body"><canvas id="balanceLineChart"></canvas></div>
+                                </div>
+                            </div>
+                            <div class="col-xl-6">
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <i class="fas fa-chart-pie me-1"></i>
+                                        Summary of paid vs owed
+                                    </div>
+                                    <div class="card-body"><canvas id="paidVsOutstandingPieChart"></canvas></div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <i class="fas fa-table me-1"></i>
+                                Summary of all Lenders
+                            </div>
+                            <div class="card-body">
+                                <table id="datatablesSimple">
+                                    <thead>
+                                        <tr>
+                                            <th>Company Name</th>
+                                            <th>Registration No.</th>
+                                            <th>Office</th>
+                                            <th>Interest rate</th>
+                                            <th>Min Loan</th>
+                                            <th>Max Loan</th>
+                                        </tr>
+                                    </thead>
+                                    <tfoot>
+                                        <tr>
+                                            <th>Company Name</th>
+                                            <th>Registration No.</th>
+                                            <th>Office</th>
+                                            <th>Interest rate</th>
+                                            <th>Min Loan</th>
+                                            <th>Max Loan</th>
+                                        </tr>
+                                    </tfoot>
+                                    <tbody>
+                                        {% for lender in lenders %}
+                                            <tr>
+
+                                                <td>
+                                                  <a href="{% url 'lender_details' lender.id %}">
+
+                                                {{ lender.company_name }}</td>
+                                                </a>
+                                                <td>{{ lender.registration_no }}</td>
+                                                <td>{{ lender.office_address }}</td>
+                                                <td>{{ lender.interest_rate }}%</td>
+                                                <td>{{ lender.min_loan | floatformat:2 }}</td>
+                                                <td>{{ lender.max_loan | floatformat:2 }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+
+           <script>
+            function fetchChartData(url, callback) {
+              fetch(url)
+                .then(res => res.json())
+                .then(data => callback(data))
+                .catch(err => console.error('Chart fetch error:', err));
+            }
+
+            function renderBarChart(id, labels, data) {
+              new Chart(document.getElementById(id), {
+                type: 'bar',
+                data: {
+                  labels: labels,
+                  datasets: [{
+                    label: 'Monthly Repayments (ZAR)',
+                    backgroundColor: '#007bff',
+                    borderColor: '#007bff',
+                    data: data
+                  }]
+                },
+                options: {
+                  scales: {
+                    y: {
+                      beginAtZero: true
+                    }
+                  }
+                }
+              });
+            }
+
+            function renderLineChart(id, labels, data) {
+              new Chart(document.getElementById(id), {
+                type: 'line',
+                data: {
+                  labels: labels,
+                  datasets: [{
+                    label: 'Outstanding Balance (ZAR)',
+                    data: data,
+                    fill: false,
+                    borderColor: 'rgba(255,99,132,1)',
+                    tension: 0.3
+                  }]
+                },
+                options: {
+                  scales: {
+                    y: {
+                      beginAtZero: true
+                    }
+                  }
+                }
+              });
+            }
+
+            function renderPieChart(id, labels, data) {
+              new Chart(document.getElementById(id), {
+                type: 'pie',
+                data: {
+                  labels: labels,
+                  datasets: [{
+                    data: data,
+                    backgroundColor: ['#28a745', '#ffc107']
+                  }]
+                }
+              });
+            }
+
+            // Fetch and render all charts
+            fetchChartData('/borrowers/api/borrower/monthly-repayments/', data =>
+              renderBarChart('repaymentsBarChart', data.labels, data.data)
+            );
+            fetchChartData('/borrowers/api/borrower/balance-over-time/', data =>
+              renderLineChart('balanceLineChart', data.labels, data.data)
+            );
+            fetchChartData('/borrowers/api/borrower/paid-vs-outstanding/', data =>
+              renderPieChart('paidVsOutstandingPieChart', data.labels, data.data)
+            );
+            </script>
+
+
+
+
+
+
+            <!--<script>
+               
+            document.addEventListener("DOMContentLoaded", function () {
+              fetch("/api/loan-chart-data/")
+                .then((res) => res.json())
+                .then((data) => {
+                  // PIE CHART - Loan Status Distribution
+                  const pieCtx = document.getElementById("myPieChart");
+                  new Chart(pieCtx, {
+                    type: "pie",
+                    data: {
+                      labels: data.status_data.map((item) => item.status),
+                      datasets: [{
+                        data: data.status_data.map((item) => item.count),
+                        backgroundColor: ['#007bff', '#dc3545', '#ffc107', '#28a745'],
+                      }]
+                    }
+                  });
+
+                  // BAR CHART - Total Loan Amounts per Month
+                  const barCtx = document.getElementById("myBarChart");
+                  new Chart(barCtx, {
+                    type: "bar",
+                    data: {
+                      labels: data.bar_data.map((item) => `Month ${item.month}`),
+                      datasets: [{
+                        label: "Loan Amount Issued",
+                        backgroundColor: "rgba(2,117,216,1)",
+                        borderColor: "rgba(2,117,216,1)",
+                        data: data.bar_data.map((item) => item.total)
+                      }]
+                    },
+                    options: {
+                      scales: {
+                        xAxes: [{ gridLines: { display: false } }],
+                        yAxes: [{ gridLines: { display: true } }]
+                      },
+                      legend: { display: false }
+                    }
+                  });
+
+                  // AREA CHART - Loan Balance Over Time
+                  const areaCtx = document.getElementById("myAreaChart");
+                  new Chart(areaCtx, {
+                    type: "line",
+                    data: {
+                      labels: data.area_labels,
+                      datasets: [{
+                        label: "Balance Remaining",
+                        lineTension: 0.3,
+                        backgroundColor: "rgba(2,117,216,0.2)",
+                        borderColor: "rgba(2,117,216,1)",
+                        pointRadius: 5,
+                        pointBackgroundColor: "rgba(2,117,216,1)",
+                        pointBorderColor: "rgba(255,255,255,0.8)",
+                        pointHoverRadius: 5,
+                        pointHoverBackgroundColor: "rgba(2,117,216,1)",
+                        pointHitRadius: 50,
+                        pointBorderWidth: 2,
+                        data: data.area_data
+                      }]
+                    },
+                    options: {
+                      scales: {
+                        xAxes: [{
+                          gridLines: { display: false },
+                          ticks: { maxTicksLimit: 12 }
+                        }],
+                        yAxes: [{
+                          gridLines: { color: "rgba(0, 0, 0, .125)" }
+                        }]
+                      },
+                      legend: { display: false }
+                    }
+                  });
+                });
+            });
+            </script>-->
+
+        
+            
+{% endblock %}

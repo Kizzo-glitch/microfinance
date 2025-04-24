@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <h3>❌ Rejected Loans</h3>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>Borrower</th>
+                <th>Amount</th>
+                <th>Reason</th>
+                <th>Date</th>
+                <th>Edit</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for loan in rejected_loans %}
+            <tr>
+                <td>{{ loan.borrower.user.get_full_name }}</td>
+                <td>R{{ loan.loan_amount }}</td>
+                <td>{{ loan.status_reason }}</td>
+                <td>{{ loan.date_applied }}</td>
+                <td><a href="{% url 'loan-update' loan.id %}" class="btn btn-sm btn-warning">Edit</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center">No rejected loans.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+{% endblock %}

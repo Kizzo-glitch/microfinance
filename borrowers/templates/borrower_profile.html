@@ -1,0 +1,284 @@
+{% extends 'micro_base.html' %}
+{% load static %}
+
+{% block content %}
+     <div class="container">
+        <h1>My Profile</h1>
+       
+
+        <form method="POST" action="{% url 'borrower_profile' %}">
+            {% csrf_token %}
+            <div class="border">
+                <center>
+            <h4>Personal Information</h4>
+            </center>
+
+            <div class="row mb-3" style="padding: 0 20px;">
+                <div class="col-md-4">
+                   
+                    <label for="id_full_name">Full Name</label>
+                    {{ form.full_name }}
+                    <!--<label for="nameLast" class="form-label">Last Name</label>
+                    <input type="text" class="form-control" id="nameLast">-->
+                
+                </div>
+                <div class="col-md-4">
+                    <label for="id_gender">Gender</label>
+                    {{ form.gender }}
+                    <!--<label for="nameFirst" class="form-label">First Name</label>
+                    <input type="text" class="form-control" id="nameFirst">-->
+                </div>
+                <div class="col-md-4">
+                    <label for="id_title">Title</label>
+                    {{ form.title }}
+                    <!--<label for="nameMiddle" class="form-label">Initials</label>
+                    <input type="text" class="form-control" id="nameMiddle">-->
+                </div>
+            </div>
+
+            <div class="row mb-3" style="padding: 0 20px;">
+                <div class="col-md-4">
+                    {{ form.date_of_birth.label_tag }}
+                    {{ form.date_of_birth }}
+                    <!--<label for="nameLast" class="form-label">Date of Birth</label>
+                    <input type="text" class="form-control" id="nameLast">-->
+                </div>
+                <div class="col-md-4">
+                    <label for="id_id_number">ID Number</label>
+                    {{ form.id_number }}
+                    <!--<label for="nameFirst" class="form-label">ID Number</label>
+                    <input type="text" class="form-control" id="nameFirst">-->
+                </div>
+                <div class="col-md-4">
+                    <label for="id_marital_status">Marital Status</label>
+                     {{ form.marital_status }}
+                    <!--<label for="nameMiddle" class="form-label">Marital Status</label>
+                    <input type="text" class="form-control" id="nameMiddle">-->
+                </div>
+            </div>
+
+            <div class="row mb-3" style="padding: 0 20px;">
+                <div class="col-md-4">
+                    <label for="id_phone_number">Phone Number</label>
+                    {{ form.phone_number }}
+                    <!--<label for="nameLast" class="form-label">Phone Number</label>
+                    <input type="text" class="form-control" id="nameLast">-->
+                </div>
+                <div class="col-md-4">
+                    <label for="id_email_address">Email Address</label>
+                    {{ form.email_address }}
+                    <!--<label for="nameFirst" class="form-label">Email Address</label>
+                    <input type="text" class="form-control" id="nameFirst">-->
+                </div>
+                <div class="col-md-4">
+                    <label for="id_employer_name">Employer's Name</label>
+                    {{ form.employer_name }}
+                    <!--<label for="nameMiddle" class="form-label">Employer Name</label>
+                    <input type="text" class="form-control" id="nameMiddle">-->
+                </div>
+            </div>
+
+            <div class="row mb-3" style="padding: 0 20px;">
+                <div class="col-md-4">
+                    <label for="id_employment_position">Employment Position</label>
+                    {{ form.employment_position }}
+                    <!--<label for="nameLast" class="form-label">Employment Position</label>
+                    <input type="text" class="form-control" id="nameLast">-->
+                </div>
+                <div class="col-md-4">
+                     <label for="id_income">Income Amount</label>
+                    {{ form.income }}
+                    <!--<label for="nameFirst" class="form-label">Income Amount</label>
+                    <input type="text" class="form-control" id="nameFirst">-->
+                </div>
+                <div class="col-md-4">
+                    <label for="position_level">Position Level</label>
+                    {{ form.position_level }}
+                    <!--<label for="nameMiddle" class="form-label">Possition Level</label>
+                    <select class="form-select" aria-label="Default select example">
+                      <option selected>Select</option>
+                      <option value="1">entry-level</option>
+                      <option value="2">intermediate</option>
+                      <option value="3">mid-level</option>
+                      <option value="3">senior-level</option>
+                    </select>-->
+                </div>
+            </div>      
+
+            <div class="mb-3" style="padding: 0 20px;">
+                <label for="id_home_address">Home Address</label>
+                {{ form.home_address }}
+                <!--<label for="businessName" class="form-label">Home Address</label>
+                <input type="text" class="form-control" id="businessName">-->
+            </div>
+
+            <div class="mb-3" style="padding: 0 20px;">
+                <label for="eid_mployer_address">Employer's Address</label>
+                {{ form.employer_address }}
+                <!--<label for="businessAddress" class="form-label">Employer Address</label>
+                <input type="text" class="form-control" id="businessAddress">-->
+            </div>
+            </div>
+
+            <br>
+            <div class="border">
+                <center>
+            <h4>Financial Information</h4>
+            </center>
+
+            <div class="row mb-3" style="padding: 0 20px;">
+                <div class="col-md-4">
+                    <label for="id_income_type">Income Type</label>
+                    {{ form.income_type }} 
+                    <!--<label for="nameFirst" class="form-label">Income Type</label>
+                    <select class="form-select" aria-label="Default select example">
+                      <option selected>Select</option>
+                      <option value="1">Salary</option>
+                      <option value="2">Wages</option>
+                      <option value="3">Other</option>
+                    </select>-->
+
+                    <br>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="id_pay_date">Pay Day</label>
+                    {{ form.pay_day }}
+                    <!--<label for="date" class="form-label">Pay Day</label>
+                <input type="date" class="form-control" id="date">-->
+                <!--<label for="date" class="form-label">Pay Day</label>
+                 <input type="date" class="form-control" id="date" name="pay_date">-->
+                </div>
+
+                <div class="col-md-4">
+                    <label for="id_monthly_expenses">Monthly Expenses</label>
+                    {{ form.monthly_expenses }}
+                    <!--<label for="nameFirst" class="form-label">Monthly Expenses</label>
+                    <select class="form-select" aria-label="Default select example">
+                      <option selected>Select</option>
+                      <option value="1">Rent</option>
+                      <option value="2">Utilities</option>
+                      <option value="3">Debt payment</option>
+                      <option value="3">Insurence</option>
+                      <option value="3">Stokvel</option>
+                    </select>-->
+
+                    <br>
+                </div>
+
+                <div class="col-md-4">
+                    <label for="id_existing_debts">Existing Debts</label>
+                    {{ form.existing_debts }}
+                    <!--<label for="nameFirst" class="form-label">Existing Debts</label>
+                    <select class="form-select" aria-label="Default select example">
+                      <option selected>Select</option>
+                      <option value="1">Loans</option>
+                      <option value="2">Credit Cards</option>
+                      <option value="3">Credit Accounts</option>
+                    </select>-->
+
+                    <br>
+                </div>
+
+            </div>           
+            </div>
+
+            <br>
+            <div class="border">
+                <center>
+            <h4>Credit History</h4>
+            </center>
+
+            <div class="row mb-3" style="padding: 0 20px;">
+                <div class="col-md-4">
+                    <label for="id_credit_score">Credit Score</label>
+                    {{ form.credit_score }}
+                    <!--<label for="nameLast" class="form-label">Credit Score</label>
+                    <input type="text" class="form-control" id="nameLast">-->
+                </div>
+               
+            </div>           
+            </div>
+
+            <br>
+            <div class="border">
+                <center>
+            <h4>Purpose of loan</h4>
+            </center>
+
+            <div class="mb-3" style="padding: 0 20px;">
+                <label for="id_credit_intend">Credit Intend</label>
+                {{ form.credit_intend }}
+                <!--<label for="businessName" class="form-label">Credit Intend</label>
+                <input type="text" class="form-control" id="businessName">-->
+            </div>          
+            </div>
+            <br><br>
+
+                <div class="form-check">
+                    {{ form.is_over_18 }}
+                 <label for="id_is_over_18" class="form-check-label">I hereby confirm that I'm 18 Years and above.</label>
+                </div>
+                <div class="form-check">
+                    {{ form.agrees_to_terms }}
+                    <label for="id_agrees_to_terms" class="form-check-label">I hereby certify that the information contained herein is complete and accurate.</label>
+                </div>
+                <div class="form-check">
+                    {{ form.agrees_to_credit_conditions }}
+                    <label for="id_agrees_to_credit_conditions" class="form-check-label">This information has been furnished with the understanding that it is to be used to determine the amount and conditions of the credit to be extended.</label>
+                </div>
+                <div class="form-check">
+                    {{ form.information_consent }}
+                    <label for="id_information_consent" class="form-check-label">I hereby give consent for the use of my personal information by the Microfinance App and/ or the Lender involved in the processing of my application.</label>
+                </div>
+            <!--<div class="mb-3">
+                <div class="form-check">
+                    {{ form.is_over_18 }}
+                    <input type="checkbox" class="form-check-input" id="checkbox1">
+                    <label class="form-check-label" for="checkbox1">
+                    I hereby confirm that I'm 18 Years and above</label>
+                </div>
+            <div class="mb-3">
+                <div class="form-check">
+                    {{ form.agrees_to_terms }}
+                I hereby certify that the information contained herein is complete and accurate.
+                   
+                    
+                </div>
+                <div class="form-check">
+                    {{ form.agrees_to_credit_conditions }}
+                    This information has been furnished with the understanding that it is to be used to determine the amount and conditions of the credit to be extended.
+                   
+
+                </div>
+                <div class="form-check">
+                    {{ form.information_consent }}
+                    I hereby give consent for the use of my personal information by the Microfinance App and/ or the Lender involved in the processing of my application.
+                    
+                </div>
+           </div>-->
+                 <br> <br>
+            <button type="submit" class="btn btn-primary">Submit</button>
+        
+        </form>
+        <br>
+    </div>
+
+    </div>
+    
+    
+    <style>
+        .form-control::placeholder {
+            color: #999;
+            font-style: italic;
+           
+        }
+      
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+    </style>
+
+    {% endblock %}
