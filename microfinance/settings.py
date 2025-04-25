@@ -4,6 +4,7 @@ import multipart
 from dotenv import load_dotenv
 
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -17,9 +18,9 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1','microfinance-production-434c.up.railway.app', 'https://microfinance-production-434c.up.railway.app']
+ALLOWED_HOSTS = ['127.0.0.1','microfinance-production-8b40.up.railway.app', 'https://microfinance-production-8b40.up.railway.app']
 
-CSRF_TRUSTED_ORIGINS = ['https://microfinance-production-434c.up.railway.app']
+CSRF_TRUSTED_ORIGINS = ['https://microfinance-production-8b40.up.railway.app']
 
 
 # Application definition
