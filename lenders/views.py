@@ -151,6 +151,26 @@ def lender_index(request):
 
 
 
+def lender_profile(request):
+	if request.user.is_lender():
+		# Get Current User
+		current_user = LenderProfile.objects.get(user__id=request.user.id)	
+		
+		# Get original User Form
+		form = LenderInfoForm(request.POST or None, instance=current_user)
+						
+		if form.is_valid():
+			# Save original form
+			form.save()
+			
+
+			messages.success(request, "Your Info Has Been Updated!!")
+			return redirect('lender_index')
+		return render(request, "lender_profile.html", {'form':form})
+	else:
+		messages.success(request, "You Must Be Logged In To Access That Page!!")
+		return redirect('landing')
+
 
 # 1. Monthly Loan Repayments View
 def lender_repayment_data(request):
@@ -236,31 +256,6 @@ def mark_loan_application_notifications_read(request):
 def mark_loan_payment_notifications_read(request):
 	Notification.objects.filter(category="loan_payment", is_read=False).update(is_read=True)
 	return JsonResponse({"success": True})
-
-
-
-
-
-def lender_profile(request):
-	if request.user.is_lender():
-		# Get Current User
-		current_user = LenderProfile.objects.get(user__id=request.user.id)	
-		
-		# Get original User Form
-		form = LenderInfoForm(request.POST or None, instance=current_user)
-						
-		if form.is_valid():
-			# Save original form
-			form.save()
-			
-
-			messages.success(request, "Your Info Has Been Updated!!")
-			return redirect('lender_index')
-		return render(request, "lender_profile.html", {'form':form})
-	else:
-		messages.success(request, "You Must Be Logged In To Access That Page!!")
-		return redirect('landing')
-
 
 
 
@@ -807,76 +802,6 @@ class FullyPaidLoanListView(ListView):
 
 
 
-'''def process_loan_application2(request, loan_id):
-	loan_application = get_object_or_404(LoanApplication, id=loan_id)
-
-	# Ensure only the lender associated with the loan can process it
-	if loan_application.lender.user != request.user:
-		messages.error(request, "You are not authorized to process this loan.")
-		return HttpResponseRedirect(reverse('lender_index'))
-
-	if request.method == 'POST':
-		action = request.POST.get('action')
-
-		if action == 'approve':
-			loan_application.status = 'approved'
-			loan_application.save()
-			# Notify the borrower about approved loan 
-			Notification.objects.create(
-				user=loan_application.borrower.user,
-				message=f"Your Loan application from {loan_application.lender.user.username} for R{loan_amount} Has been approved.",
-				category="loan_approved"
-			)
-			messages.success(request, "Loan application approved successfully!")
-		elif action == 'reject':
-			loan_application.status = 'rejected'
-			loan_application.save()
-			messages.success(request, "Loan application rejected.")
-		else:
-			messages.error(request, "Invalid action.")
-
-	return HttpResponseRedirect(reverse('lender_index'))'''
 
 
-def lender_info(request):
-	return render(request, 'lender_profile.html', {})
 
-
-def blank(request):
-	return render(request, 'blank.html', {})
-
-def buttons(request):
-	return render(request, 'buttons.html', {})
-
-def cards(request):
-	return render(request, 'cards.html', {})
-
-def charts(request):
-	return render(request, 'charts.html', {})
-
-def error(request):
-	return render(request, 'error.html', {})
-
-def forgot_password(request):
-	return render(request, 'forgot_password.html', {})
-
-#def login(request):
-	return render(request, 'login.html', {})
-
-#def register(request):
-#	return render(request, 'register.html', {})
-
-def tables(request):
-	return render(request, 'tables.html', {})
-
-def utilities_animation(request):
-	return render(request, 'utilities_animation.html', {})
-
-def utilities_border(request):
-	return render(request, 'utilities_border.html', {})
-
-def utilities_color(request):
-	return render(request, 'utilities_color.html', {})
-
-def utilities_other(request):
-	return render(request, 'utilities_other.html', {})

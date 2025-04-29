@@ -4,7 +4,7 @@ from .views import LoanApplicationListView, LoanApplicationUpdateView, LoanListV
 
 urlpatterns = [
     path('lender_index/', views.lender_index, name='lender_index'),
-    path('lender_info/', views.lender_info, name='lender_info'),
+    
     path('lender_profile/', views.lender_profile, name='lender_profile'),
 
     #path('mark_notifications_read/', views.mark_notifications_read, name='mark_notifications_read'),
@@ -46,22 +46,6 @@ urlpatterns = [
     path('lender/dashboard/loan-statuses-data/', views.lender_loan_status_data, name='lender_loan_status_data'),
     path("dashboard/risk-customers/<str:category>/", views.risk_customer_list, name="risk_customer_list"),
 
-    #path('customers/high-risk/', views.high_risk_customers, name='high_risk_customers'),
-    #path('customers/mid-risk/', views.mid_risk_customers, name='mid_risk_customers'),
-    #path('customers/paying-late/', views.late_paying_customers, name='late_paying_customers'),
-    
-    path('blank/', views.blank, name='blank'),
-    path('buttons/', views.buttons, name='buttons'),
-    path('cards/', views.cards, name='cards'),
-    path('charts/', views.charts, name='charts'),
-    path('error/', views.error, name='error'),
-    path('forgot_password/', views.forgot_password, name='forgot_password'),
-    #path('login/', views.login, name='login'),
-    #path('register/', views.register, name='register'),
-    path('tables/', views.tables, name='tables'),
-    path('utilities_animation/', views.utilities_animation, name='utilities_animation'),
-    path('utilities_border/', views.utilities_border, name='utilities_border'),
-    path('utilities_color/', views.utilities_color, name='utilities_color'),
-    path('utilities_other/', views.utilities_other, name='utilities_other'),
+   
 
 ]

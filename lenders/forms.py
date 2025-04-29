@@ -5,7 +5,9 @@ from loans.models import LoanApplication, Loan
 
 
 class LenderInfoForm(forms.ModelForm):
-	ceo_first_name = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'CEO First Name'}), required=True)
+	
+
+	ceo_first_name = forms.CharField(label="", widget=forms.TextInput(attrs={'placeholder':'CEO First Name'}), required=True)
 	ceo_last_name = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'CEO Last Name'}), required=True)
 	company_name = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Company Name'}), required=True)
 	registration_no = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Registration Number'}), required=True)
@@ -54,6 +56,7 @@ class LenderInfoForm(forms.ModelForm):
 		attrs={'class': 'form-check-input'}), required=True,)
 
 
+
 	class Meta:
 		model = LenderProfile
 		fields = ('ceo_first_name', 
@@ -83,6 +86,15 @@ class LenderInfoForm(forms.ModelForm):
 			'reporting',
 			'missed_payment_policy'
 			)
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		
+		# Apply form-control to all fields
+		for field_name, field in self.fields.items():
+			existing_classes = field.widget.attrs.get('class', '')
+			field.widget.attrs['class'] = f'{existing_classes} form-control'.strip()
+
 
 
 

@@ -1,11 +1,14 @@
 {% extends 'micro_base.html' %}
+{% load form_tags %}
 {% load static %}
+
 
 {% block content %}
         
     <div class="container">
         <h1>My Profile Information</h1>
         <br><br>
+
 
         <form method="POST" action="{% url 'lender_profile' %}">
             {% csrf_token %}
@@ -16,23 +19,23 @@
 
             <div class="row mb-3" style="padding: 0 20px;">
                 <div class="col-md-4">
-                     <label for="company_name">Company Name</label>
-                    <!--<label for="nameMiddle" class="form-label">Name of Business</label>
-                    <input type="text" class="form-control" id="nameMiddle">-->
-                    {{ form.company_name }}
+                    <label for="id_company_name">Company Name</label>
+                    
+                        {{ form.company_name }}
+                 
                 </div>
                 
                 <div class="col-md-4">
                      <label for="ceo_first_name">CEO's First Name</label>
-                    <!--<label for="nameLast" class="form-label">CEO First Name</label>
-                    <input type="text" class="form-control" id="nameLast">-->
-                    {{ form.ceo_first_name }}
+                    
+                            {{ form.ceo_first_name }}
+                   
                 </div>
                 <div class="col-md-4">
                     <label for="ceo_first_name">CEO's Last Name</label>
-                    <!--<label for="nameFirst" class="form-label">CEO Last Name</label>
-                    <input type="text" class="form-control" id="nameFirst">-->
-                    {{ form.ceo_last_name }}
+                    
+                            {{ form.ceo_last_name }}
+                     
                 </div>
                 
             </div>
@@ -150,17 +153,15 @@
                     <input type="text" class="form-control" id="nameLast">-->
                     {{ form.regulatory_body_name }}
                 </div> 
-           
-
+                 <br>
             
                 <div class="col-md-4">
                     <label for="regulatory_body_no">Regulatory Body Number</label>
                     <!--<label for="nameLast" class="form-label">Regulatory Body Number</label>
                     <input type="text" class="form-control" id="nameLast">-->
                     {{ form.regulatory_body_no }}
-                </div> 
-            
-
+                </div>
+                 <br> 
             
                 <div class="col-md-4">
                     <label for="kyc_policy_implementation">KYC Policy Implementation</label>
@@ -180,6 +181,7 @@
                 <br>
             
                 <div class="col-md-4">
+                     <br>
                     <label for="aml_policy_implementation">AML Policy Implementation</label>
                     {{ form.aml_policy_implementation }}
                     <!--<label for="nameFirst" class="form-label">AML Policy Implementation</label>
@@ -194,6 +196,7 @@
                 </div>
            
                 <div class="col-md-4">
+                     <br>
                     <label for="data_protection_policy_implementation">Data Protection Policy Implementation</label>
                     {{ form.data_protection_policy_implementation }}
                     <!--<label for="nameFirst" class="form-label">Data Protection Policy Implementation</label>
