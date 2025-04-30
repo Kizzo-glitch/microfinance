@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h3>My Clients</h3>
+    <table class="table table-striped">
+        <thead class="table-primary">
+            <tr>
+                <th>Borrower Name</th>
+                <th>Total Loans</th>
+                <th>Total Amount Borrowed</th>
+                <th>Outstanding Balance</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for client in clients %}
+            <tr>
+                <td>{{ client.borrower__user__first_name }} {{ client.borrower__user__last_name }}</td>
+                <td>{{ client.total_loans }}</td>
+                <td>${{ client.total_amount|floatformat:2 }}</td>
+                <td>${{ client.outstanding_balance|floatformat:2 }}</td>
+                <td>
+                    <a href="{% url 'my-borrower-payment-history' client.loan_id %}" class="btn btn-sm btn-info">View</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5">No clients yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

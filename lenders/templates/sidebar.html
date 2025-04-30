@@ -55,24 +55,36 @@
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUtilities"
                     aria-expanded="true" aria-controls="collapseUtilities">
                     🧑‍💼
-                    <span>My Clients</span>
+                    <span>Client Records</span>
                 </a>
                 <div id="collapseUtilities" class="collapse" aria-labelledby="headingUtilities"
                     data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">Client Analysis</h6>
+                        <h6 class="collapse-header">Analysis</h6>
+                        <a class="collapse-item" href="{% url 'my_clients' %}">My Clients</a>
+                        <a class="collapse-item" href="#!">Client Documents</a>
+                        
+                        <a class="collapse-item" href="{% url 'credit_reports' %}">Credit Reports</a>
+                       
+                    </div> 
+                </div>
+            </li>
 
-                        <a class="collapse-item" href="#!">My Clients</a>
-                        <a class="collapse-item" href="#!">Client's Documents</a>
-
-                        <a class="collapse-item" href="#!">Client History</a>
+            <!-- Nav Item - Utilities Collapse Menu -->
+            <li class="nav-item">
+                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUtilities"
+                    aria-expanded="true" aria-controls="collapseUtilities">
+                    📇
+                    <span>Client Monitoring</span>
+                </a>
+                <div id="collapseUtilities" class="collapse" aria-labelledby="headingUtilities"
+                    data-parent="#accordionSidebar">
+                    <div class="bg-white py-2 collapse-inner rounded">
+                        <h6 class="collapse-header">Monitoring</h6>
                         <a class="collapse-item" href="#!">Risky Clients</a>
-
-                        <a class="collapse-item" href="#!">Clients with missing information</a>
-                        <a class="collapse-item" href="#!">Clients' Credit report</a>
-
-                        <a class="collapse-item" href="#!">Risky Clients</a>
-                        <a class="collapse-item" href="#!">Send an SMS report</a>
+                        <a class="collapse-item" href="#!">Incomplete Applications</a>
+                        <a class="collapse-item" href="#!">Send SMS Report</a>
+                        <a class="collapse-item" href="#!">Send Email Report</a>
                     </div>
                 </div>
             </li>

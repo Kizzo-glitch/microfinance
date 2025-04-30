@@ -1,0 +1,31 @@
+
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h3>Clients' Uploaded Documents</h3>
+
+    {% if document %}
+    <p>ID Proof: <a href="{{ document.id_proof.url }}">View</a></p>
+    <!-- repeat for others -->
+    {% else %}
+        <p>No documents uploaded.</p>
+    {% endif %}
+        
+    <!--{% for doc in documents %}
+      <div class="card mb-3">
+        <div class="card-body">
+          <h5 class="card-title">{{ doc.borrower.user.get_full_name }} ({{ doc.borrower.user.email }})</h5>
+          <p>ID Proof: <a href="{{ doc.id_proof.url }}" target="_blank">View</a></p>
+          <p>Bank Statement: <a href="{{ doc.bank_statement.url }}" target="_blank">View</a></p>
+          <p>Payslip: <a href="{{ doc.payslip.url }}" target="_blank">View</a></p>
+          <p>Chief Letter: <a href="{{ doc.chief_letter.url }}" target="_blank">View</a></p>
+          <small>Uploaded: {{ doc.uploaded_at|date:"Y-m-d H:i" }}</small>
+        </div>
+      </div>
+    {% empty %}
+      <p>No client documents uploaded yet.</p>
+    {% endfor %}-->
+
+
+</div>
+{% endblock %}

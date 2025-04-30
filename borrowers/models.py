@@ -120,7 +120,7 @@ post_save.connect(create_profile, sender=User)
 
 
 class BorrowerDocuments(models.Model):
-	user = models.OneToOneField(User, on_delete=models.CASCADE)
+	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE, related_name='documents')
 	id_proof = models.FileField(upload_to='documents/id_proof/')
 	bank_statement = models.FileField(upload_to='documents/bank_statements/')
 	payslip = models.FileField(upload_to='documents/payslips/')
@@ -128,5 +128,5 @@ class BorrowerDocuments(models.Model):
 	uploaded_at = models.DateTimeField(auto_now_add=True)
 
 	def __str__(self):
-		return f"{self.user.username}'s Documents"
+		return f"{self.borrower.user.username}'s Documents"
 

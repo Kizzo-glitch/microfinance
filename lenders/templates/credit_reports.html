@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Client Credit Reports</h2>
+    <table class="table table-bordered table-striped">
+        <thead class="table-primary">
+            <tr>
+                <th>Borrower</th>
+                <th>Total Loans</th>
+                <th>Total Borrowed</th>
+                <th>Outstanding Balance</th>
+                <th>Total Paid</th>
+                <th>Missed Payments</th>
+                <th>Repayment Rate</th>
+                <th>Risk Rating</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for data in borrower_data %}
+            <tr>
+                <td>{{ data.borrower.user.get_full_name }}</td>
+                <td>{{ data.total_loans }}</td>
+                <td>${{ data.total_borrowed }}</td>
+                <td>${{ data.outstanding_balance }}</td>
+                <td>${{ data.total_paid }}</td>
+                <td>{{ data.missed_payments }}</td>
+                <td>{{ data.repayment_rate }}%</td>
+                <td><span class="badge {% if data.risk == 'High Risk' %}bg-danger{% elif data.risk == 'Medium Risk' %}bg-warning{% else %}bg-success{% endif %}">
+                    {{ data.risk }}
+                </span></td>
+            </tr>
+            {% empty %}
+
+            <tr><td colspan="5">No Credit Reports yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

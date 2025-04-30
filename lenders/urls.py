@@ -23,28 +23,26 @@ urlpatterns = [
     
     path('loans/', LoanListView.as_view(), name='loan-list'),
 
-    #path('approved-loans/', views.approved_loans, name='approved-loans'),
+    
     path('approved-loans/', ApprovedLoansView.as_view(), name='approved-loans'),
-    #path('pending-loans/', views.pending_loans, name='pending-loans'),
     path('pending-loans/', PendingLoansView.as_view(), name='pending-loans'), 
-    #path('pending/update/', views.update_pending_loans, name='update-pending-loans'),
     path('rejected-loans/', RejectedLoansView.as_view(), name='rejected-loans'),
-    #path('rejected-loans/', views.rejected_loans, name='rejected-loans'),
     path('overdue-loans/', OverdueLoansView.as_view(), name='overdue-loans'), 
-    #path('overdue-loans/', views.overdue_loans, name='overdue-loans'),
     path('fully-paid-loans/', FullyPaidLoansView.as_view(), name='fully-paid-loans'),
-    #path('fully-paid-loans/', views.fully_paid_loans, name='fully-paid-loans'),
-    #path('rejected-loans/', RejectedLoanListView.as_view(), name='rejected-loans'),
+
 
     path('loan/<int:loan_id>/payment-history/', views.my_borrower_payment_history, name='my-borrower-payment-history'),
 
-    #path('paid-loans/', FullyPaidLoanListView.as_view(), name='fully_paid_loans'),
 
     path("lender/risk-customers/<str:category>/", views.risk_customer_list, name="risk_customers"),
 
     path('lender/dashboard/repayments-data/', views.lender_repayment_data, name='lender_repayment_data'),
     path('lender/dashboard/loan-statuses-data/', views.lender_loan_status_data, name='lender_loan_status_data'),
     path("dashboard/risk-customers/<str:category>/", views.risk_customer_list, name="risk_customer_list"),
+
+    path('my-clients/', views.my_clients, name='my_clients'),
+    path('clients-documents/', views.client_documents, name='client_documents'),
+    path('credit-reports/', views.credit_reports, name='credit_reports'),
 
    
 
