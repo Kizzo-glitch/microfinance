@@ -1,0 +1,28 @@
+{% extends 'borrower_base.html' %}
+{% block content %}
+<div class="container mt-5">
+    <h2>My Uploaded Documents</h2>
+    {% if documents %}
+        <ul class="list-group mt-4">
+            <li class="list-group-item">
+                ID Proof:
+                <a href="{% url 'download_document' 'id_proof' %}" class="btn btn-sm btn-outline-primary float-end">Download</a>
+            </li>
+            <li class="list-group-item">
+                Bank Statement:
+                <a href="{% url 'download_document' 'bank_statement' %}" class="btn btn-sm btn-outline-primary float-end">Download</a>
+            </li>
+            <li class="list-group-item">
+                Payslip:
+                <a href="{% url 'download_document' 'payslip' %}" class="btn btn-sm btn-outline-primary float-end">Download</a>
+            </li>
+            <li class="list-group-item">
+                Chief's Letter:
+                <a href="{% url 'download_document' 'chief_letter' %}" class="btn btn-sm btn-outline-primary float-end">Download</a>
+            </li>
+        </ul>
+    {% else %}
+        <div class="alert alert-warning mt-4">You haven't uploaded any documents yet.</div>
+    {% endif %}
+</div>
+{% endblock %}

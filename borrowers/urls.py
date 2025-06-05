@@ -14,7 +14,11 @@ urlpatterns = [
   
     path('tables/', views.tables, name='tables'),
     path('borrower_profile/', views.borrower_profile, name='borrower_profile'),
+
     path('upload_documents/', views.upload_documents, name='upload_documents'),
+    path('my-documents/', views.view_documents, name='view_documents'),
+    path('download-document/<str:document_type>/', views.download_document, name='download_document'),
+
     path('loan_application/', views.loan_application, name='loan_application'),
     path('lender_details/<int:lender_id>/', views.lender_details, name='lender_details'),
 

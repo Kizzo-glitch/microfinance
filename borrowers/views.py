@@ -14,7 +14,7 @@ from .models import BorrowerProfile, BorrowerDocuments
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg
 
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 
 from decimal import Decimal
@@ -32,6 +32,9 @@ from django.views.generic import ListView
 from dateutil.relativedelta import relativedelta
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+
+import os
+from django.conf import settings
 
 
 @login_required
@@ -197,6 +200,36 @@ def upload_documents(request):
 	else:
 		form = BorrowerDocumentsForm()
 	return render(request, 'upload_documents.html', {'form': form})
+
+
+@login_required
+def view_documents(request):
+	try:
+		documents = BorrowerDocuments.objects.get(user=request.user)
+	except BorrowerDocuments.DoesNotExist:
+		documents = None
+	return render(request, 'view_documents.html', {'documents': documents})
+
+
+@login_required
+def download_document(request, document_type):
+	try:
+		documents = BorrowerDocuments.objects.get(user=request.user)
+	except BorrowerDocuments.DoesNotExist:
+		raise Http404("No documents found.")
+
+	document_file = getattr(documents, document_type, None)
+	if not document_file:
+		raise Http404("Requested document does not exist.")
+
+	file_path = document_file.path
+	if not os.path.exists(file_path):
+		raise Http404("File not found.")
+
+	with open(file_path, 'rb') as f:
+		response = HttpResponse(f.read(), content_type="application/octet-stream")
+		response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+		return response
 
 
 
