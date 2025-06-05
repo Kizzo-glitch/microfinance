@@ -26,41 +26,29 @@
                data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-bell"></i>
                 <!-- Notification Counter -->
-                <span class="badge badge-danger">
-                    {% if unread_loan_approved_count > 0 %}
-                        {{ unread_loan_approved_count }}
-                    {% else %}
-                        0
-                    {% endif %}
-                </span>
-            </a>
+                <span class="badge bg-success">{{ unread_loan_approved_count }}</span>
+                <span class="badge bg-danger">{{ unread_loan_rejected_count }}</span>
+                <span class="badge bg-warning text-dark">{{ unread_loan_pending_count }}</span>
 
             <!-- Dropdown - Alerts -->
             <div class="dropdown-list dropdown-menu dropdown-menu-end"
                  aria-labelledby="alertsDropdown">
-                <h6 class="dropdown-header fw-bold border-bottom pb-1">Loan Notifications</h6>
-
+                <h6 class="dropdown-header fw-bold border-bottom pb-1">Approved Loan Notifications</h6>
                 {% if unread_loan_approved %}
                     {% for notification in unread_loan_approved %}
                         <a class="dropdown-item d-flex align-items-center" href="#">
-                            <!--<div class="mr-3">
-                                <div class="icon-circle bg-primary">
-                                    <i class="fas fa-bell text-white"></i>
-                                </div>
-                            </div>-->
                             <div>
                                 <div class="small text-gray-500">
                                     {{ notification.date_created|date:"F j, Y, g:i a" }}
                                 </div>
-                                <span class="font-weight-bold">{{ notification.message }}</span>
+                                <span class="font-weight-bold text-success">{{ notification.message }}</span>
                             </div>
                         </a>
                     {% endfor %}
                     <a class="dropdown-item text-center small text-gray-500" href="{% url 'borrower-notifications' %}">Show All Notifications</a>
                 {% else %}
-                    <a class="dropdown-item text-center small text-gray-500">No new notifications</a>
+                    <a class="dropdown-item text-center small text-gray-500">No new approved loans</a>
                 {% endif %}
-
 
                 <h6 class="dropdown-header fw-bold border-bottom pb-1">Rejected Loan Notifications</h6>
                 {% if unread_loan_rejected %}
@@ -78,7 +66,7 @@
                         Show All Notifications
                     </a>
                 {% else %}
-                    <a class="dropdown-item text-center small text-gray-500">No rejected notifications</a>
+                    <a class="dropdown-item text-center small text-gray-500">No new rejected loans</a>
                 {% endif %}
 
                 <h6 class="dropdown-header fw-bold border-bottom pb-1">Pending Loan Notifications</h6>
@@ -97,7 +85,7 @@
                         Show All Notifications
                     </a>
                 {% else %}
-                    <a class="dropdown-item text-center small text-gray-500">No pending notifications</a>
+                    <a class="dropdown-item text-center small text-gray-500">No new pending loans</a>
                 {% endif %}
 
             </div>
@@ -165,6 +153,23 @@
 <!-- Ensure Notification Updates -->
 <script>
 document.getElementById('alertsDropdown').addEventListener('click', function () {
+    fetch("{% url 'mark_all_notifications_read' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        }
+    }).then(response => response.json())
+    .then(data => {
+        if (data.status === "success") {
+            console.log("All notifications marked as read");
+            // Optionally update the UI or refresh part of the page
+        }
+    });
+});
+</script>
+
+<!--<script>
+document.getElementById('alertsDropdown').addEventListener('click', function () {
     fetch("{% url 'mark_loan_approved_read' %}", {
         method: 'POST',
         headers: {
@@ -178,7 +183,7 @@ document.getElementById('alertsDropdown').addEventListener('click', function () 
         }
     });
 });
-</script>
+</script>-->
 
 <!-- Bell Icon Style Fix -->
 <style>

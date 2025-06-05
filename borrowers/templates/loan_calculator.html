@@ -53,12 +53,36 @@
             </div>
         </div>-->
 
+
         <form id="loanApplicationForm" method="POST" action="{% url 'apply-loan' %}">
                 {% csrf_token %}
                 
                 <div class="loan-calculator">
                     <h2>How much do you need?</h2>
-                    <input type="number" name="loan_amount" id="loan_amount" class="loan-amount-input" value="80000" min="100" step="1000">
+                    <!--<input type="number" name="loan_amount" id="loan_amount" class="loan-amount-input" value="80000" min="100">-->
+
+                    <input type="number"
+                       name="loan_amount"
+                       id="loan_amount"
+                       class="loan-amount-input"
+                       value="{{ lender.min_loan }}"
+                       min="{{ lender.min_loan }}"
+                       max="{{ lender.max_loan }}"
+                       data-min="{{ lender.min_loan }}"
+                       data-max="{{ lender.max_loan }}">
+                       <small id="loan_error" style="color: red;"></small>
+
+                    <!--<input type="number"
+                           name="loan_amount"
+                           id="loan_amount"
+                           class="loan-amount-input"
+                           value="{{ lender.min_loan }}"
+                           min="{{ lender.min_loan }}"
+                           max="{{ lender.max_loan }}">-->
+
+                    <p class="text-muted">
+                        Lender's: Minimum Loan Amount: {{ lender.min_loan }} | Maximum Loan Amount: R{{ lender.max_loan }}
+                    </p>
                     <br><br><br>
                     <h3>For how long?</h3>
                     <div class="loan-terms">
@@ -101,6 +125,111 @@
     </div>
 
     <script>
+        $(document).ready(function () {
+    let amountInput = $("#loan_amount");
+    let termButtons = $(".loan-term");
+    let lenderDropdown = $("#lender_id");
+    let loanTermInput = $("#selected_loan_term");
+
+    function fetchLoanDetails() {
+        let amount = parseFloat(amountInput.val());
+        let min = parseFloat(amountInput.data("min"));
+        let max = parseFloat(amountInput.data("max"));
+
+        if (isNaN(amount)) return;
+
+        // Validate only after input (but don’t prevent typing)
+        if (amount < min || amount > max) {
+            $("#loan_error").text(`Amount must be between R${min} and R${max}`);
+            return;
+        } else {
+            $("#loan_error").text(""); // Clear error if valid
+        }
+
+        let term = $(".loan-term.active").data("term");
+        let lenderId = lenderDropdown.val();
+
+        loanTermInput.val(term);
+
+        $.ajax({
+            url: "/borrowers/calculate-loan/",
+            type: "GET",
+            data: { amount: amount, term: term, lender_id: lenderId },
+            success: function (data) {
+                $("#total_repayable").text("R" + data.total_repayable);
+                $("#next_repayments").text("R" + data.next_repayments);
+            }
+        });
+    }
+
+    amountInput.on("input", fetchLoanDetails);
+    lenderDropdown.on("change", fetchLoanDetails);
+    termButtons.on("click", function () {
+        termButtons.removeClass("active");
+        $(this).addClass("active");
+        fetchLoanDetails();
+    });
+
+    fetchLoanDetails(); // Initial load
+});
+
+    </script>
+
+    <!--<script>
+    $(document).ready(function() {
+        let amountInput = $("#loan_amount");
+        let termButtons = $(".loan-term");
+        let lenderDropdown = $("#lender_id");
+        let loanTermInput = $("#selected_loan_term");
+
+        function validateAmountRange() {
+            let min = parseFloat(amountInput.attr("min"));
+            let max = parseFloat(amountInput.attr("max"));
+            let value = parseFloat(amountInput.val());
+
+            if (value < min) {
+                amountInput.val(min);
+                value = min;
+            } else if (value > max) {
+                amountInput.val(max);
+                value = max;
+            }
+
+            return value;
+        }
+
+        function fetchLoanDetails() {
+            let amount = validateAmountRange();  // Ensure it's within valid range
+            let term = $(".loan-term.active").data("term");
+            let lenderId = lenderDropdown.val();
+
+            loanTermInput.val(term);
+
+            $.ajax({
+                url: "/borrowers/calculate-loan/",
+                type: "GET",
+                data: { amount: amount, term: term, lender_id: lenderId },
+                success: function(data) {
+                    $("#total_repayable").text("R" + data.total_repayable);
+                    $("#next_repayments").text("R" + data.next_repayments);
+                }
+            });
+        }
+
+        amountInput.on("input", fetchLoanDetails);
+        lenderDropdown.on("change", fetchLoanDetails);
+        termButtons.on("click", function() {
+            termButtons.removeClass("active");
+            $(this).addClass("active");
+            fetchLoanDetails();
+        });
+
+        fetchLoanDetails(); // Initial load
+    });
+</script>-->
+
+
+    <!--<script>
     $(document).ready(function() {
         let amountInput = $("#loan_amount");
         let termButtons = $(".loan-term");
@@ -136,7 +265,7 @@
 
         fetchLoanDetails();
     });
-    </script>
+    </script>-->
 
 </body>
 </html>

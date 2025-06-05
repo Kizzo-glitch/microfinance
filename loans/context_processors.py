@@ -52,21 +52,25 @@ def topbar_notifications(request):
 	return {}
 
 
+
 def borrower_notifications(request):
 	if request.user.is_authenticated and hasattr(request.user, 'borrower'):
 		borrower = request.user.borrower
 
 		unread_loan_approved = Notification.objects.filter(user=request.user, category='loan_approved', is_read=False)
 		read_loan_approved = Notification.objects.filter(user=request.user, category='loan_approved', is_read=True)
-
-		unread_loan_rejected = Notification.objects.filter(user=request.user, category='loan_rejected', is_read=False)
-		unread_loan_pending = Notification.objects.filter(user=request.user, category='loan_pending', is_read=False)
-
 		unread_loan_approved_all = Notification.objects.filter(user=request.user, category='loan_approved', is_read=False)
 		read_loan_approved_all = Notification.objects.filter(user=request.user, category='loan_approved', is_read=True)
 
+		unread_loan_rejected = Notification.objects.filter(user=request.user, category='loan_rejected', is_read=False)
 		unread_loan_rejected_all = Notification.objects.filter(user=request.user, category='loan_rejected', is_read=False)
+		read_loan_rejected = Notification.objects.filter(user=request.user, category='loan_rejected', is_read=True)
+		read_loan_rejected_all = Notification.objects.filter(user=request.user, category='loan_rejected', is_read=True)
+
+		unread_loan_pending = Notification.objects.filter(user=request.user, category='loan_pending', is_read=False)		
 		unread_loan_pending_all = Notification.objects.filter(user=request.user, category='loan_pending', is_read=False)
+		read_loan_pending = Notification.objects.filter(user=request.user, category='loan_pending', is_read=True)
+		read_loan_pending_all = Notification.objects.filter(user=request.user, category='loan_pending', is_read=True)
 
 		return {
 			'unread_loan_approved': unread_loan_approved,
@@ -74,15 +78,21 @@ def borrower_notifications(request):
 			'unread_loan_approved_count': unread_loan_approved.count(),
 
 			'unread_loan_rejected': unread_loan_rejected,
+			'read_loan_rejected': read_loan_rejected,
 			'unread_loan_rejected_count': unread_loan_rejected.count(),
 
 			'unread_loan_pending': unread_loan_pending,
+			'read_loan_pending': read_loan_pending,
 			'unread_loan_pending_count': unread_loan_pending.count(),
 
 			'unread_loan_approved': unread_loan_approved_all.order_by('-date_created')[:3],
 			'read_loan_approved': read_loan_approved_all.order_by('-date_created')[:3],
+
 			'unread_loan_rejected': unread_loan_rejected_all.order_by('-date_created')[:3],
+			#'unread_loan_rejected': unread_loan_rejected_all.order_by('-date_created')[:3],
+
 			'unread_loan_pending': unread_loan_pending_all.order_by('-date_created')[:3],
+			#'unread_loan_pending': unread_loan_pending_all.order_by('-date_created')[:3],
 
 			'unread_loan_approved_count': unread_loan_approved_all.count(),
 			'unread_loan_rejected_count': unread_loan_rejected_all.count(),

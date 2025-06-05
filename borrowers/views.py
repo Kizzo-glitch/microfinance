@@ -30,8 +30,8 @@ from collections import defaultdict
 from django.views.generic import ListView
 
 from dateutil.relativedelta import relativedelta
-from datetime import date
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 
 @login_required
@@ -66,6 +66,7 @@ def borrower_profile2(request):
 		messages.success(request, "You Must Be Logged In To Access That Page!!")
 		return redirect('landing')
 
+
 @login_required
 def borrower_profile(request):
 	if request.user.is_borrower():
@@ -99,7 +100,7 @@ def borrower_profile(request):
 
 
 
-def upload_documents(request):
+def upload_documents2(request):
 	if request.method == 'POST':
 		form = BorrowerDocumentsForm(request.POST, request.FILES)
 		if form.is_valid():
@@ -121,6 +122,81 @@ def upload_documents(request):
 	return render(request, 'upload_documents.html', {'form': form})
 
 
+def upload_documents3(request):
+	if request.method == 'POST':
+		form = BorrowerDocumentsForm(request.POST, request.FILES)
+		if form.is_valid():
+			borrower = request.user
+			borrower_documents = form.save(commit=False)
+			borrower_documents.user = borrower
+			borrower_documents.save()
+			return JsonResponse({
+				'success': 'Documents uploaded successfully!',
+				'redirect_url': '/borrowers/borrower_index/'
+			})
+		else:
+			return JsonResponse({'error': form.errors})
+	else:
+		form = BorrowerDocumentsForm()
+	return render(request, 'upload_documents.html', {'form': form})
+
+
+@login_required
+def upload_documents4(request):
+	if request.method == 'POST':
+		form = BorrowerDocumentUploadForm(request.POST, request.FILES)
+		if form.is_valid():
+			user = request.user
+			document_type = form.cleaned_data['document_type']
+			file = form.cleaned_data['file']
+
+			# Optional: mark previous versions as not latest
+			BorrowerDocument.objects.filter(
+				user=user,
+				document_type=document_type,
+				is_latest=True  # if you're tracking versions
+			).update(is_latest=False)
+
+			# Save new document
+			BorrowerDocument.objects.create(
+				user=user,
+				document_type=document_type,
+				file=file,
+				is_latest=True  # optional
+			)
+
+			return JsonResponse({'success': 'Document uploaded successfully!'})
+		else:
+			return JsonResponse({'error': form.errors})
+	else:
+		form = BorrowerDocumentUploadForm()
+	return render(request, 'upload_documents.html', {'form': form})
+
+
+@login_required
+def upload_documents(request):
+	if request.method == 'POST':
+		lender_id = request.session.get('lender_id')
+		lender = LenderProfile.objects.get(id=lender_id)
+		form = BorrowerDocumentsForm(request.POST, request.FILES)
+		if form.is_valid():
+			user = request.user
+
+			# Update or create
+			borrower_documents, created = BorrowerDocuments.objects.get_or_create(user=user)
+
+			borrower_documents.id_proof = form.cleaned_data['id_proof']
+			borrower_documents.bank_statement = form.cleaned_data['bank_statement']
+			borrower_documents.payslip = form.cleaned_data['payslip']
+			borrower_documents.chief_letter = form.cleaned_data['chief_letter']
+			borrower_documents.save()
+
+			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/loan-calculator/'})
+		else:
+			return JsonResponse({'error': form.errors})
+	else:
+		form = BorrowerDocumentsForm()
+	return render(request, 'upload_documents.html', {'form': form})
 
 
 
@@ -134,7 +210,7 @@ def loan_application(request):
 		lender_id = request.session.get('lender_id')
 		interest_rate = request.session.get('interest_rate')
 
-		if not lender_id: #or not interest_rate:
+		if not lender_id: 
 			messages.error(request, "No lender selected. Please start again.")
 			return redirect('borrower_index')
 
@@ -183,7 +259,6 @@ def loan_application(request):
 
 
 
-
 def loan_calculator(request):
 	lender_id = request.session.get('lender_id')
 	lender = LenderProfile.objects.get(id=lender_id)
@@ -219,6 +294,16 @@ def apply_loan(request):
 		# First payment can be same as monthly, unless there's a special case (e.g., upfront fees)
 		first_payment = monthly_installment
 
+			# Check if borrower has an active or pending loan
+		existing_loans = LoanApplication.objects.filter(
+			borrower=borrower,
+			status__in=['approved', 'pending']
+		)
+
+		if existing_loans.exists():
+			messages.error(request, "You cannot apply for a new loan while you have an active or pending loan.")
+			return redirect('apply-loan')
+
 		# Save loan application
 		loan_application = LoanApplication.objects.create(
 			borrower=borrower,
@@ -244,18 +329,6 @@ def apply_loan(request):
 			loan_application=loan_application
 		)
 		
-		# Notify the lender
-		#Notification.objects.create(
-		#	user=loan_application.lender.user,
-		#	message=f"New loan payment from {borrower.full_name}"
-		#)
-	
-
-		# Notify the lender
-		#Notification.objects.create(
-		#	user=loan_application.lender,
-		#	message=f"New loan payment from {borrower.full_name}"
-		#)
 
 		messages.success(request, "Loan application submitted successfully!")
 		return redirect('borrower_index')
@@ -328,7 +401,7 @@ def my_active_loans(request):
 
 		# Next expected payment (assuming monthly schedule)
 		#loan.next_payment_date = loan.date_created + timedelta(days=30 * loan.payments.count())
-		loan.first_payment_date, loan.next_payment_date = calculate_first_and_next_payment_dates(loan)
+		loan.first_payment_day, loan.next_payment_date = calculate_first_and_next_payment_dates(loan)
 
 		# Monthly Payment Status Timeline
 		today = timezone.now()
@@ -356,14 +429,14 @@ def my_active_loans(request):
 
 def calculate_first_and_next_payment_dates(loan):
 		pay_day = loan.borrower.pay_day or 1  # default to 1st if not set
-		first_payment_date = loan.date_created.replace(day=pay_day)
+		first_payment = loan.date_created.replace(day=pay_day)
 
 		# If first payment date is before loan date, move to next month
-		if first_payment_date < loan.date_created:
-			first_payment_date = first_payment_date + timedelta(days=30)
+		if first_payment < loan.date_created:
+			first_payment = first_payment + timedelta(days=30)
 
-		next_payment_date = first_payment_date + timedelta(days=30 * loan.payments.count())
-		return first_payment_date, next_payment_date
+		next_payment = first_payment + timedelta(days=30 * loan.payments.count())
+		return first_payment, next_payment
 
 
 def recalculate_with_interest(loan, months_missed):
@@ -401,9 +474,31 @@ def calculate_adjusted_payment(loan):
 @csrf_exempt
 def mark_loan_approved_read(request):
 	if request.user.is_authenticated and request.method == "POST":
-		Notification.objects.filter(user=request.user, category="loan_approved", is_read=False).update(is_read=True)
+		Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
 		return JsonResponse({"success": True})
 	return JsonResponse({"success": False}, status=400)
+
+# Remember to add this to individual clicks of notification
+def mark_notification_read(request, notification_id):
+	notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+	notification.is_read = True
+	notification.save()
+
+	# Optionally, redirect based on category
+	if notification.category == 'loan_approved':
+		return redirect('loan-detail', notification.loan_application.id)
+	elif notification.category == 'loan_rejected':
+		return redirect('loan-status')
+	elif notification.category == 'loan_pending':
+		return redirect('pending-loans')
+
+	return redirect('notifications')
+
+@require_POST
+@login_required
+def mark_all_notifications_read(request):
+	request.user.notifications.filter(is_read=False).update(is_read=True)
+	return JsonResponse({'status': 'success'})
 
 
 def loan_application_success(request):
@@ -480,7 +575,7 @@ def loan_details(request, loan_id):
 def record_payment(request, loan_id):
 	"""Allows a borrower to record a loan payment."""
 	loan = get_object_or_404(Loan, id=loan_id, borrower__user=request.user)
-	borrower = loan.borrower  # Get borrower from loan
+	borrower = loan.borrower 
 	adjusted_payment = calculate_adjusted_payment(loan)
 
 	if request.method == "POST":
@@ -489,9 +584,7 @@ def record_payment(request, loan_id):
 		if form.is_valid():
 			payment = form.save(commit=False)
 			payment.loan = loan
-			payment.borrower = borrower
-
-			
+			payment.borrower = borrower	
 
 			#Remember to remove
 			# Check missed payments
@@ -547,6 +640,7 @@ def record_payment(request, loan_id):
 		{'form': form, 'loan': loan, 'adjusted_payment': adjusted_payment})
 
 
+
 def calculate_missed_months(loan):
 	"""Detect how many months were missed based on first payment date and previous payment dates."""
 	last_payment = loan.payments.order_by("-date_paid").first()
@@ -555,10 +649,11 @@ def calculate_missed_months(loan):
 	if last_payment:
 		expected_payment_date = last_payment.date_paid + relativedelta(months=1)
 	else:
-		expected_payment_date = loan.first_payment_date() 
+		expected_payment_date = loan.first_payment_date 
 
 	months_missed = (today.year - expected_payment_date.year) * 12 + (today.month - expected_payment_date.month)
 	return max(0, months_missed)
+
 
 @login_required
 def borrower_payment_history(request):

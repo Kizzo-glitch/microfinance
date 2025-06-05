@@ -16,16 +16,6 @@ from datetime import date
 
 
 # Choices
-LOAN_STATUS_CHOICES = [
-	('pending', 'Pending'),
-	('approved', 'Approved'),
-	('rejected', 'Rejected'),
-	('fully_paid', 'Fully Paid'),
-	('active', 'Active'),
-	('overdue', 'Overdue'),
-	('defaulted', 'Defaulted'),
-]
-
 LOAN_TERM_CHOICES = [
 		#('', ''),
 		#('6 Months', '6 Months'),
@@ -42,7 +32,12 @@ LOAN_TERM_CHOICES = [
 
 # Loan Application Model
 class LoanApplication(models.Model):
-	
+	LOAN_STATUS_CHOICES = [
+		('pending', 'Pending'),
+		('approved', 'Approved'),
+		('rejected', 'Rejected'),
+		
+	]
 	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE)
 	lender = models.ForeignKey(LenderProfile, on_delete=models.CASCADE)
 	loan_amount = models.DecimalField(max_digits=12, decimal_places=2)
@@ -68,13 +63,18 @@ class LoanApplication(models.Model):
 		related_name='application_source'
 	)
 
-
 	def __str__(self):
 		return f"Application {self.id} - {self.borrower.user.username} - {self.lender.user.username} - {self.status}"
 
 
 
 class Loan(models.Model):
+	LOAN_STATUS_CHOICES = [
+		('fully_paid', 'Fully Paid'),
+		('active', 'Active'),
+		('overdue', 'Overdue'),
+		('defaulted', 'Defaulted'),
+	]
 	application = models.OneToOneField(LoanApplication, on_delete=models.CASCADE, null=True, blank=True)
 	# application_source = Reverse OneToOne from LoanApplication (related_name='application_source')
 	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE, related_name='loans')
@@ -121,8 +121,6 @@ class Loan(models.Model):
 		return max((self.due_date.year - today.year) * 12 + (self.due_date.month - today.month), 0)
 
 	
-
-	
 	def total_paid(self):
 		"""Calculate the total amount paid so far."""
 		return self.payments.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
@@ -149,33 +147,6 @@ class Loan(models.Model):
 		return cls.objects.filter(lender=lender, due_date__lt=date.today(), outstanding_balance__gt=0)
 
 
-	
-	'''@classmethod
-	def get_active_loans(cls, lender):
-		return cls.objects.filter(lender=lender, status='active')
-
-	@classmethod
-	def get_pending_loans(cls, lender):
-		return cls.objects.filter(lender=lender, status='pending')
-
-	@classmethod
-	def get_fully_paid_loans(cls, lender):
-		return cls.objects.filter(lender=lender, outstanding_balance=Decimal('0.00'))
-
-	@classmethod
-	def get_overdue_loans(cls, lender):
-		return cls.objects.filter(
-			lender=lender,
-			due_date__lt=now().date(),
-			outstanding_balance__gt=Decimal('0.00')
-		)'''
-
-	
-	'''def is_defaulted(self):
-		"""Define a loan as defaulted if it's overdue by more than 30 days and still has outstanding balance."""
-		overdue_by = timezone.now().date() - self.due_date
-		return self.outstanding_balance > 0 and overdue_by.days > 30'''
-
 	def is_defaulted(self):
 		"""Loan is defaulted if the borrower has made no payments and due date passed."""
 		return self.outstanding_balance == self.total_repayable and self.due_date < timezone.now().date()
@@ -191,41 +162,12 @@ class Loan(models.Model):
 		actual_payments = self.payments.count()
 		return actual_payments < expected_payments
 
-	def update_outstanding_balance3(self):
-		total_paid = self.payments.aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-		self.outstanding_balance = self.total_repayable - total_paid
-
-		# Auto-mark as fully paid if balance is zero
-		if self.outstanding_balance <= Decimal('0'):
-			self.status = 'fully_paid'
-			self.outstanding_balance = Decimal('0')  # Prevent negative balances
-
-		self.save()
-
-	def update_outstanding_balance4(self):
-		total_paid = self.payments.aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-		self.outstanding_balance = self.total_repayable - total_paid
-
-		if self.outstanding_balance <= Decimal('0'):
-			self.outstanding_balance = Decimal('0')
-			self.status = 'fully_paid'
-
-		elif date.today() > self.due_date:
-			self.status = 'overdue'
-
-		else:
-			self.status = 'active'  # Optional: fallback to active if neither fully paid nor overdue
-
-		self.save()
-
 	def update_outstanding_balance(self):
 		total_paid = sum(payment.amount for payment in self.payments.all())
 		self.outstanding_balance = max(self.total_repayable - total_paid, 0)
 		self.save()
-
-
-
 	
+	@property
 	def first_payment_date(self):
 		"""Return the first payment date (either set manually or 30 days from creation)."""
 		if self.first_payment_day:
@@ -325,6 +267,15 @@ class InterestRate(models.Model):
 
 # Credit History Model
 class CreditHistory(models.Model):
+	LOAN_STATUS_CHOICES = [
+		('pending', 'Pending'),
+		('approved', 'Approved'),
+		('rejected', 'Rejected'),
+		('fully_paid', 'Fully Paid'),
+		('active', 'Active'),
+		('overdue', 'Overdue'),
+		('defaulted', 'Defaulted'),
+	]
 	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE)
 	loan = models.ForeignKey(Loan, on_delete=models.CASCADE)
 	status = models.CharField(max_length=10, choices=LOAN_STATUS_CHOICES, default='pending')

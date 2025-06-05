@@ -119,8 +119,45 @@ def create_profile(sender, instance, created, **kwargs):
 post_save.connect(create_profile, sender=User)
 
 
+def user_directory_path2(instance, filename):
+	return f'documents/user_{instance.user.id}/{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}/{filename}'
+
+DOCUMENT_TYPES = [
+	('id_proof', 'ID Proof'),
+	('bank_statement', 'Bank Statement'),
+	('payslip', 'Payslip'),
+	('chief_letter', 'Chief Letter'),
+]
+
+
+def user_directory_path(instance, filename):
+	# Files will be uploaded to: documents/user_<id>/<filename>
+	return f'documents/user_{instance.user.id}/{filename}'
+
 class BorrowerDocuments(models.Model):
-	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE, related_name='documents')
+
+
+	user = models.OneToOneField(User, on_delete=models.CASCADE)
+	id_proof = models.FileField(upload_to=user_directory_path)
+	bank_statement = models.FileField(upload_to=user_directory_path)
+	payslip = models.FileField(upload_to=user_directory_path)
+	chief_letter = models.FileField(upload_to=user_directory_path)
+	uploaded_at = models.DateTimeField(auto_now_add=True)
+
+
+
+class BorrowerDocuments3(models.Model):
+	user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='document_uploads')
+	document_type = models.CharField(choices=DOCUMENT_TYPES, max_length=20)
+	file = models.FileField(upload_to=user_directory_path)
+	uploaded_at = models.DateTimeField(auto_now_add=True)
+
+	def __str__(self):
+		return f"{self.user.username} - {self.document_type} ({self.uploaded_at.strftime('%Y-%m-%d %H:%M')})"
+
+
+class BorrowerDocuments2(models.Model):
+	user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='documents')
 	id_proof = models.FileField(upload_to='documents/id_proof/')
 	bank_statement = models.FileField(upload_to='documents/bank_statements/')
 	payslip = models.FileField(upload_to='documents/payslips/')
@@ -128,5 +165,5 @@ class BorrowerDocuments(models.Model):
 	uploaded_at = models.DateTimeField(auto_now_add=True)
 
 	def __str__(self):
-		return f"{self.borrower.user.username}'s Documents"
+		return f"{self.user.user.username}'s Documents"
 

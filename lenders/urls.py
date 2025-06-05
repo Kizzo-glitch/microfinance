@@ -20,6 +20,7 @@ urlpatterns = [
     path('loan-applications/', LoanApplicationListView.as_view(), name='loan-application-list'),
     path('loan-application/<int:pk>/update/', LoanApplicationUpdateView.as_view(), name='loan-application-update'),
     path('loan/<int:pk>/update-status/', LoanStatusUpdateView.as_view(), name='loan-status-update'),
+    path('loan/update-pending-loans/', views.update_pending_loans, name='update-pending-loans'),
     
     path('loans/', LoanListView.as_view(), name='loan-list'),
 

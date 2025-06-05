@@ -2,14 +2,16 @@ from django.urls import path
 from . import views
 from .views import BorrowerNotificationListView 
 
+
+
 urlpatterns = [
     path('borrower_index/', views.borrower_index, name='borrower_index'),
-    #path('charts/', views.charts, name='charts'),
+   
     path('layout_sidenav_light/', views.layout_sidenav_light, name='layout_sidenav_light'),
     path('layout_static/', views.layout_static, name='layout_static'),
     #path('login/', views.login, name='login'),
     path('password/', views.password, name='password'),
-    #path('register/', views.register, name='register'),
+  
     path('tables/', views.tables, name='tables'),
     path('borrower_profile/', views.borrower_profile, name='borrower_profile'),
     path('upload_documents/', views.upload_documents, name='upload_documents'),
@@ -35,6 +37,10 @@ urlpatterns = [
     path('borrower/payment-history/', views.borrower_payment_history, name='borrower_payment_history'),
 
     path('mark_loan_approved_read/', views.mark_loan_approved_read, name='mark_loan_approved_read'),
+    path('notification/read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'),
+ 
+    path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
+
 
     path('api/loan-chart-data/', views.loan_chart_data, name='loan_chart_data'),
 

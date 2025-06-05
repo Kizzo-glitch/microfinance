@@ -17,119 +17,6 @@ class RatingForm(forms.ModelForm):
 		}
 
 
-
-'''class BorrowerProfileForm(forms.ModelForm):
-	full_name = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Full Name'}), required=True)
-	gender = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Gender'}), required=True)
-	title = forms.ChoiceField(choices=[('', 
-			'Select'), 
-				('1', 'Mr'), 
-				('2', 'Ms'), 
-				('3', 'Mrs'),], 
-				widget = forms.Select(attrs={'class': 'form-control', 
-						'placeholder':'Title'}), 
-				required=True,)
-	date_of_birth = forms.DateField(
-		widget=forms.DateInput(
-			attrs={
-				'type': 'date',  # This makes the input render as an HTML date picker
-				'class': 'form-control',  # Add the Bootstrap class for styling
-				'id': 'date',  # Matches the id from your HTML example
-			}
-		),
-		label="Date Of Birth",)  # Label for the field
-	
-	id_number = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'ID Number'}), required=True)
-	marital_status = forms.ChoiceField(choices=[('', 
-			'Select'), 
-				('1', 'Single'), 
-				('2', 'Married'), 
-				('3', 'Divorced'), 
-				('4', 'Widowed')], 
-				widget = forms.Select(attrs={'class': 'form-control', 
-						'placeholder':'Marital Status'}), 
-				required=True,)
-	phone_number = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Phone Number'}), required=True)
-	email_address = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Email Address'}), required=True)  
-	employer_name = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':"Employer's Name"}), required=True)
-
-
-	employment_position = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Employment Position'}), required=True)
-	#business_email_ddress = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Business Email Address'}), required=True)
-	#ownership = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Ownership'}), required=True)
-	income = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Income Amount'}), required=True)
-	
-	position_level = forms.ChoiceField(choices=[('', 
-			'Select'), 
-				('1', 'entry-level'), 
-				('2', 'intermediate'), 
-				('3', 'mid-level'), 
-				('4', 'senior-level')], 
-				widget = forms.Select(attrs={'class': 'form-control', 
-						'placeholder':'Possition Level'}), 
-				required=True,)
-	
-	home_address = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Home Address'}), required=True)
-	employer_address = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':"Employer's Address"}), required=True)
-	
-	income_type = forms.ChoiceField(choices=[('', 
-			'Select'), 
-				('1', 'Salary'), 
-				('2', 'Wages'),
-				('3', 'Other'),], 
-				widget = forms.Select(attrs={'class': 'form-control', 
-						'placeholder':'Income Type'}), 
-				required=True,)
-	
-	pay_date = forms.DateField(
-		widget=forms.DateInput(
-			attrs={
-				'type': 'date',  # This makes the input render as an HTML date picker
-				'class': 'form-control',  # Add the Bootstrap class for styling
-				'id': 'date',  # Matches the id from your HTML example
-			}
-		),
-		label="Pay Day",  # Label for the field
-	)
-	monthly_expenses = forms.ChoiceField(choices=[('', 
-			'Select'), 
-				('1', 'Rent'), 
-				('2', 'Utilities'),
-				('3', 'Debt payment'),
-				('4', 'Insurence'),
-				('4', 'Stokvel'),], 
-				widget = forms.Select(attrs={'class': 'form-control', 
-						'placeholder':'Monthly Expenses'}), 
-				required=True,)
-	existing_debts = forms.ChoiceField(choices=[
-		('', 
-			'Select'), 
-				('1', 'Loans'), 
-				('2', 'Credit Cards'),
-				('3', 'Credit Accounts'),
-					], 
-				widget = forms.Select(attrs={'class': 'form-control', 
-						'placeholder':'Existing Debts'}), 
-				required=True,)
-	
-	credit_score = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Credit Score'}), required=True)
-	credit_intend = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Credit Intend'}), required=True)
-	
-
-	
-	
-
-	is_over_18 = forms.BooleanField(widget=forms.CheckboxInput(
-		attrs={'class': 'form-check-input'}), required=True,)
-	agrees_to_terms = forms.BooleanField(widget=forms.CheckboxInput(
-		attrs={'class': 'form-check-input'}), required=True,)
-	agrees_to_credit_conditions = forms.BooleanField(widget=forms.CheckboxInput(
-		attrs={'class': 'form-check-input'}), required=True,)
-	information_consent = forms.BooleanField(widget=forms.CheckboxInput(
-		attrs={'class': 'form-check-input'}), required=True,) '''
-
-
-
 class BorrowerProfileForm(forms.ModelForm):
 	full_name = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Full Name(s)',}), required=True)
 	gender = forms.Select(attrs={'class': 'form-control'})
@@ -182,10 +69,6 @@ class BorrowerProfileForm(forms.ModelForm):
 	
 	credit_score = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'My Credit Score',}), required=True)
 	credit_intend = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Reasons why I require the Loan',}), required=True)
-	
-
-	
-	
 
 	is_over_18 = forms.BooleanField(widget=forms.CheckboxInput(
 		attrs={'class': 'form-check-input'}), required=True,)
@@ -234,6 +117,11 @@ class BorrowerDocumentsForm(forms.ModelForm):
 		model = BorrowerDocuments
 		fields = ['id_proof', 'bank_statement', 'payslip', 'chief_letter']
 
+
+'''class BorrowerDocumentUploadForm2(forms.ModelForm):
+	class Meta:
+		model = BorrowerDocuments3
+		fields = ['document_type', 'file']'''
 
 
 class LoanApplicationForm(forms.ModelForm):

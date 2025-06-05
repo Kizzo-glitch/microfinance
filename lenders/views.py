@@ -71,24 +71,12 @@ def lender_index(request):
 		approved_percent = int((approved_loans / total_applications) * 100) if total_applications else 0
 		rejected_percent = int((rejected_loans / total_applications) * 100) if total_applications else 0
 		overdue_percent = int((overdue_loans / total_applications) * 100) if total_applications else 0
-		
-		
-		total_loans = loans.count()
-		
+			
+		total_loans = loans.count()	
 
 		high_risk_count = get_loans_by_risk_category("high").count()
 		mid_risk_count = get_loans_by_risk_category("mid").count()
 		late_payers_count = get_loans_by_risk_category("late").count()
-
-		# Earnings by month
-		#earnings_per_month = (
-		#	loans
-		#	.filter(repaid_amount__gt=0)
-		#	.annotate(month=timezone.datetime.strftime('disbursement_date', "%b"))
-		#	.values('month')
-		#	.annotate(total=Sum('repaid_amount'))
-		#	.order_by('month')
-		#)
 
 		earnings_per_month = (
 			LoanPayment.objects
@@ -380,6 +368,7 @@ def approved_loans(request):
 	lender = get_object_or_404(LenderProfile, user=request.user)
 	loans = Loan.objects.filter(lender=lender, status='approved')
 	return render(request, 'approved_loans.html', {'loans': loans})
+
 
 
 class PendingLoansView(ListView):

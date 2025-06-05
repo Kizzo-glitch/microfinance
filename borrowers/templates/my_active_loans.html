@@ -53,10 +53,12 @@
         <div class="alert alert-info">You don’t have any active loans at the moment.</div>
     {% endif %}
 <br>
+
     <h2 class="mb-4">Detailed Active Loans View</h2>
 
     {% for loan in active_loans %}
     <div class="card mb-4 p-3 shadow-sm">
+        <h5>Lender: {{ loan.lender.company_name }}</h5>
          <h5>Loan #{{ loan.id }} - R{{ loan.amount }}</h5>
         <p><strong>Total Repayable:</strong> R{{ loan.total_repayable }}</p>
         <p><strong>Outstanding Balance:</strong> R{{ loan.outstanding_balance }}</p>
@@ -69,13 +71,13 @@
           {% if loan.is_first_payment_overdue %}
             <span class="badge bg-danger">Overdue</span>
           {% else %}
-            <span class="badge bg-success">{{ loan.days_until_first_payment }} days left</span>
+            <span class="badge bg-success">{{ loan.days_until_first_payment }} days left towards next payment</span>
           {% endif %}
         </p>
-        <p><strong>Next Expected Payment:</strong> {{ loan.next_payment_date|date:"F j, Y" }}</p>
+        <p><strong>Next Expected Payment Date:</strong> {{ loan.next_payment_date|date:"F j, Y" }}</p>
 
         <div class="alert alert-info">
-            <p>Expected Payment This Month (Based On Lender's Recalculation Policy On Skipped Payments): <strong>R{{ adjusted_payment }}</strong></p>
+            <p>Expected Payment (Based On Lender's Recalculation Policy On Skipped Payments): <strong>R{{ adjusted_payment }}</strong></p>
         </div>
 
 
