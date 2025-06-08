@@ -1,0 +1,22 @@
+
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% block content %}
+<div class="container mt-4">
+<h2>{{ loan.borrower.full_name }}'s Uploaded Documents</h2>
+
+{% for file_field in document_fields %}
+    {% with document|getattribute:file_field as file %}
+        {% if file %}
+            <div class="mb-3">
+                <strong>{{ file_field|capfirst }}:</strong>
+                <a href="{{ file.url }}" class="btn btn-sm btn-primary" target="_blank">View</a>
+                <a href="{{ file.url }}" class="btn btn-sm btn-success" download>Download</a>
+            </div>
+        {% endif %}
+    {% endwith %}
+{% endfor %}
+
+</div>
+{% endblock %}
+

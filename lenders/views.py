@@ -351,7 +351,24 @@ class LoanApplicationUpdateView(UpdateView):
 		return reverse('loan-application-list')
 
 
+@login_required
+def borrower_documents(request, loan_id):
+	loan = get_object_or_404(LoanApplication, id=loan_id, lender=request.user.lender)
+	borrower = loan.borrower
+	documents = BorrowerDocuments.objects.filter(borrower=borrower).order_by('-upload_date')
+
+		# List of field names to loop through in template
+	document_fields = ['id_proof', 'bank_statement', 'payslip', 'chief_letter']
+
+	return render(request, 'borrower_documents.html', {
+		'loan': loan,
+		'borrower': borrower.user,
+		'documents': documents,
+		'document_fields': document_fields,
+	})
  
+
+
 class ApprovedLoansView(ListView):
 	model = LoanApplication
 	template_name = 'approved_loans.html'

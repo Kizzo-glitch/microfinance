@@ -2,7 +2,8 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 from micro.models import User
 import datetime
-from django.db.models.signals import post_save 
+from django.db.models.signals import post_save
+import os 
 
 
 class BorrowerProfileManager(models.Manager):
@@ -119,23 +120,38 @@ def create_profile(sender, instance, created, **kwargs):
 post_save.connect(create_profile, sender=User)
 
 
-def user_directory_path2(instance, filename):
-	return f'documents/user_{instance.user.id}/{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}/{filename}'
 
-DOCUMENT_TYPES = [
-	('id_proof', 'ID Proof'),
-	('bank_statement', 'Bank Statement'),
-	('payslip', 'Payslip'),
-	('chief_letter', 'Chief Letter'),
-]
+def upload_to_document_type(instance, filename, folder):
+	username = instance.borrower.user.username
+	return os.path.join('documents', username, folder, filename)
 
+def upload_to_id_proof(instance, filename):
+	return upload_to_document_type(instance, filename, 'id_proof')
 
-def user_directory_path(instance, filename):
-	# Files will be uploaded to: documents/user_<id>/<filename>
-	return f'documents/user_{instance.user.id}/{filename}'
+def upload_to_bank_statement(instance, filename):
+	return upload_to_document_type(instance, filename, 'bank_statements')
+
+def upload_to_payslip(instance, filename):
+	return upload_to_document_type(instance, filename, 'payslips')
+
+def upload_to_chief_letter(instance, filename):
+	return upload_to_document_type(instance, filename, 'chief_letter')
+
 
 class BorrowerDocuments(models.Model):
+	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE, related_name='documents')
+	id_proof = models.FileField(upload_to=upload_to_id_proof)
+	bank_statement = models.FileField(upload_to=upload_to_bank_statement)
+	payslip = models.FileField(upload_to=upload_to_payslip)
+	chief_letter = models.FileField(upload_to=upload_to_chief_letter)
+	upload_date = models.DateTimeField(auto_now_add=True)
 
+	def __str__(self):
+		return f"{self.borrower.user.username}'s Documents"
+
+
+
+'''class BorrowerDocuments4(models.Model):
 
 	user = models.OneToOneField(User, on_delete=models.CASCADE)
 	id_proof = models.FileField(upload_to=user_directory_path)
@@ -165,5 +181,5 @@ class BorrowerDocuments2(models.Model):
 	uploaded_at = models.DateTimeField(auto_now_add=True)
 
 	def __str__(self):
-		return f"{self.user.user.username}'s Documents"
+		return f"{self.user.user.username}'s Documents" '''
 

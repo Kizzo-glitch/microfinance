@@ -1,0 +1,116 @@
+{% extends 'borrower_base.html' %}
+{% block content %}
+
+<div class="container mt-5">
+    <h2>My Uploaded Documents</h2>
+    {% if documents %}
+
+    <!-- Loop through each document -->
+<ul class="list-group mt-4">
+    <li class="list-group-item">
+        ID Proof:
+        <a href="{{ documents.id_proof.url }}" target="_blank" class="btn btn-sm btn-outline-secondary float-end ms-2">View</a>
+        <button type="button" class="btn btn-sm btn-outline-dark float-end ms-2" data-bs-toggle="modal" data-bs-target="#previewModal" data-file-url="{{ documents.id_proof.url }}">Preview</button>
+        <a href="{% url 'download_document' 'id_proof' %}" class="btn btn-sm btn-outline-primary float-end ms-2">Download</a>
+    </li>
+    <li class="list-group-item">
+        Bank Statement:
+        <a href="{{ documents.bank_statement.url }}" target="_blank" class="btn btn-sm btn-outline-secondary float-end ms-2">View</a>
+        <button type="button" class="btn btn-sm btn-outline-dark float-end ms-2" data-bs-toggle="modal" data-bs-target="#previewModal" data-file-url="{{ documents.bank_statement.url }}">Preview</button>
+        <a href="{% url 'download_document' 'bank_statement' %}" class="btn btn-sm btn-outline-primary float-end ms-2">Download</a>
+    </li>
+    <li class="list-group-item">
+        Payslip:
+        <a href="{{ documents.payslip.url }}" target="_blank" class="btn btn-sm btn-outline-secondary float-end ms-2">View</a>
+        <button type="button" class="btn btn-sm btn-outline-dark float-end ms-2" data-bs-toggle="modal" data-bs-target="#previewModal" data-file-url="{{ documents.payslip.url }}">Preview</button>
+        <a href="{% url 'download_document' 'payslip' %}" class="btn btn-sm btn-outline-primary float-end ms-2">Download</a>
+    </li>
+    <li class="list-group-item">
+        Chief's Letter:
+        <a href="{{ documents.chief_letter.url }}" target="_blank" class="btn btn-sm btn-outline-secondary float-end ms-2">View</a>
+        <button type="button" class="btn btn-sm btn-outline-dark float-end ms-2" data-bs-toggle="modal" data-bs-target="#previewModal" data-file-url="{{ documents.chief_letter.url }}">Preview</button>
+        <a href="{% url 'download_document' 'chief_letter' %}" class="btn btn-sm btn-outline-primary float-end ms-2">Download</a>
+    </li>
+</ul>
+
+<!-- Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="previewModalLabel">Document Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <iframe id="documentPreviewFrame" src="" width="100%" height="600px" style="border: none;"></iframe>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const previewModal = document.getElementById("previewModal");
+    const previewFrame = document.getElementById("documentPreviewFrame");
+
+    previewModal.addEventListener("show.bs.modal", function (event) {
+        const button = event.relatedTarget;
+        const fileUrl = button.getAttribute("data-file-url");
+
+        if (fileUrl) {
+            previewFrame.src = fileUrl;
+        } else {
+            previewFrame.src = "";
+        }
+    });
+
+    previewModal.addEventListener("hidden.bs.modal", function () {
+        previewFrame.src = "";
+    });
+});
+</script>
+
+<!--<div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="previewModalLabel">Document Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <iframe id="previewFrame" src="" width="100%" height="600px" frameborder="0"></iframe>
+      </div>
+    </div>
+  </div>
+</div>-->
+
+
+        <!--{% else %}
+        <div class="alert alert-warning mt-4">You haven't uploaded any documents yet.</div>
+    {% endif %}
+</div>-->
+
+
+<!--<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const previewButtons = document.querySelectorAll('button[data-bs-target="#previewModal"]');
+    const previewFrame = document.getElementById('previewFrame');
+
+    previewButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const fileUrl = button.getAttribute('data-file-url');
+            previewFrame.src = fileUrl;
+        });
+    });
+
+    // Optional: Clear iframe on close
+    const previewModal = document.getElementById('previewModal');
+    previewModal.addEventListener('hidden.bs.modal', () => {
+        previewFrame.src = '';
+    });
+});
+</script>-->
+
+
+
+{% endblock %}

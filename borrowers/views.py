@@ -183,10 +183,10 @@ def upload_documents(request):
 		lender = LenderProfile.objects.get(id=lender_id)
 		form = BorrowerDocumentsForm(request.POST, request.FILES)
 		if form.is_valid():
-			user = request.user
+			user = request.user.borrower
 
 			# Update or create
-			borrower_documents, created = BorrowerDocuments.objects.get_or_create(user=user)
+			borrower_documents, created = BorrowerDocuments.objects.get_or_create(borrower=user)
 
 			borrower_documents.id_proof = form.cleaned_data['id_proof']
 			borrower_documents.bank_statement = form.cleaned_data['bank_statement']
@@ -202,10 +202,11 @@ def upload_documents(request):
 	return render(request, 'upload_documents.html', {'form': form})
 
 
+
 @login_required
 def view_documents(request):
 	try:
-		documents = BorrowerDocuments.objects.get(user=request.user)
+		documents = BorrowerDocuments.objects.get(borrower=request.user.borrower)
 	except BorrowerDocuments.DoesNotExist:
 		documents = None
 	return render(request, 'view_documents.html', {'documents': documents})
@@ -214,7 +215,7 @@ def view_documents(request):
 @login_required
 def download_document(request, document_type):
 	try:
-		documents = BorrowerDocuments.objects.get(user=request.user)
+		documents = BorrowerDocuments.objects.get(borrower=request.user.borrower)
 	except BorrowerDocuments.DoesNotExist:
 		raise Http404("No documents found.")
 
@@ -230,7 +231,6 @@ def download_document(request, document_type):
 		response = HttpResponse(f.read(), content_type="application/octet-stream")
 		response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
 		return response
-
 
 
 @login_required
