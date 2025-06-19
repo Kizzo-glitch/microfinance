@@ -109,18 +109,37 @@
             </table>
             </div>
             <br> 
-            <!--<p><strong>Loan Amount:</strong> R{{ loan_amount }}</p>
-            <p><strong>Loan Term:</strong> {{ loan_term }} months</p>
-            
-            <p><strong>First Payment:</strong> R{{ first_payment }}</p>
-            <p><strong>Monthly Installment:</strong> R{{ monthly_installment }}</p>
-            <p><strong>Total Repayable:</strong> R{{ total_repayable }}</p>-->
+            <h2>Uploaded Documents</h2>
+            {% if documents %}
+            <div class="card shadow">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Document Type</th>
+                            <th>View</th>
+                            <th>Download</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in documents %}
+                        <tr>
+                            <td>{{ doc.get_document_type_display }}</td>
+                            <td>
+                                <a href="{{ doc.file.url }}" target="_blank" class="btn btn-sm btn-outline-info">View</a>
+                            </td>
+                            <td>
+                                <a href="{{ doc.file.url }}" download class="btn btn-sm btn-outline-primary">Download</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">No documents uploaded for this application.</div>
+            {% endif %}
+            <br> <br> 
 
-        <!--<form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">Save</button>
-        </form>-->
         <center>
         <form method="post">
             {% csrf_token %}

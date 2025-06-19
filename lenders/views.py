@@ -310,6 +310,8 @@ class LoanApplicationUpdateView(UpdateView):
 		loan_application = self.get_object()
 		borrower = loan_application.borrower
 
+		documents = BorrowerDocs.objects.filter(loan_application=loan_application)
+
 		# Check outstanding and overdue loans
 		outstanding_loans = Loan.objects.filter(borrower=borrower, outstanding_balance__gt=0).count()
 		overdue_loans = Loan.objects.filter(borrower=borrower, due_date__lt=date.today(), outstanding_balance__gt=0).count()
@@ -344,6 +346,9 @@ class LoanApplicationUpdateView(UpdateView):
 			'outstanding_loans': outstanding_loans,
 			'overdue_loans': overdue_loans,
 			'total_debt': total_debt,
+
+			'documents': documents,
+			'document_fields': ['id_proof', 'bank_statement', 'payslip', 'chief_letter', 'business_address', 'customer_invoice', 'supplier_invoice', 'business_registration', 'tax_clearance', 'business_statements'],
 		})
 
 		return context
@@ -357,7 +362,7 @@ class LoanApplicationUpdateView(UpdateView):
 @login_required
 def borrower_documents(request, loan_id):
 	loan = get_object_or_404(LoanApplication, id=loan_id, lender=request.user.lender)
-	borrower = request.user.borrower
+	borrower = loan.borrower
 	documents = BorrowerDocs.objects.filter(borrower=borrower).order_by('-upload_date')
 
 		# List of field names to loop through in template
