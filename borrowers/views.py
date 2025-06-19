@@ -3,14 +3,13 @@ from django.contrib.auth.decorators import login_required
 
 from lenders.models import LenderProfile
 from loans.models import LoanApplication, Loan, LoanPayment, Notification, Rating
-from .forms import LoanApplicationForm, BorrowerDocumentsForm, LoanPaymentForm
+from .forms import RatingForm, BorrowerProfileForm, LoanApplicationForm, BorrowerDocumentsForm, LoanPaymentForm, OTPForm, EmploymentTypeForm, EmployedDocumentsForm, SelfEmployedDocumentsForm, RegisteredBusinessDocumentsForm
 
 import random
 
 from django.contrib import messages
 
-from .forms import RatingForm, BorrowerProfileForm
-from .models import BorrowerProfile, BorrowerDocuments
+from .models import BorrowerProfile, BorrowerDocs, OTPVerification
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg
 
@@ -35,39 +34,8 @@ from django.views.decorators.http import require_POST
 
 import os
 from django.conf import settings
+from micro.utils import generate_otp, send_otp_sms
 
-
-@login_required
-def borrower_index(request):
-	lenders = (LenderProfile.objects.filter(user__is_superuser=False, user__role='lender')
-		.annotate(average_rating=Avg('ratings__rating')))
-
-	for lender in lenders:
-		lender.bg_color = generate_random_color()
-
-	return render(request, 'borrower_index.html', {'lenders': lenders})
-
-@login_required
-def borrower_profile2(request):
-	if request.user.is_borrower():
-		# Get Current User
-		current_user = BorrowerProfile.objects.get(user__id=request.user.id)	
-		
-		# Get original User Form
-		form = BorrowerProfileForm(request.POST or None, instance=current_user)
-						
-		if form.is_valid():
-			# Save original form
-			form.save()
-			
-			messages.success(request, "Your Info Has Been Updated!!")
-			return redirect('borrower_index')
-		else:
-			print(form.errors)
-		return render(request, "borrower_profile.html", {'form':form})
-	else:
-		messages.success(request, "You Must Be Logged In To Access That Page!!")
-		return redirect('landing')
 
 
 @login_required
@@ -102,121 +70,336 @@ def borrower_profile(request):
 
 
 
+@login_required
+def borrower_index(request):
+	lenders = (LenderProfile.objects.filter(user__is_superuser=False, user__role='lender')
+		.annotate(average_rating=Avg('ratings__rating')))
 
-def upload_documents2(request):
-	if request.method == 'POST':
-		form = BorrowerDocumentsForm(request.POST, request.FILES)
-		if form.is_valid():
-			user = request.user
-			borrower_documents = BorrowerDocuments(user=user) 
-			form.save(commit=False)  # Save the form data without committing to the database
-			borrower_documents.id_proof = form.cleaned_data['id_proof']
-			borrower_documents.bank_statement = form.cleaned_data['bank_statement']
-			borrower_documents.payslip = form.cleaned_data['payslip']
-			borrower_documents.chief_letter = form.cleaned_data['chief_letter']
-			borrower_documents.save() # This will save the uploaded files and form data
-			# Handle successful upload (e.g., redirect or success message)
-			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/loan_application/'})
-		else:
-			# Handle form validation errors
-			return JsonResponse({'error': form.errors})
-	else:
-		form = BorrowerDocumentsForm()  # Create a new form instance for GET requests
-	return render(request, 'upload_documents.html', {'form': form})
+	for lender in lenders:
+		lender.bg_color = generate_random_color()
+
+	return render(request, 'borrower_index.html', {'lenders': lenders})
 
 
-def upload_documents3(request):
-	if request.method == 'POST':
-		form = BorrowerDocumentsForm(request.POST, request.FILES)
-		if form.is_valid():
-			borrower = request.user
-			borrower_documents = form.save(commit=False)
-			borrower_documents.user = borrower
-			borrower_documents.save()
-			return JsonResponse({
-				'success': 'Documents uploaded successfully!',
-				'redirect_url': '/borrowers/borrower_index/'
-			})
-		else:
-			return JsonResponse({'error': form.errors})
-	else:
-		form = BorrowerDocumentsForm()
-	return render(request, 'upload_documents.html', {'form': form})
+# List of predefined vibrant colors for dashboard
+COLORS = [
+	"#FF5733",  # Vibrant Orange
+	'#36ff33',
+	#"#33FF57",  # Vibrant Green
+	"#3357FF",  # Vibrant Blue
+	'#3388ff',
+	"#FF33A1",  # Pink
+	"#FFC300",  # Bright Yellow
+	#"#DAF7A6",  # Light Green
+	'#085207',
+	"#581845",  # Deep Purple
+	"#C70039",  # Red
+	"#900C3F",  # Dark Red
+	"#2ECC71",  # Emerald Green
+	"#3498DB",  # Sky Blue
+	"#9B59B6",  # Amethyst
+	"#F1C40F",  # Sunflower
+	"#E67E22",  # Carrot Orange
+	"#1ABC9C",  # Turquoise 
+
+	# from Alenn.design
+	'#46A094', # Turtles
+	'#6BBD99',
+	'#AECFA4',
+
+	'#3B7197',
+	'#4A8DB7',
+	'#74BDE0',
+	'#326789',
+	'#78A6C8',
+	'#E65C4F',
+	'#0295A9',
+	'#12ADC1',
+	'#FDD037',
+	'#244D61',
+	'#5689C0',
+	'#41436A',
+	'#974063',
+	'#F54768',
+	'#FF9677',
+	'#2E424D',
+	'#5B8291',
+]
+
+# Randomly assign a color
+def generate_random_color():
+	return random.choice(COLORS)
+
 
 
 @login_required
-def upload_documents4(request):
+def lender_details(request, lender_id):
+	lender = get_object_or_404(LenderProfile, id=lender_id)
+	borrower = request.user  # Ensure the user is logged in
+	form = RatingForm()
+
+	request.session['lender_id'] = lender_id
+	#request.session['interest_rate'] = interest_rate
+
+	# Check if the borrower already rated this lender
+	existing_rating = Rating.objects.filter(lender=lender, borrower=borrower).first()
+
+	# Fetch all ratings for the lender
+	ratings = Rating.objects.filter(lender=lender)
+	average_rating = ratings.aggregate(Avg('rating'))['rating__avg'] or 0  # Average rating (default to 0 if no ratings)
+
 	if request.method == 'POST':
-		form = BorrowerDocumentUploadForm(request.POST, request.FILES)
+		form = RatingForm(request.POST)
 		if form.is_valid():
-			user = request.user
-			document_type = form.cleaned_data['document_type']
-			file = form.cleaned_data['file']
+			if existing_rating:
+				# Update the existing rating
+				existing_rating.rating = form.cleaned_data['rating']
+				existing_rating.save()
+				messages.success(request, "Your rating has been updated.")
+			else:
+				# Create a new rating
+				rating = form.save(commit=False)
+				rating.lender = lender
+				rating.borrower = borrower
+				rating.save()
+				messages.success(request, "Your rating has been submitted.")
+			return redirect('lender_details', lender_id=lender.id)
 
-			# Optional: mark previous versions as not latest
-			BorrowerDocument.objects.filter(
-				user=user,
-				document_type=document_type,
-				is_latest=True  # if you're tracking versions
-			).update(is_latest=False)
+	context = {
+		'lender': lender,
+		'form': form,
+		'existing_rating': existing_rating,
+		'ratings': ratings,  # List of all ratings for this lender
+		'average_rating': average_rating,  # Calculated average rating
+		'rating_range': range(int(average_rating)),  # For displaying stars
+	}
+	return render(request, 'lender_details.html', context)
 
-			# Save new document
-			BorrowerDocument.objects.create(
-				user=user,
-				document_type=document_type,
-				file=file,
-				is_latest=True  # optional
-			)
 
-			return JsonResponse({'success': 'Document uploaded successfully!'})
+
+def rate_lender(request, lender_id):
+	if request.method == 'POST':
+		lender = get_object_or_404(LenderProfile, id=lender_id)
+		rating = int(request.POST.get('rating', 0))
+		if 1 <= rating <= 5:
+			lender.rating = rating
+			lender.save()
+			messages.success(request, "Thank you for rating the lender!")
 		else:
-			return JsonResponse({'error': form.errors})
-	else:
-		form = BorrowerDocumentUploadForm()
-	return render(request, 'upload_documents.html', {'form': form})
+			messages.error(request, "Invalid rating. Please select a value between 1 and 5.")
+		return redirect('lender_detail', lender_id=lender.id)
 
 
 @login_required
-def upload_documents(request):
+def request_otp(request):
+	borrower = request.user.borrower
+
+	# Generate and send OTP
+	otp_code = generate_otp()
+	send_otp_sms(borrower.phone_number, otp_code)
+
+	# Store OTP
+	OTPVerification.objects.create(borrower=borrower, otp_code=otp_code)
+
+	return redirect('verify_otp')
+
+
+
+@login_required
+def verify_otp(request):
+	borrower = request.user.borrower
+	latest_otp = OTPVerification.objects.filter(borrower=borrower).order_by('-created_at').first()
+
 	if request.method == 'POST':
-		lender_id = request.session.get('lender_id')
-		lender = LenderProfile.objects.get(id=lender_id)
-		form = BorrowerDocumentsForm(request.POST, request.FILES)
+		form = OTPForm(request.POST)
 		if form.is_valid():
-			user = request.user.borrower
+			if latest_otp and not latest_otp.is_expired() and form.cleaned_data['otp_code'] == latest_otp.otp_code:
+				# OTP success: Proceed
+				return redirect('employment_type')
+			else:
+				form.add_error(None, 'Invalid or expired OTP.')
+	else:
+		form = OTPForm()
 
-			# Update or create
-			borrower_documents, created = BorrowerDocuments.objects.get_or_create(borrower=user)
+	return render(request, 'verify_otp.html', {'form': form})
 
-			borrower_documents.id_proof = form.cleaned_data['id_proof']
-			borrower_documents.bank_statement = form.cleaned_data['bank_statement']
-			borrower_documents.payslip = form.cleaned_data['payslip']
-			borrower_documents.chief_letter = form.cleaned_data['chief_letter']
-			borrower_documents.save()
 
+@login_required
+def select_employment_type(request):
+	profile = request.user.borrower
+	if request.method == 'POST':
+		form = EmploymentTypeForm(request.POST, instance=profile)
+		if form.is_valid():
+			form.save()
+
+			employment_type = form.cleaned_data['employment_type']
+
+			if employment_type == 'employed':
+				return redirect('upload_documents_employed')
+			elif employment_type == 'self_employed':
+				return redirect('upload_documents_self_employed')
+			elif employment_type == 'registered_business':
+				return redirect('upload_documents_registered_business')
+			else:
+				# fallback if somehow employment_type is missing
+				return redirect('upload_documents')
+
+	else:
+		form = EmploymentTypeForm(instance=profile)
+
+	return render(request, 'employment_type.html', {'form': form})
+
+
+
+@login_required
+def upload_documents_employed(request):
+	borrower = request.user.borrower
+
+	if request.method == 'POST':
+		form = EmployedDocumentsForm(request.POST, request.FILES)
+		if form.is_valid():
+			# Get latest unsubmitted loan application (or however you're tracking it)
+			try:
+				loan_app = LoanApplication.objects.filter(borrower=borrower).latest('id')
+			except LoanApplication.DoesNotExist:
+				loan_app = None
+
+			doc_map = {
+				'id_proof': 'ID Proof',
+				'bank_statement': 'Bank Statement',
+				'payslip': 'Payslip',
+				'chief_letter': 'Chief Letter',
+			}
+
+			for field_name in form.cleaned_data:
+				file = form.cleaned_data[field_name]
+				if file:
+					BorrowerDocs.objects.create(
+						borrower=borrower,
+						loan_application=loan_app,
+						document_type=field_name,
+						file=file
+					)
 			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/loan-calculator/'})
 		else:
 			return JsonResponse({'error': form.errors})
 	else:
-		form = BorrowerDocumentsForm()
-	return render(request, 'upload_documents.html', {'form': form})
+		form = EmployedDocumentsForm()
+
+	return render(request, 'upload_documents_employed.html', {'form': form})
+
+
+@login_required
+def upload_documents_self_employed(request):
+	borrower = request.user.borrower
+
+	if request.method == 'POST':
+		form = SelfEmployedDocumentsForm(request.POST, request.FILES)
+		if form.is_valid():
+			# Get latest unsubmitted loan application (or however you're tracking it)
+			try:
+				loan_app = LoanApplication.objects.filter(borrower=borrower).latest('id')
+			except LoanApplication.DoesNotExist:
+				loan_app = None
+
+			doc_map = {
+				'id_proof': 'ID Proof',
+				'bank_statement': 'Bank Statement',
+				'business_address': 'Business Address',
+				'chief_letter': 'Chief Letter',
+				'customer_invoice': 'Customer Invoice',
+				'supplier_invoice': 'Supplier Invoice',
+				'tax_clearance': 'Tax Clearance Certificate'
+			}
+
+			for field_name in form.cleaned_data:
+				file = form.cleaned_data[field_name]
+				if file:
+					BorrowerDocs.objects.create(
+						borrower=borrower,
+						loan_application=loan_app,
+						document_type=field_name,
+						file=file
+					)
+			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/loan-calculator/'})
+		else:
+			return JsonResponse({'error': form.errors})
+	else:
+		form = SelfEmployedDocumentsForm()
+
+	return render(request, 'upload_documents_self_employed.html', {'form': form})
+
+
+
+@login_required
+def upload_documents_registered_business(request):
+	borrower = request.user.borrower
+
+	if request.method == 'POST':
+		form = RegisteredBusinessDocumentsForm(request.POST, request.FILES)
+		if form.is_valid():
+			# Get latest unsubmitted loan application (or however you're tracking it)
+			try:
+				loan_app = LoanApplication.objects.filter(borrower=borrower).latest('id')
+			except LoanApplication.DoesNotExist:
+				loan_app = None
+
+			doc_map = {
+				'id_proof': 'ID Proof',
+				'bank_statement': 'Bank Statement',
+				'business_statements': 'Business Bank Statement',
+				'business_address': 'Business Address',
+				'chief_letter': 'Chief Letter',
+				'customer_invoice': 'Customer Invoice',
+				'supplier_invoice': 'Supplier Invoice',
+				'tax_clearance': 'Tax Clearance Certificate'
+			}
+
+			for field_name in form.cleaned_data:
+				file = form.cleaned_data[field_name]
+				if file:
+					BorrowerDocs.objects.create(
+						borrower=borrower,
+						loan_application=loan_app,
+						document_type=field_name,
+						file=file
+					)
+			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/loan-calculator/'})
+		else:
+			return JsonResponse({'error': form.errors})
+	else:
+		form = RegisteredBusinessDocumentsForm()
+
+	return render(request, 'upload_documents_registered_business.html', {'form': form})
 
 
 
 @login_required
 def view_documents(request):
+	borrower = request.user.borrower
+	documents = BorrowerDocs.objects.filter(borrower=borrower)
+	
+	# Group documents by type for template rendering
+	docs_by_type = {doc.document_type: doc for doc in documents}
+
+	return render(request, 'view_documents.html', {'documents': docs_by_type})
+
+
+@login_required
+def view_documents2(request):
 	try:
-		documents = BorrowerDocuments.objects.get(borrower=request.user.borrower)
-	except BorrowerDocuments.DoesNotExist:
+		documents = BorrowerDocs.objects.filter(borrower=request.user.borrower)
+	except BorrowerDocs.DoesNotExist:
 		documents = None
 	return render(request, 'view_documents.html', {'documents': documents})
+
 
 
 @login_required
 def download_document(request, document_type):
 	try:
-		documents = BorrowerDocuments.objects.get(borrower=request.user.borrower)
-	except BorrowerDocuments.DoesNotExist:
+		documents = BorrowerDocs.objects.filter(borrower=request.user.borrower)
+	except BorrowerDocs.DoesNotExist:
 		raise Http404("No documents found.")
 
 	document_file = getattr(documents, document_type, None)
@@ -312,8 +495,8 @@ def apply_loan(request):
 
 		loan_amount = float(request.POST.get('loan_amount'))
 		loan_term = int(request.POST.get('loan_term'))
-		collateral = request.POST.get('collateral')
-		payment_plan = request.POST.get('payment_plan')
+		#collateral = request.POST.get('collateral')
+		#payment_plan = request.POST.get('payment_plan')
 
 		# Get lender's interest rate
 		interest_rate = float(lender.interest_rate) / 100  
@@ -327,7 +510,7 @@ def apply_loan(request):
 		# First payment can be same as monthly, unless there's a special case (e.g., upfront fees)
 		first_payment = monthly_installment
 
-			# Check if borrower has an active or pending loan
+		# Check if borrower has an active or pending loan
 		existing_loans = LoanApplication.objects.filter(
 			borrower=borrower,
 			status__in=['approved', 'pending']
@@ -353,6 +536,12 @@ def apply_loan(request):
 			date_applied=now(),
 
 		)
+
+		# ✅ Link previously uploaded documents (with loan_application=None) to this new loan
+		BorrowerDocs.objects.filter(
+			borrower=borrower,
+			loan_application__isnull=True
+		).update(loan_application=loan_application)
 
 		# Notify the lender about a new loan application
 		Notification.objects.create(
@@ -702,116 +891,6 @@ def borrower_payment_history(request):
 
 
 
-
-
-# List of predefined vibrant colors for dashboard
-COLORS = [
-	"#FF5733",  # Vibrant Orange
-	'#36ff33',
-	#"#33FF57",  # Vibrant Green
-	"#3357FF",  # Vibrant Blue
-	'#3388ff',
-	"#FF33A1",  # Pink
-	"#FFC300",  # Bright Yellow
-	#"#DAF7A6",  # Light Green
-	'#085207',
-	"#581845",  # Deep Purple
-	"#C70039",  # Red
-	"#900C3F",  # Dark Red
-	"#2ECC71",  # Emerald Green
-	"#3498DB",  # Sky Blue
-	"#9B59B6",  # Amethyst
-	"#F1C40F",  # Sunflower
-	"#E67E22",  # Carrot Orange
-	"#1ABC9C",  # Turquoise 
-
-	# from Alenn.design
-	'#46A094', # Turtles
-	'#6BBD99',
-	'#AECFA4',
-
-	'#3B7197',
-	'#4A8DB7',
-	'#74BDE0',
-	'#326789',
-	'#78A6C8',
-	'#E65C4F',
-	'#0295A9',
-	'#12ADC1',
-	'#FDD037',
-	'#244D61',
-	'#5689C0',
-	'#41436A',
-	'#974063',
-	'#F54768',
-	'#FF9677',
-	'#2E424D',
-	'#5B8291',
-]
-
-# Randomly assign a color
-def generate_random_color():
-	return random.choice(COLORS)
-
-
-from django.db.models import Avg
-
-@login_required
-def lender_details(request, lender_id):
-	lender = get_object_or_404(LenderProfile, id=lender_id)
-	borrower = request.user  # Ensure the user is logged in
-	form = RatingForm()
-
-	request.session['lender_id'] = lender_id
-	#request.session['interest_rate'] = interest_rate
-
-	# Check if the borrower already rated this lender
-	existing_rating = Rating.objects.filter(lender=lender, borrower=borrower).first()
-
-	# Fetch all ratings for the lender
-	ratings = Rating.objects.filter(lender=lender)
-	average_rating = ratings.aggregate(Avg('rating'))['rating__avg'] or 0  # Average rating (default to 0 if no ratings)
-
-	if request.method == 'POST':
-		form = RatingForm(request.POST)
-		if form.is_valid():
-			if existing_rating:
-				# Update the existing rating
-				existing_rating.rating = form.cleaned_data['rating']
-				existing_rating.save()
-				messages.success(request, "Your rating has been updated.")
-			else:
-				# Create a new rating
-				rating = form.save(commit=False)
-				rating.lender = lender
-				rating.borrower = borrower
-				rating.save()
-				messages.success(request, "Your rating has been submitted.")
-			return redirect('lender_details', lender_id=lender.id)
-
-	context = {
-		'lender': lender,
-		'form': form,
-		'existing_rating': existing_rating,
-		'ratings': ratings,  # List of all ratings for this lender
-		'average_rating': average_rating,  # Calculated average rating
-		'rating_range': range(int(average_rating)),  # For displaying stars
-	}
-	return render(request, 'lender_details.html', context)
-
-
-
-def rate_lender(request, lender_id):
-	if request.method == 'POST':
-		lender = get_object_or_404(LenderProfile, id=lender_id)
-		rating = int(request.POST.get('rating', 0))
-		if 1 <= rating <= 5:
-			lender.rating = rating
-			lender.save()
-			messages.success(request, "Thank you for rating the lender!")
-		else:
-			messages.error(request, "Invalid rating. Please select a value between 1 and 5.")
-		return redirect('lender_detail', lender_id=lender.id)
 
 
 

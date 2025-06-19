@@ -1,6 +1,6 @@
 from django import forms
 from loans.models import Rating
-from .models import BorrowerProfile, BorrowerDocuments
+from .models import BorrowerProfile, BorrowerDocs
 from loans.models import LoanApplication, LoanPayment
 
 
@@ -50,7 +50,7 @@ class BorrowerProfileForm(forms.ModelForm):
 	income_type = forms.Select(attrs={'class': 'form-control'})
 
 	pay_day = forms.IntegerField(
-		min_value=1, max_value=31, required=False,
+		min_value=1, max_value=31, required=True,
 		help_text="Enter the day of the month you get paid (1–31)"
 	)
 	
@@ -66,9 +66,10 @@ class BorrowerProfileForm(forms.ModelForm):
 	)'''
 	monthly_expenses = forms.Select(attrs={'class': 'form-control'})
 	existing_debts = forms.Select(attrs={'class': 'form-control'})
+	employment_type = forms.Select(attrs={'class': 'form-control'})
 	
-	credit_score = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'My Credit Score',}), required=True)
-	credit_intend = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Reasons why I require the Loan',}), required=True)
+	#credit_score = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'My Credit Score',}), required=True)
+	#credit_intend = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Reasons why I require the Loan',}), required=True)
 
 	is_over_18 = forms.BooleanField(widget=forms.CheckboxInput(
 		attrs={'class': 'form-check-input'}), required=True,)
@@ -102,20 +103,76 @@ class BorrowerProfileForm(forms.ModelForm):
 			'pay_day',
 			'monthly_expenses',
 			'existing_debts',
-			'credit_score',
-			'credit_intend',
+			#'credit_score',
+			#'credit_intend',
 			'is_over_18',
 			'agrees_to_terms',
 			'agrees_to_credit_conditions',
-			'information_consent'
+			'information_consent',
+			'employment_type'
 			)
 
+class OTPForm(forms.Form):
+	otp_code = forms.CharField(max_length=6)
+
+
+
+class EmploymentTypeForm(forms.ModelForm):
+	employment_type = forms.Select(attrs={'class': 'form-control'})
+	class Meta:
+		model = BorrowerProfile
+		fields = ['employment_type']
 
 
 class BorrowerDocumentsForm(forms.ModelForm):
 	class Meta:
-		model = BorrowerDocuments
+		model = BorrowerDocs
+		fields = ['document_type', 'file']
+
+
+class EmployedDocumentsForm(forms.ModelForm):
+	id_proof = forms.FileField(required=True)
+	bank_statement = forms.FileField(required=True)
+	payslip = forms.FileField(required=True)
+	chief_letter = forms.FileField(required=False)
+	
+	class Meta:
+		model = BorrowerDocs
 		fields = ['id_proof', 'bank_statement', 'payslip', 'chief_letter']
+
+
+class SelfEmployedDocumentsForm(forms.ModelForm):
+	id_proof = forms.FileField(required=True)
+	business_address = forms.FileField(required=True)
+	bank_statement = forms.FileField(required=True)
+	customer_invoice = forms.FileField(required=False)
+	supplier_invoice = forms.FileField(required=True)
+	chief_letter = forms.FileField(required=True)
+	tax_clearance = forms.FileField(required=False)
+
+	class Meta:
+		model = BorrowerDocs
+		fields = ['id_proof', 'business_address', 'bank_statement', 'customer_invoice', 'supplier_invoice', 'chief_letter', 'tax_clearance']
+
+class RegisteredBusinessDocumentsForm(forms.ModelForm):
+	id_proof = forms.FileField(required=True)
+	business_address = forms.FileField(required=True)
+	bank_statement = forms.FileField(required=True)
+	business_statements = forms.FileField(required=True)
+	business_registration = forms.FileField(required=True)
+	customer_invoice = forms.FileField(required=False)
+	supplier_invoice = forms.FileField(required=True)
+	tax_clearance = forms.FileField(required=False)
+
+	class Meta:
+		model = BorrowerDocs
+		fields = ['id_proof', 'business_address', 'bank_statement', 'business_statements', 'business_registration', 'customer_invoice', 'supplier_invoice', 'tax_clearance']
+
+
+'''class BorrowerDocumentsForm(forms.ModelForm):
+	class Meta:
+		model = BorrowerDocs
+		fields = ['id_proof', 'bank_statement', 'payslip', 'chief_letter']'''
 
 
 '''class BorrowerDocumentUploadForm2(forms.ModelForm):

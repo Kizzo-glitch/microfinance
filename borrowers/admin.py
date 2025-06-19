@@ -1,13 +1,13 @@
 from django.contrib import admin
 
-from .models import BorrowerProfile, BorrowerDocuments
+from .models import BorrowerProfile, BorrowerDocs
 
 
 
 # Register your models here.
 
 admin.site.register(BorrowerProfile)
-admin.site.register(BorrowerDocuments)
+admin.site.register(BorrowerDocs)
 
 
 '''@admin.register(BorrowerProfile)

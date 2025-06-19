@@ -1,0 +1,13 @@
+{% extends 'borrower_base.html' %}
+{% load static %}
+
+{% block content %}
+
+  <h2>Enter OTP</h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Verify</button>
+  </form>
+
+{% endblock %}

@@ -3,7 +3,6 @@ from . import views
 from .views import BorrowerNotificationListView 
 
 
-
 urlpatterns = [
     path('borrower_index/', views.borrower_index, name='borrower_index'),
    
@@ -15,17 +14,23 @@ urlpatterns = [
     path('tables/', views.tables, name='tables'),
     path('borrower_profile/', views.borrower_profile, name='borrower_profile'),
 
-    path('upload_documents/', views.upload_documents, name='upload_documents'),
+    path('lender_details/<int:lender_id>/', views.lender_details, name='lender_details'),
+    path('request-otp/', views.request_otp, name='request_otp'),
+    path('verify-otp/', views.verify_otp, name='verify_otp'),
+
+    path('employment-type/', views.select_employment_type, name='employment_type'),
+    path('upload_documents_employed/', views.upload_documents_employed, name='upload_documents_employed'),
+    path('upload_documents_self_employed/', views.upload_documents_self_employed, name='upload_documents_self_employed'),
+    path('upload_documents_registered_business/', views.upload_documents_registered_business, name='upload_documents_registered_business'),
     path('my-documents/', views.view_documents, name='view_documents'),
     path('download-document/<str:document_type>/', views.download_document, name='download_document'),
 
     path('loan_application/', views.loan_application, name='loan_application'),
-    path('lender_details/<int:lender_id>/', views.lender_details, name='lender_details'),
-
+    path('apply-loan/', views.apply_loan, name='apply-loan'),
     path('calculate-loan/', views.calculate_loan, name='calculate-loan'),
     path('loan-calculator/', views.loan_calculator, name='loan-calculator'),
 
-    path('apply-loan/', views.apply_loan, name='apply-loan'),
+    
     path('apply-loan-list/', views.apply_for_loan_list, name='apply-for-loan-list'),
     path('my-loan-applications/', views.my_loan_applications, name='my-loan-applications'),
     path('my-active-loans/', views.my_active_loans, name='my-active-loans'),
@@ -42,21 +47,16 @@ urlpatterns = [
 
     path('mark_loan_approved_read/', views.mark_loan_approved_read, name='mark_loan_approved_read'),
     path('notification/read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'),
- 
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
 
+    path('borrower/notifications/', BorrowerNotificationListView.as_view(), name='borrower-notifications'),
 
     path('api/loan-chart-data/', views.loan_chart_data, name='loan_chart_data'),
-
-    #path('api/monthly-repayments/', views.monthly_repayments, name='monthly_repayments'),
-    #path('api/balance-over-time/', views.balance_over_time, name='balance_over_time'),
-    #path('api/paid-vs-outstanding/', views.paid_vs_outstanding, name='paid_vs_outstanding'),
-
     path('api/borrower/monthly-repayments/', views.monthly_repayments, name='monthly_repayments'),
     path('api/borrower/balance-over-time/', views.balance_over_time, name='balance_over_time'),
     path('api/borrower/paid-vs-outstanding/', views.paid_vs_outstanding, name='paid_vs_outstanding'),
 
-    path('borrower/notifications/', BorrowerNotificationListView.as_view(), name='borrower-notifications'),
+    
 
 ]
 

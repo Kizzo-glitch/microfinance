@@ -67,9 +67,9 @@ class LenderProfile(models.Model):
 	company_name = models.CharField(max_length=20, default='')
 	registration_no = models.CharField(max_length=20, default='')
 	office_address = models.CharField(max_length=100, default='')
-	min_loan = models.DecimalField(decimal_places=2, max_digits=50)
-	max_loan = models.DecimalField(decimal_places=2, max_digits=50)
-	interest_rate = models.DecimalField(decimal_places=2, max_digits=50)
+	min_loan = models.DecimalField(decimal_places=2, max_digits=50, null=True, blank=True)
+	max_loan = models.DecimalField(decimal_places=2, max_digits=50, null=True, blank=True)
+	interest_rate = models.DecimalField(decimal_places=2, max_digits=50, null=True, blank=True)
 	phone_number = models.CharField(max_length=20, default='')
 
 
@@ -104,7 +104,6 @@ class LenderProfile(models.Model):
 		blank=False,
 
 	)
-
 
 	objects = LenderProfileManager()
 	

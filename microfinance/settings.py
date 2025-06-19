@@ -179,3 +179,8 @@ LOGIN_REDIRECT_URL = '/redirect/'  # Calls the role-based redirect view
 LOGOUT_REDIRECT_URL = '/'  # Redirect to landing page after logout
 
 AUTH_USER_MODEL = 'micro.User'
+
+
+TWILIO_ACCOUNT_SID = 'AC85574846d1902b7c73cf54f0f07c7459'
+TWILIO_AUTH_TOKEN = '6cec93d7ae75bec110692fc1419aae8c'
+TWILIO_PHONE_NUMBER = '+27600554369'

@@ -5,7 +5,7 @@ from .models import LenderProfile
 from django.contrib import messages
 from loans.models import Notification, LoanApplication, Loan, LoanPayment
 from django.http import JsonResponse
-from borrowers.models import BorrowerProfile, BorrowerDocuments
+from borrowers.models import BorrowerProfile, BorrowerDocs
 from loans.models import LoanApplication
 
 from django.shortcuts import get_object_or_404
@@ -267,7 +267,8 @@ class LoanApplicationUpdateView(UpdateView):
 				# Only create Loan if not already linked
 				if not loan_application.linked_loan:
 					loan = Loan.objects.create(
-						borrower=loan_application.borrower,
+						#borrower=loan_application.borrower,
+						borrower=request.user.borrowerprofile,
 						lender=loan_application.lender,
 						amount=Decimal(loan_amount),
 						loan_term=loan_application.loan_term,
@@ -351,22 +352,25 @@ class LoanApplicationUpdateView(UpdateView):
 		return reverse('loan-application-list')
 
 
+
+
 @login_required
 def borrower_documents(request, loan_id):
 	loan = get_object_or_404(LoanApplication, id=loan_id, lender=request.user.lender)
-	borrower = loan.borrower
-	documents = BorrowerDocuments.objects.filter(borrower=borrower).order_by('-upload_date')
+	borrower = request.user.borrower
+	documents = BorrowerDocs.objects.filter(borrower=borrower).order_by('-upload_date')
 
 		# List of field names to loop through in template
 	document_fields = ['id_proof', 'bank_statement', 'payslip', 'chief_letter']
 
 	return render(request, 'borrower_documents.html', {
 		'loan': loan,
-		'borrower': borrower.user,
+		'borrower': borrower,
 		'documents': documents,
 		'document_fields': document_fields,
 	})
- 
+
+
 
 
 class ApprovedLoansView(ListView):
@@ -548,7 +552,7 @@ def applied_loans(request):
 			{
 				'loan': loan,
 				'borrower_profile': loan.borrower,
-				'uploaded_documents': BorrowerDocuments.objects.filter(user=loan.borrower.user),
+				'uploaded_documents': BorrowerDocs.objects.filter(user=loan.borrower.user),
 			}
 			for loan in loan_applications
 		]
@@ -643,7 +647,7 @@ def client_documents(request):
 	borrower_ids = Loan.objects.filter(lender=lender).values_list('borrower__id', flat=True).distinct()
 
 	# Fetch documents for those borrowers
-	documents = BorrowerDocuments.objects.filter(borrower__id__in=borrower_ids).select_related('borrower')
+	documents = BorrowerDocs.objects.filter(borrower__id__in=borrower_ids).select_related('borrower')
 
 	return render(request, 'client_documents.html', {'documents': documents})
 
@@ -651,8 +655,8 @@ def client_documents(request):
 def client_documents2(request):
 	borrower = BorrowerProfile.objects.get(user=borrower)
 	try:
-		document = BorrowerDocuments.objects.get(borrower=borrower)
-	except BorrowerDocuments.DoesNotExist:
+		document = BorrowerDocs.objects.get(borrower=borrower)
+	except BorrowerDocs.DoesNotExist:
 		document = None
 	return render(request, 'client_documents.html', {'documents': documents})
 
