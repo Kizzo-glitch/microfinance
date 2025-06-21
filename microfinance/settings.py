@@ -68,7 +68,8 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'loans.context_processors.topbar_notifications',
-                'loans.context_processors.borrower_notifications' 
+                'loans.context_processors.borrower_notifications',
+                'loans.context_processors.pending_loan_update_notifications', 
             ],
         },
     },

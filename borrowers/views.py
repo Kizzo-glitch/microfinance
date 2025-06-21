@@ -386,16 +386,6 @@ def view_documents(request):
 
 
 @login_required
-def view_documents2(request):
-	try:
-		documents = BorrowerDocs.objects.filter(borrower=request.user.borrower)
-	except BorrowerDocs.DoesNotExist:
-		documents = None
-	return render(request, 'view_documents.html', {'documents': documents})
-
-
-
-@login_required
 def download_document(request, document_type):
 	try:
 		documents = BorrowerDocs.objects.filter(borrower=request.user.borrower)
@@ -481,6 +471,39 @@ def loan_calculator(request):
 	return render(request, 'loan_calculator.html', {'lender': lender})
 
 
+def calculate_loan(request):
+	try:
+		amount = Decimal(request.GET.get('amount', 0))
+		term = int(request.GET.get('term', 3))  # Default to 3 months
+		
+		lender_id = request.session.get('lender_id')
+		lender = LenderProfile.objects.get(id=lender_id)
+		interest_rate = lender.interest_rate  
+
+		# Ensure valid calculations
+		if amount > 0 and term > 0:
+			total_repayable = amount * (1 + (Decimal(interest_rate) / 100))
+			monthly_installment = total_repayable / Decimal(term)
+
+			first_repayment = monthly_installment + (total_repayable * Decimal('0.1'))  # Example logic
+			next_repayments = monthly_installment
+
+			return JsonResponse({
+				"total_repayable": round(total_repayable, 2),
+				"monthly_installment": round(monthly_installment, 2),
+				"first_repayment": round(first_repayment, 2),
+				"next_repayments": round(next_repayments, 2),
+			})
+		else:
+			return JsonResponse({"error": "Invalid amount or term"}, status=400)
+	
+	except LenderProfile.DoesNotExist:
+		return JsonResponse({"error": "Lender not found"}, status=404)
+				
+	except Exception as e:
+		return JsonResponse({"error": str(e)}, status=400)
+	
+
 def apply_loan(request):
 	if request.method == "POST":
 		borrower = BorrowerProfile.objects.get(user=request.user)
@@ -526,12 +549,9 @@ def apply_loan(request):
 			lender=lender,
 			loan_amount=loan_amount,
 			loan_term=loan_term,
-			#interest_rate=lender.interest_rate,  
 			total_repayable=total_repayable,
 			first_payment=first_payment,
 			monthly_installment=monthly_installment,
-			#collateral=collateral,
-			#payment_plan=payment_plan,
 			status='pending',
 			date_applied=now(),
 
@@ -560,49 +580,135 @@ def apply_loan(request):
 
 
 
-def calculate_loan(request):
-	try:
-		amount = Decimal(request.GET.get('amount', 0))
-		term = int(request.GET.get('term', 3))  # Default to 3 months
-		
-		lender_id = request.session.get('lender_id')
-		lender = LenderProfile.objects.get(id=lender_id)
-		interest_rate = lender.interest_rate  
 
-		# Ensure valid calculations
-		if amount > 0 and term > 0:
-			total_repayable = amount * (1 + (Decimal(interest_rate) / 100))
-			monthly_installment = total_repayable / Decimal(term)
-
-			first_repayment = monthly_installment + (total_repayable * Decimal('0.1'))  # Example logic
-			next_repayments = monthly_installment
-
-			return JsonResponse({
-				"total_repayable": round(total_repayable, 2),
-				"monthly_installment": round(monthly_installment, 2),
-				"first_repayment": round(first_repayment, 2),
-				"next_repayments": round(next_repayments, 2),
-			})
-		else:
-			return JsonResponse({"error": "Invalid amount or term"}, status=400)
-	
-	except LenderProfile.DoesNotExist:
-		return JsonResponse({"error": "Lender not found"}, status=404)
-				
-	except Exception as e:
-		return JsonResponse({"error": str(e)}, status=400)
-	
 
 # For Sidebar 
 def apply_for_loan_list(request):
 	lenders = LenderProfile.objects.all()
 	return render(request, 'apply_loan_list.html', {'lenders': lenders})
 
+
+
+@login_required
+def pending_loan_application(request):
+	borrower = request.user.borrower
+	pending_loan = LoanApplication.objects.filter(borrower=borrower, status='pending').first()
+
+	return render(request, 'pending_loan.html', {
+		'pending_loan': pending_loan
+	})
+
+@login_required
+def update_loan_application(request, application_id):
+	application = get_object_or_404(LoanApplication, id=application_id, borrower__user=request.user)
+
+	if application.status != 'pending':
+		messages.error(request, "You can only update a pending loan application.")
+		return redirect('borrower_index')  
+
+	if request.method == 'POST':
+		form = LoanApplicationForm(request.POST, instance=application)
+		if form.is_valid():
+			form.save()
+
+			# Send notification to lender
+			Notification.objects.create(
+				user=application.lender.user,
+				message=f"{request.user.username} updated their loan application (R{application.loan_amount}).",
+				category="loan_updated",
+				loan_application=application
+			)
+
+			messages.success(request, "Your loan application was successfully updated.")
+			return redirect('borrower_index')
+	else:
+		form = LoanApplicationForm(instance=application)
+
+	return render(request, 'update_loan_application.html', {'form': form, 'application': application})
+
+@login_required
+def update_documents(request, loan_id):
+	borrower = request.user.borrower
+	loan_application = get_object_or_404(LoanApplication, id=loan_id, borrower=borrower, status='pending')
+	
+	if request.method == 'POST':
+		for doc_type in BorrowerDocs.DOCUMENT_TYPES:
+			file = request.FILES.get(doc_type[0])
+			if file:
+				# Overwrite or create new document
+				BorrowerDocs.objects.update_or_create(
+					borrower=borrower,
+					loan_application=loan_application,
+					document_type=doc_type[0],
+					defaults={'file': file}
+				)
+		Notification.objects.create(
+			user=loan_application.lender.user,
+			message=f"📄 Borrower {borrower.user.username} updated loan documents for review.",
+			category="document_update",
+			loan_application=loan_application
+		)
+		messages.success(request, "Documents updated successfully.")
+		return redirect('borrower_index')
+
+	existing_documents = BorrowerDocs.objects.filter(borrower=borrower, loan_application=loan_application)
+	return render(request, 'update_documents.html', {
+		'loan_application': loan_application,
+		'existing_documents': existing_documents,
+		'document_types': BorrowerDocs.DOCUMENT_TYPES
+	})
+
+
+
+
+@login_required
+def delete_loan_application(request, application_id):
+	application = get_object_or_404(LoanApplication, id=application_id, borrower__user=request.user)
+
+	if application.status != 'pending':
+		messages.error(request, "You can only delete a pending loan application.")
+		return redirect('borrower_index')
+
+	# Send notification before deletion
+	Notification.objects.create(
+		user=application.lender.user,
+		message=f"{request.user.username} has deleted their loan application of R{application.loan_amount}.",
+		category="loan_deleted"
+	)
+
+	application.delete()
+
+	messages.success(request, "Your loan application has been deleted.")
+	return redirect('borrower_index')
+
+
+@login_required
+def delete_pending_loan_application2(request, pk):
+	loan = get_object_or_404(
+		LoanApplication,
+		pk=pk,
+		borrower=request.user.borrower,
+		status='pending'
+	)
+
+	if request.method == 'POST':
+		Notification.objects.create(
+			user=loan.lender.user,
+			message=f"{loan.borrower.full_name} deleted their pending loan application.",
+			category="loan_deleted"
+		)
+
+		loan.delete()
+		messages.success(request, "Loan application deleted successfully.")
+		return redirect('borrower_index')
+
+	return render(request, 'confirm_delete_loan_application.html', {'loan': loan})
+
+
 @login_required
 def my_loan_applications(request):
 	loan_applications = LoanApplication.objects.filter(borrower=request.user.borrower).order_by('-date_applied')
 	return render(request, 'my_loan_applications.html', {'loan_applications': loan_applications})
-
 
 
 def my_active_loans(request):

@@ -227,6 +227,10 @@ class Notification(models.Model):
 		('loan_payment', 'Loan Payment'),
 		('loan_approved', 'Loan Approved'),
 		('loan_rejected', 'Loan Rejected'),
+		('loan_update', 'Loan Update'),
+		('document_update', 'Documents Updated'),
+		('loan_deleted', 'Loan Deleted'),
+	
 	]
 	user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)
 	loan_application = models.ForeignKey(LoanApplication, null=True, blank=True, on_delete=models.CASCADE)  # ✅ For loan applications

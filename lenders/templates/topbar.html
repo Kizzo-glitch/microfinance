@@ -92,6 +92,43 @@
                     </div>
                 </li>
 
+
+               <li class="nav-item dropdown no-arrow mx-1">
+                    <a class="nav-link dropdown-toggle" href="#" id="pendingLoanUpdateDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-sync-alt"></i>
+                        <!--{% if unread_pending_loan_updates_count > 0 %}-->
+                            <span class="badge badge-danger badge-counter">{{ unread_pending_loan_updates_count }}</span>
+                        <!--{% endif %}-->
+                    </a>
+
+                    <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="pendingLoanUpdateDropdown">
+                        <h6 class="dropdown-header">Pending Loan Update Notifications</h6>
+
+                        {% if grouped_pending_loan_updates %}
+                            {% for borrower_name, updates in grouped_pending_loan_updates.items %}
+                                <div class="dropdown-item text-primary"><strong>{{ borrower_name }}</strong></div>
+                                {% for note in updates %}
+                                    <a class="dropdown-item d-flex align-items-center" href="{% if note.loan_application %}{% url 'loan-application-update' note.loan_application.id %}{% else %}#{% endif %}">
+                                        <div class="me-3">
+                                            <div class="icon-circle bg-info">
+                                                <i class="fas fa-sync-alt text-white"></i>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span class="small text-gray-500">{{ note.date_created|date:"M d, Y H:i" }}</span>
+                                            <div class="font-weight-bold">{{ note.message }}</div>
+                                        </div>
+                                    </a>
+                                {% endfor %}
+                                <div class="dropdown-divider"></div>
+                            {% endfor %}
+                        {% else %}
+                            <span class="dropdown-item text-muted small">No updates yet.</span>
+                        {% endif %}
+                    </div>
+                </li>
+
+
                 <!-- Loan Payments Notification -->
                 <li class="nav-item dropdown no-arrow mx-1">
                     <a class="nav-link dropdown-toggle" href="#" id="loanPaymentDropdown" role="button"
@@ -236,6 +273,20 @@
         .then(data => {
             if (data.success) {
                 console.log("Loan payment notifications marked as read");
+            }
+        });
+    });
+
+    document.getElementById('pendingLoanUpdateDropdown').addEventListener('click', function () {
+        fetch("{% url 'mark_pending_loan_update_notifications_read' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            }
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log("Pending loan update notifications marked as read");
             }
         });
     });

@@ -35,7 +35,7 @@ from loans.utils import get_loans_by_risk_category
 
 from django.views.decorators.http import require_POST
 from django.contrib.admin.views.decorators import staff_member_required
-
+from django.views.decorators.csrf import csrf_exempt
 
 
 
@@ -129,6 +129,17 @@ def lender_index(request):
 		return redirect('landing')
 
 
+@csrf_exempt
+@login_required
+def mark_pending_loan_update_notifications_read(request):
+	if request.method == 'POST':
+		Notification.objects.filter(
+			Q(category="loan_update") | Q(category="document_update") | Q(category="loan_deleted"),
+			user=request.user,
+			is_read=False
+		).update(is_read=True)
+		return JsonResponse({'success': True})
+	return JsonResponse({'success': False}, status=400)
 
 def lender_profile(request):
 	if request.user.is_lender():

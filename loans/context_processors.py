@@ -1,7 +1,9 @@
 from .models import Notification
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
-
+from django.db.models import Q
+from collections import defaultdict
+from django.db.models import Q
 
 
 
@@ -50,6 +52,7 @@ def topbar_notifications(request):
 			#'read_count': read_count,
 		}
 	return {}
+
 
 
 
@@ -103,6 +106,53 @@ def borrower_notifications(request):
 
 
 
+
+def pending_loan_update_notifications(request):
+	if request.user.is_authenticated and hasattr(request.user, 'lender'):
+		notifications = Notification.objects.filter(
+			Q(category="loan_update") | Q(category="document_update") | Q(category="loan_deleted"),
+			user=request.user,
+			is_read=False
+		).select_related('loan_application', 'loan_application__borrower').order_by('-date_created')
+
+		grouped = defaultdict(list)
+		for note in notifications:
+			if note.loan_application and note.loan_application.borrower:
+				grouped[note.loan_application.borrower.user.get_full_name()].append(note)
+			else:
+				grouped["Unknown Borrower"].append(note)
+
+		return {
+			'grouped_pending_loan_updates': grouped,
+			'unread_pending_loan_updates_count': notifications.count()
+		}
+	return {}
+
+
+'''def pending_loan_update_notifications(request):
+	if request.user.is_authenticated and hasattr(request.user, 'lender'):
+
+		# Filter for unread notifications related to updated/deleted loans or reuploaded documents
+		unread_pending_loan_updates = Notification.objects.filter(
+			Q(category="loan_update") | Q(category="document_update") | Q(category="loan_deleted"),
+			user=request.user,
+			is_read=False
+		).order_by('-date_created')
+
+		read_pending_loan_updates = Notification.objects.filter(
+			Q(category="loan_update") | Q(category="document_update") | Q(category="loan_deleted"),
+			user=request.user,
+			is_read=True
+		).order_by('-date_created')
+
+		return {
+			'unread_pending_loan_updates': unread_pending_loan_updates,
+			'read_pending_loan_updates': read_pending_loan_updates,
+			'unread_pending_loan_updates_count': unread_pending_loan_updates.count(),
+			'read_pending_loan_updates_count': read_pending_loan_updates.count(),
+		}
+		
+	return {}'''
 
 
 

@@ -185,19 +185,11 @@ class LoanApplicationForm(forms.ModelForm):
 	loan_amount = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control','placeholder':'Loan Amount Needed',}), required=True)
 	loan_term = forms.Select(attrs={'class': 'form-control'})
 
-	#collateral = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control','placeholder':'Collateral',}), required=True)
-	#payment_plan = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control','placeholder':'Payment Plan',}), required=True)
-	#interest_rate = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control','placeholder':"Lender's Interest Rate",}), required=True)
-	
-	
 	class Meta:
 		model = LoanApplication
 		fields = [
 			'loan_amount', 
 			'loan_term', 
-			#'collateral', 
-			#'payment_plan', 
-			
 			]
 
 

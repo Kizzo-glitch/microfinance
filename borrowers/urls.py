@@ -33,6 +33,12 @@ urlpatterns = [
     
     path('apply-loan-list/', views.apply_for_loan_list, name='apply-for-loan-list'),
     path('my-loan-applications/', views.my_loan_applications, name='my-loan-applications'),
+
+    path('pending-loan/', views.pending_loan_application, name='pending_loan'),
+    path('update-application/<int:application_id>/', views.update_loan_application, name='update_loan_application'),
+    path('update-documents/<int:loan_id>/', views.update_documents, name='update_documents'),
+    path('delete-application/<int:application_id>/', views.delete_loan_application, name='delete_loan_application'),
+
     path('my-active-loans/', views.my_active_loans, name='my-active-loans'),
 
 

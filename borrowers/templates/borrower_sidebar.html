@@ -19,6 +19,8 @@
                                     
                                     <a class="nav-link {% if request.path == '/borrowers/apply-for-loan-list/' %}active-link{% endif %}" href="{% url 'apply-for-loan-list' %}">Apply For a Loan</a>
 
+                                    <a class="nav-link {% if request.path == '/borrowers/pending_loan/' %}active-link{% endif %}" href="{% url 'pending_loan' %}">My Pending Loan</a>
+
                                     <a class="nav-link {% if request.path == '/borrowers/my-loan-applications/' %}active-link{% endif %}" href="{% url 'my-loan-applications' %}">My Loan Applications</a>
 
                                     <a class="nav-link {% if request.path == '/borrowers/my-active-loans/' %}active-link{% endif %}" href="{% url 'my-active-loans' %}">My Active Loans</a>

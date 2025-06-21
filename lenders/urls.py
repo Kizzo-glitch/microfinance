@@ -11,6 +11,8 @@ urlpatterns = [
 
     path('mark-loan-application-notifications-read/', views.mark_loan_application_notifications_read, name="mark_loan_application_notifications_read"),
     path('mark-loan-payment-notifications-read/', views.mark_loan_payment_notifications_read, name="mark_loan_payment_notifications_read"),
+    path('notifications/mark-pending-loan-updates-read/', views.mark_pending_loan_update_notifications_read, name='mark_pending_loan_update_notifications_read'),
+
 
 
     #path('applied_loans/', views.applied_loans, name='applied_loans'),

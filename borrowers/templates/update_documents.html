@@ -1,0 +1,19 @@
+{% extends 'borrower_base.html' %}
+
+{% block content %}
+
+<div class="container mt-4">
+    <h2>Update Loan Documents</h2>
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {% for doc_code, doc_name in document_types %}
+        <div class="mb-3">
+          <label class="form-label">{{ doc_name }}</label>
+          <input type="file" name="{{ doc_code }}" class="form-control">
+        </div>
+      {% endfor %}
+      <button type="submit" class="btn btn-primary">Update Documents</button>
+    </form>
+</div>
+
+{% endblock %}
