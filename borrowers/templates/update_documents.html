@@ -1,8 +1,40 @@
 {% extends 'borrower_base.html' %}
+{% load custom_filters %}
 
 {% block content %}
 
 <div class="container mt-4">
+    <h2>Update Loan Documents</h2>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        {% for doc_type, label in document_types %}
+          <div class="form-group mb-3">
+              <label>{{ label }}:</label>
+              <input type="file" name="{{ doc_type }}" class="form-control">
+
+              {% with existing_doc=existing_documents|get_item:doc_type %}
+                  {% if existing_doc %}
+                      <small>
+                          Existing file: 
+                          <a href="{{ existing_doc.file.url }}" target="_blank">View</a>
+                      </small>
+                  {% endif %}
+              {% endwith %}
+          </div>
+      {% endfor %}
+
+
+        <center>
+            <button type="submit" class="btn btn-primary mt-3">Submit Changes</button>
+        </center>
+    </form>
+
+
+</div>
+
+<!--<div class="container mt-4">
     <h2>Update Loan Documents</h2>
     <form method="post" enctype="multipart/form-data">
       {% csrf_token %}
@@ -14,6 +46,6 @@
       {% endfor %}
       <button type="submit" class="btn btn-primary">Update Documents</button>
     </form>
-</div>
+</div>-->
 
 {% endblock %}

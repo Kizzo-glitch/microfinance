@@ -640,36 +640,95 @@ def update_loan_application(request, application_id):
 	return render(request, 'update_loan_application.html', {'form': form, 'application': application})
 
 
-@login_required
-def update_loan_application2(request, application_id):
-	application = get_object_or_404(LoanApplication, id=application_id, borrower__user=request.user)
 
-	if application.status != 'pending':
-		messages.error(request, "You can only update a pending loan application.")
-		return redirect('borrower_index')  
+def update_documents(request, loan_id):
+	borrower = request.user.borrower
+	loan_application = get_object_or_404(LoanApplication, id=loan_id, borrower=borrower, status='pending')
+
+	# Determine allowed document types based on income_type
+	income_type = borrower.employment_type
+
+	if income_type == "employed":
+		allowed_documents = [
+			('id_proof', 'ID Proof'),
+			('bank_statement', 'Bank Statement'),
+			('payslip', 'Payslip'),
+			('chief_letter', 'Chief Letter'),
+		]
+	elif income_type == "self_employed_unregistered":
+		allowed_documents = [
+			('id_proof', 'ID Proof'),
+			('bank_statement', 'Bank Statement'),
+			('business_address', 'Business Address'),
+			('chief_letter', 'Chief Letter'),
+			('customer_invoice', 'Customer Invoice'),
+			('supplier_invoice', 'Supplier Invoice'),
+			('tax_clearance', 'Tax Clearance Certificate')
+		]
+	elif income_type == "registered_business":
+		allowed_documents = [
+			('id_proof', 'ID Proof'),
+			('bank_statement', 'Bank Statement'),
+			('business_statements', 'Business Bank Statement'),
+			('business_address', 'Business Address'),
+			('chief_letter', 'Chief Letter'),
+			('customer_invoice', 'Customer Invoice'),
+			('supplier_invoice', 'Supplier Invoice'),
+			('tax_clearance', 'Tax Clearance Certificate')
+		]
+	else:
+		allowed_documents = []  # fallback (no documents allowed)
 
 	if request.method == 'POST':
-		form = LoanApplicationForm(request.POST, instance=application)
-		if form.is_valid():
-			form.save()
+		for doc_type in allowed_documents:
+			file = request.FILES.get(doc_type[0])
+			if file:
+				BorrowerDocs.objects.update_or_create(
+					borrower=borrower,
+					loan_application=loan_application,
+					document_type=doc_type[0],
+					defaults={'file': file}
+				)
+		
+		Notification.objects.create(
+			user=loan_application.lender.user,
+			message=f"📄 Borrower {borrower.full_name} updated loan documents for review.",
+			category="document_update",
+			loan_application=loan_application
+		)
+		messages.success(request, "Documents updated successfully.")
+		return redirect('borrower_index')
 
-			# Send notification to lender
-			Notification.objects.create(
-				user=application.lender.user,
-				message=f"{application.borrower.full_name} updated their loan application (R{application.loan_amount}).",
-				category="loan_update",
-				loan_application=application
-			)
+	# Get existing documents for the current application
+	#existing_documents = BorrowerDocs.objects.filter(borrower=borrower, loan_application=loan_application)
+	#existing_documents = {
+	#	doc.document_type: doc
+	#	for doc in BorrowerDocs.objects.filter(borrower=borrower, loan_application=loan_application)
+	#}
 
-			messages.success(request, "Your loan application was successfully updated.")
-			return redirect('borrower_index')
-	else:
-		form = LoanApplicationForm(instance=application)
+	existing_documents_qs = BorrowerDocs.objects.filter(
+		borrower=borrower,
+		loan_application=loan_application
+		)
 
-	return render(request, 'update_loan_application.html', {'form': form, 'application': application})
+	existing_documents = {}
+	for doc in existing_documents_qs:
+		# Only store the most recent one per type
+		if doc.document_type not in existing_documents:
+			existing_documents[doc.document_type] = doc
+
+
+	return render(request, 'update_documents.html', {
+		'loan_application': loan_application,
+		'existing_documents': existing_documents,
+		'document_types': allowed_documents  # Pass filtered list to template
+	})
+
+
+
 
 @login_required
-def update_documents(request, loan_id):
+def update_documents2(request, loan_id):
 	borrower = request.user.borrower
 	loan_application = get_object_or_404(LoanApplication, id=loan_id, borrower=borrower, status='pending')
 	
