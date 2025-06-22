@@ -60,6 +60,14 @@ class LenderProfile(models.Model):
 		('recalculate', 'Recalculate Interest on Skipped Payment'),
 		('standard', 'Standard Double Payment'),
 	]
+
+	VERIFICATION_CHOICES = [
+		('unverified', 'Unverified'),
+		('pending', 'Pending Review'),
+		('verified', 'Verified'),
+		('licensed', 'Licensed'),
+	]
+
 	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='lender')
 	ceo_first_name = models.CharField(max_length=20, blank=False)
 	ceo_last_name = models.CharField( max_length=20, blank=False)
@@ -105,6 +113,8 @@ class LenderProfile(models.Model):
 
 	)
 
+	verification_status = models.CharField(max_length=20, choices=VERIFICATION_CHOICES, default='unverified')
+
 	objects = LenderProfileManager()
 	
 	
@@ -125,4 +135,28 @@ def create_profile(sender, instance, created, **kwargs):
 
 # Automate the profile thing
 post_save.connect(create_profile, sender=User)
+
+
+
+def upload_to_lender_docs(instance, filename):
+	return f'documents/{instance.lender.user.username}/{instance.document_type}/{filename}'
+
+class LenderDocs(models.Model):
+	lender = models.ForeignKey(LenderProfile, on_delete=models.CASCADE)
+	DOCUMENT_TYPES = [
+		('company_registration', 'Company Registration'),
+		('financial_statements', 'Financial Statements'),
+		('tax_clearance', 'Tax Clearance'),
+		('license_certificate', 'Borrowing License'),
+		('proof_of_address', 'Business Address Proof'),
+		('other', 'Other Supporting Documents'),
+	]
+	document_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES)
+	file = models.FileField(upload_to=upload_to_lender_docs)
+	upload_date = models.DateTimeField(auto_now_add=True)
+
+	def __str__(self):
+		return f"{self.lender.company_name} - {self.get_document_type_display()}"
+
+
 
