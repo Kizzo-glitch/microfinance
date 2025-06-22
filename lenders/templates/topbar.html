@@ -93,40 +93,101 @@
                 </li>
 
 
-               <li class="nav-item dropdown no-arrow mx-1">
-                    <a class="nav-link dropdown-toggle" href="#" id="pendingLoanUpdateDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <i class="fas fa-sync-alt"></i>
-                        <!--{% if unread_pending_loan_updates_count > 0 %}-->
-                            <span class="badge badge-danger badge-counter">{{ unread_pending_loan_updates_count }}</span>
-                        <!--{% endif %}-->
+                <!-- Pending Loan Updates Notification -->
+                <!--<li class="nav-item dropdown no-arrow mx-1">
+                    <a class="nav-link dropdown-toggle" href="#" id="pendingLoanUpdateDropdown" role="button"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fas fa-sync-alt fa-fw"></i>
+                        <span class="badge badge-danger badge-counter">
+                            {{ unread_pending_loan_updates_count }}
+                        </span>
                     </a>
-
-                    <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in" aria-labelledby="pendingLoanUpdateDropdown">
-                        <h6 class="dropdown-header">Pending Loan Update Notifications</h6>
+                    <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                        aria-labelledby="pendingLoanUpdateDropdown">
+                        <h6 class="dropdown-header">Pending Loan Updates Notifications</h6>
 
                         {% if grouped_pending_loan_updates %}
                             {% for borrower_name, updates in grouped_pending_loan_updates.items %}
                                 <div class="dropdown-item text-primary"><strong>{{ borrower_name }}</strong></div>
                                 {% for note in updates %}
-                                    <a class="dropdown-item d-flex align-items-center" href="{% if note.loan_application %}{% url 'loan-application-update' note.loan_application.id %}{% else %}#{% endif %}">
-                                        <div class="me-3">
-                                            <div class="icon-circle bg-info">
-                                                <i class="fas fa-sync-alt text-white"></i>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <span class="small text-gray-500">{{ note.date_created|date:"M d, Y H:i" }}</span>
-                                            <div class="font-weight-bold">{{ note.message }}</div>
-                                        </div>
-                                    </a>
+                                 <a class="dropdown-item d-flex align-items-center" 
+                             href="{% if note.loan_application %}{% url 'loan-application-update' note.loan_application.id %}{% else %}#{% endif %}">
+                            <div class="me-3">
+                              <div class="icon-circle bg-info">
+                                <i class="fas fa-sync-alt text-white"></i>
+                              </div>
+                            </div>
+                            <div>
+                              <span class="small text-gray-500">{{ note.date_created|date:"M d, Y H:i" }}</span>
+                              <div class="font-weight-bold">{{ note.message }}</div>
+                            </div>
+                          </a>
+                        {% endfor %}
+                        <div class="dropdown-divider"></div>
+                      {% endfor %}
+                    {% else %}
+                      <span class="dropdown-item text-muted small">No recent updates yet.</span>
+                    {% endif %}
+
+                     <h6 class="dropdown-header">Read Notifications</h6>
+                        {% if read_loan_update_notifications %}
+                            {% for borrower_name, updates in read_loan_update_notifications.items %}
+                            <div class="dropdown-item text-primary"><strong>{{ borrower_name }}</strong></div>
+                                {% for note in updates %}
+                                <a class="dropdown-item d-flex align-items-center" href="{% if note.loan_application %}{% url 'loan-application-update' note.loan_application.id %}{% else %}#{% endif %}">
+                                    <div>
+                                        <div class="small text-gray-500">{{ note.date_created|date:"F j, Y, g:i a" }}</div>
+                                        {{ note.message }}
+                                    </div>
+                                </a>
                                 {% endfor %}
-                                <div class="dropdown-divider"></div>
                             {% endfor %}
                         {% else %}
-                            <span class="dropdown-item text-muted small">No updates yet.</span>
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No read notifications</a>
+                        {% endif %}-->
+
+                    <li class="nav-item dropdown no-arrow mx-1">
+                    <a class="nav-link dropdown-toggle" href="#" id="pendingLoanUpdateDropdown" role="button"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fas fa-sync-alt fa-fw"></i>
+                        <span class="badge badge-danger badge-counter">
+                            {{ unread_loan_pending_count }}
+                        </span>
+                    </a>
+                    <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                        aria-labelledby="pendingLoanUpdateDropdown">
+                        <h6 class="dropdown-header">Pending Loan Updates Notifications</h6>
+
+                        {% if unread_loan_pending %}
+                            {% for notification in unread_loan_pending %}
+                                <a class="dropdown-item d-flex align-items-center" href="!#">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        <span class="font-weight-bold">{{ notification.message }}</span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No new notifications</a>
                         {% endif %}
-                    </div>
+                        
+                        <h6 class="dropdown-header">Read Notifications</h6>
+                        {% if read_loan_pending %}
+                            {% for notification in read_loan_pending %}
+                                <a class="dropdown-item d-flex align-items-center" href="!#">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        {{ notification.message }}
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No read notifications</a>
+                        {% endif %}
+                  </div>
                 </li>
+
+
 
 
                 <!-- Loan Payments Notification -->
@@ -247,6 +308,7 @@
             </ul>
 
         </nav>
+
 
 <script>
     document.getElementById('loanApplicationDropdown').addEventListener('click', function () {

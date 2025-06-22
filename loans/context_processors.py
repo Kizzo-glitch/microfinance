@@ -55,6 +55,46 @@ def topbar_notifications(request):
 
 
 
+def pending_loan_update_notifications(request):
+	if request.user.is_authenticated and hasattr(request.user, 'lender'):
+		unread_notifications = Notification.objects.filter(
+			Q(category="loan_update") | Q(category="document_update") | Q(category="loan_deleted"),
+			user=request.user,
+			is_read=False
+		).select_related('loan_application', 'loan_application__borrower').order_by('-date_created')
+
+		read_notifications = Notification.objects.filter(
+			Q(category="loan_update") | Q(category="document_update") | Q(category="loan_deleted"),
+			user=request.user,
+			is_read=True
+		).select_related('loan_application', 'loan_application__borrower').order_by('-date_created')
+
+		'''grouped_unread = defaultdict(list)
+		for note in notifications:
+			if note.loan_application and note.loan_application.borrower:
+				borrower_name = note.loan_application.borrower.user.get_full_name()
+			else:
+				borrower_name = "Unknown Borrower"
+			grouped_unread[borrower_name].append(note)
+
+		grouped_read = defaultdict(list)
+		for note in read_notifications:
+			if note.loan_application and note.loan_application.borrower:
+				borrower_name = note.loan_application.borrower.full_name
+			else:
+				borrower_name = "Unknown Borrower"
+			grouped_read[borrower_name].append(note)'''
+
+		return {
+			'unread_loan_pending': unread_notifications,
+			'unread_loan_pending_count': unread_notifications.count(),
+			'read_loan_pending': read_notifications,
+			#'grouped_pending_loan_updates': grouped_unread,
+			#'unread_pending_loan_updates_count': notifications.count(),
+			#'read_loan_update_notifications': grouped_read,
+		}
+	return {}
+
 
 def borrower_notifications(request):
 	if request.user.is_authenticated and hasattr(request.user, 'borrower'):
@@ -107,26 +147,7 @@ def borrower_notifications(request):
 
 
 
-def pending_loan_update_notifications(request):
-	if request.user.is_authenticated and hasattr(request.user, 'lender'):
-		notifications = Notification.objects.filter(
-			Q(category="loan_update") | Q(category="document_update") | Q(category="loan_deleted"),
-			user=request.user,
-			is_read=False
-		).select_related('loan_application', 'loan_application__borrower').order_by('-date_created')
 
-		grouped = defaultdict(list)
-		for note in notifications:
-			if note.loan_application and note.loan_application.borrower:
-				grouped[note.loan_application.borrower.user.get_full_name()].append(note)
-			else:
-				grouped["Unknown Borrower"].append(note)
-
-		return {
-			'grouped_pending_loan_updates': grouped,
-			'unread_pending_loan_updates_count': notifications.count()
-		}
-	return {}
 
 
 '''def pending_loan_update_notifications(request):

@@ -39,6 +39,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 
 
+
 def lender_index(request):
 	if request.user.is_authenticated and request.user.is_lender():
 		lender = request.user.lender
@@ -129,17 +130,7 @@ def lender_index(request):
 		return redirect('landing')
 
 
-@csrf_exempt
-@login_required
-def mark_pending_loan_update_notifications_read(request):
-	if request.method == 'POST':
-		Notification.objects.filter(
-			Q(category="loan_update") | Q(category="document_update") | Q(category="loan_deleted"),
-			user=request.user,
-			is_read=False
-		).update(is_read=True)
-		return JsonResponse({'success': True})
-	return JsonResponse({'success': False}, status=400)
+
 
 def lender_profile(request):
 	if request.user.is_lender():
@@ -162,7 +153,30 @@ def lender_profile(request):
 		return redirect('landing')
 
 
-# 1. Monthly Loan Repayments View
+def mark_loan_application_notifications_read(request):
+	Notification.objects.filter(category="loan_application", is_read=False).update(is_read=True)
+	return JsonResponse({"success": True})
+
+
+def mark_loan_payment_notifications_read(request):
+	Notification.objects.filter(category="loan_payment", is_read=False).update(is_read=True)
+	return JsonResponse({"success": True})
+
+
+
+@login_required
+def mark_pending_loan_update_notifications_read(request):
+	if request.method == 'POST':
+		Notification.objects.filter(
+			Q(category="loan_update") | Q(category="document_update") | Q(category="loan_deleted"),
+			user=request.user,
+			is_read=False
+		).update(is_read=True)
+		return JsonResponse({'success': True})
+	return JsonResponse({'success': False}, status=400)
+
+
+
 def lender_repayment_data(request):
 	lender = request.user.lender
 	loans = Loan.objects.filter(lender=lender)
@@ -233,15 +247,6 @@ def risk_customer_list(request, category):
 		"loans": loans,
 	}
 	return render(request, "risk_customer_list.html", context)
-
-
-def mark_loan_application_notifications_read(request):
-	Notification.objects.filter(category="loan_application", is_read=False).update(is_read=True)
-	return JsonResponse({"success": True})
-
-def mark_loan_payment_notifications_read(request):
-	Notification.objects.filter(category="loan_payment", is_read=False).update(is_read=True)
-	return JsonResponse({"success": True})
 
 
 

@@ -580,8 +580,6 @@ def apply_loan(request):
 
 
 
-
-
 # For Sidebar 
 def apply_for_loan_list(request):
 	lenders = LenderProfile.objects.all()
@@ -598,8 +596,52 @@ def pending_loan_application(request):
 		'pending_loan': pending_loan
 	})
 
-@login_required
+
 def update_loan_application(request, application_id):
+	application = get_object_or_404(LoanApplication, id=application_id, borrower__user=request.user)
+
+	if application.status != 'pending':
+		messages.error(request, "You can only update a pending loan application.")
+		return redirect('borrower_index')  
+
+	if request.method == 'POST':
+		form = LoanApplicationForm(request.POST, instance=application)
+		if form.is_valid():
+			updated_application = form.save(commit=False)
+
+			# Recalculate repayment details
+			interest_rate = float(application.lender.interest_rate) / 100
+			loan_amount = float(updated_application.loan_amount)
+			loan_term = updated_application.loan_term
+
+			total_repayable = loan_amount * float((1 + (interest_rate * (loan_term / 12))))
+			monthly_installment = total_repayable / loan_term
+
+			# Update fields
+			updated_application.total_repayable = total_repayable
+			updated_application.monthly_installment = monthly_installment
+			updated_application.first_payment = monthly_installment  # optional adjustment
+
+			updated_application.save()
+
+			# Send notification to lender
+			Notification.objects.create(
+				user=application.lender.user,
+				message=f"{application.borrower.full_name} updated their pending loan application.",
+				category="loan_update",
+				loan_application=application
+			)
+
+			messages.success(request, "Your loan application was successfully updated.")
+			return redirect('borrower_index')
+	else:
+		form = LoanApplicationForm(instance=application)
+
+	return render(request, 'update_loan_application.html', {'form': form, 'application': application})
+
+
+@login_required
+def update_loan_application2(request, application_id):
 	application = get_object_or_404(LoanApplication, id=application_id, borrower__user=request.user)
 
 	if application.status != 'pending':
@@ -614,8 +656,8 @@ def update_loan_application(request, application_id):
 			# Send notification to lender
 			Notification.objects.create(
 				user=application.lender.user,
-				message=f"{request.user.username} updated their loan application (R{application.loan_amount}).",
-				category="loan_updated",
+				message=f"{application.borrower.full_name} updated their loan application (R{application.loan_amount}).",
+				category="loan_update",
 				loan_application=application
 			)
 
@@ -644,7 +686,7 @@ def update_documents(request, loan_id):
 				)
 		Notification.objects.create(
 			user=loan_application.lender.user,
-			message=f"📄 Borrower {borrower.user.username} updated loan documents for review.",
+			message=f"📄 Borrower {application.borrower.full_name} updated loan documents for review.",
 			category="document_update",
 			loan_application=loan_application
 		)
@@ -660,7 +702,6 @@ def update_documents(request, loan_id):
 
 
 
-
 @login_required
 def delete_loan_application(request, application_id):
 	application = get_object_or_404(LoanApplication, id=application_id, borrower__user=request.user)
@@ -672,7 +713,7 @@ def delete_loan_application(request, application_id):
 	# Send notification before deletion
 	Notification.objects.create(
 		user=application.lender.user,
-		message=f"{request.user.username} has deleted their loan application of R{application.loan_amount}.",
+		message=f"{application.borrower.full_name} has deleted their loan application of R{application.loan_amount}.",
 		category="loan_deleted"
 	)
 
