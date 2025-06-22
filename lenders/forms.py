@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import LenderProfile
+from .models import LenderProfile, LenderDocs
 from loans.models import LoanApplication, Loan
 
 
@@ -96,6 +96,27 @@ class LenderInfoForm(forms.ModelForm):
 			field.widget.attrs['class'] = f'{existing_classes} form-control'.strip()
 
 
+class VerificationStatusForm(forms.ModelForm):
+	verification_status = forms.Select(attrs={'class': 'form-control'})
+	class Meta:
+		model = LenderProfile
+		fields = ['verification_status']
+
+
+
+
+
+class LenderDocumentsForm(forms.ModelForm):
+	company_registration = forms.FileField(required=True)
+	financial_statements = forms.FileField(required=True)
+	tax_clearance = forms.FileField(required=True)
+	license_certificate = forms.FileField(required=True)
+	proof_of_address = forms.FileField(required=True)
+	other = forms.FileField(required=True)
+	
+	class Meta:
+		model = LenderDocs
+		fields = ['company_registration', 'financial_statements', 'tax_clearance', 'license_certificate', 'proof_of_address', 'other']
 
 
 class LoanApplicationStatusForm(forms.ModelForm):

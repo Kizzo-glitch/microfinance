@@ -107,9 +107,9 @@
                 <div id="collapsePages" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <!--<h6 class="collapse-header">Login Screens:</h6>-->
-                        <a class="collapse-item" href="#!">Registration</a>
-                        <a class="collapse-item" href="#!">Union</a>
-                        <a class="collapse-item" href="#!">Transperancy</a>
+                        <a class="collapse-item" href="{% url 'upload_lender_docs' %}">Upload Documents</a>
+                        <a class="collapse-item" href="{% url 'view_lender_documents' %}">View Documents</a>
+                        <a class="collapse-item" href="#!">Transperancy</a> 
                         <div class="collapse-divider"></div>
                         <h6 class="collapse-header">Other Pages:</h6>
                         <a class="collapse-item" href="#!">Employees</a>
@@ -120,7 +120,7 @@
 
             <!-- Nav Item - Charts -->
             <li class="nav-item">
-                <a class="nav-link" href="#!">
+                <a class="nav-link" href="{% url 'upload_lender_docs' %}"> 
                     <i class="fas fa-fw fa-chart-area"></i>
                     <span>My Documents</span></a>
             </li>

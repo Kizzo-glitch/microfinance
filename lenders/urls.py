@@ -7,6 +7,10 @@ urlpatterns = [
     
     path('lender_profile/', views.lender_profile, name='lender_profile'),
 
+    path('upload-lender-docs/', views.upload_lender_docs, name='upload_lender_docs'),
+    path('my-documents/', views.view_lender_documents, name='view_lender_documents'),
+    path('download-lender-document/<str:document_type>/', views.download_lender_document, name='download_lender_document'),
+
     #path('mark_notifications_read/', views.mark_notifications_read, name='mark_notifications_read'),
 
     path('mark-loan-application-notifications-read/', views.mark_loan_application_notifications_read, name="mark_loan_application_notifications_read"),
@@ -14,10 +18,8 @@ urlpatterns = [
     path('notifications/mark-pending-loan-updates-read/', views.mark_pending_loan_update_notifications_read, name='mark_pending_loan_update_notifications_read'),
 
 
-
     #path('applied_loans/', views.applied_loans, name='applied_loans'),
     #path('process_loan_application/<int:loan_id>/process/', views.process_loan_application, name='process_loan_application'),
-
 
     path('loan-applications/', LoanApplicationListView.as_view(), name='loan-application-list'),
     path('loan-application/<int:pk>/update/', LoanApplicationUpdateView.as_view(), name='loan-application-update'),

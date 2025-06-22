@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
-from .forms import LenderInfoForm, LoanApplicationStatusForm, LoanStatusForm
-from .models import LenderProfile
+from .forms import LenderInfoForm, LoanApplicationStatusForm, LoanStatusForm, LenderDocumentsForm
+from .models import LenderProfile, LenderDocs
 from django.contrib import messages
 from loans.models import Notification, LoanApplication, Loan, LoanPayment
 from django.http import JsonResponse
@@ -151,6 +151,97 @@ def lender_profile(request):
 	else:
 		messages.success(request, "You Must Be Logged In To Access That Page!!")
 		return redirect('landing')
+
+
+def upload_lender_docs(request):
+	lender = request.user.lender
+
+	if request.method == 'POST':
+		form = LenderDocumentsForm(request.POST, request.FILES)
+		if form.is_valid():
+			
+			doc_map = {
+				'id_proof': 'ID Proof',
+				'bank_statement': 'Bank Statement',
+				'payslip': 'Payslip',
+				'chief_letter': 'Chief Letter',
+			}
+
+			for doc_type in form.cleaned_data:
+				file = form.cleaned_data[doc_type]
+				if file:
+					LenderDocs.objects.update_or_create(
+						lender=lender,
+						document_type=doc_type,
+						file=file
+					)
+			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/lenders/view_lender_documents/'})
+		else:
+			return JsonResponse({'error': form.errors})
+	else:
+		form = LenderDocumentsForm()
+
+	return render(request, 'upload_lender_documents.html', {'form': form})
+
+
+
+@login_required
+def view_lender_documents(request):
+	lender = request.user.lender
+	lender_documents = LenderDocs.objects.filter(lender=lender)
+	
+	# Group documents by type for template rendering
+	docs_by_type = {doc.document_type: doc for doc in lender_documents}
+
+	return render(request, 'view_lender_documents.html', {'lender_documents': docs_by_type})
+
+
+@login_required
+def download_lender_document(request, document_type):
+	try:
+		lender_documents = LenderDocs.objects.filter(borrower=request.user.borrower)
+	except LenderDocs.DoesNotExist:
+		raise Http404("No documents found.")
+
+	document_file = getattr(lender_documents, document_type, None)
+	if not document_file:
+		raise Http404("Requested document does not exist.")
+
+	file_path = document_file.path
+	if not os.path.exists(file_path):
+		raise Http404("File not found.")
+
+	with open(file_path, 'rb') as f:
+		response = HttpResponse(f.read(), content_type="application/octet-stream")
+		response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+		return response
+
+
+@login_required
+def upload_lender_docs2(request):
+	lender = request.user.lender
+	if request.method == 'POST':
+		for doc_type, _ in LenderDocs.DOCUMENT_TYPES:
+			file = request.FILES.get(doc_type)
+			if file:
+				LenderDocs.objects.update_or_create(
+					lender=lender,
+					document_type=doc_type,
+					defaults={'file': file}
+				)
+		messages.success(request, "Documents uploaded successfully.")
+		return redirect('lender_dashboard')
+	
+	existing_docs = {
+		doc.document_type: doc
+		for doc in LenderDocs.objects.filter(lender=lender)
+	}
+
+	return render(request, 'upload_lender_documents.html', {
+		'document_types': LenderDocs.DOCUMENT_TYPES,
+		'existing_documents': existing_docs,
+	})
+
 
 
 def mark_loan_application_notifications_read(request):

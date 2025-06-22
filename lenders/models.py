@@ -139,7 +139,7 @@ post_save.connect(create_profile, sender=User)
 
 
 def upload_to_lender_docs(instance, filename):
-	return f'documents/{instance.lender.user.username}/{instance.document_type}/{filename}'
+	return f'lender_documents/{instance.lender.user.username}/{instance.document_type}/{filename}'
 
 class LenderDocs(models.Model):
 	lender = models.ForeignKey(LenderProfile, on_delete=models.CASCADE)

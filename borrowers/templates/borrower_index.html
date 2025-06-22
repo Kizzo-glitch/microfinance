@@ -12,36 +12,36 @@
                             {% for lender in lenders %}
 
                             <div class="col-xl-3 col-md-6">
-                              <div class="card text-white mb-4 position-relative" style="background-color: {{ lender.bg_color }};"> {# Add position-relative here #}
-    <div class="card-body">
-      <br>
-        <h5 style="font-weight: bold;">{{ lender.company_name }}</h5> {# Apply bold directly to the company name for consistency #}
-        <p style="font-weight: bold;">Average Rating: 
-            {% if lender.average_rating %}
-                {{ lender.average_rating|floatformat:1 }}
-                <i class="fas fa-star" style="color:yellow"></i>s
-            {% else %}
-                Not Rated Yet
-            {% endif %}
-        </p>
-    </div>
+                              <div class="card text-white mb-4 position-relative" style="background-color: {{ lender.bg_color }};"> 
+                                <div class="card-body">
+                                  <br>
+                                    <h5 style="font-weight: bold;">{{ lender.company_name }}</h5> 
+                                    <p style="font-weight: bold; font-style: italic;">Average Rating: 
+                                        {% if lender.average_rating %}
+                                            {{ lender.average_rating|floatformat:1 }}
+                                            <i class="fas fa-star" style="color:yellow"></i>s
+                                        {% else %}
+                                            Not Rated Yet
+                                        {% endif %}
+                                    </p>
+                                </div>
 
-    {# Badge Positioned Here #}
-    <div class="badge-overlay"> {# This div acts as a container for absolute positioning #}
-        {% if lender.verification_status == 'licensed' %}
-            <span class="badge bg-success"><i class="fas fa-check-circle"></i> Licensed</span>
-        {% elif lender.verification_status == 'verified' %}
-            <span class="badge bg-info"><i class="fas fa-check-circle"></i> Verified</span>
-        {% else %}
-            <span class="badge bg-secondary"><i class="fas fa-user-clock"></i> Unverified</span>
-        {% endif %}
-    </div>
+                                {# Badge Positioned Here #}
+                                <div class="badge-overlay"> {# This div acts as a container for absolute positioning #}
+                                    {% if lender.verification_status == 'licensed' %}
+                                        <span class="badge bg-success"><i class="fas fa-check-circle"></i> Licensed</span>
+                                    {% elif lender.verification_status == 'verified' %}
+                                        <span class="badge bg-info"><i class="fas fa-check-circle"></i> Verified</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary"><i class="fas fa-user-clock"></i> Unverified</span>
+                                    {% endif %}
+                                </div>
 
-    <div class="card-footer d-flex align-items-center justify-content-between">
-        <a class="small text-white stretched-link" href="{% url 'lender_details' lender.id %}">View Details</a>
-        <div class="small text-white"><i class="fas fa-angle-right"></i></div>
-    </div>
-</div>
+                                <div class="card-footer d-flex align-items-center justify-content-between">
+                                    <a class="small text-white stretched-link" href="{% url 'lender_details' lender.id %}">View Details</a>
+                                    <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+                                </div>
+                            </div>
                                 <!--<div class="card text-white mb-4" style="background-color: {{ lender.bg_color }}; font-weight: bold;">
                                     <div class="card-body"><h5>{{ lender.company_name }}</h5>
                                         <p>Average Rating: 
