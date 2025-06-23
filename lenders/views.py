@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404
 from django.http import HttpResponseRedirect
 from django.urls import reverse
 
-from django.views.generic import ListView, UpdateView
+from django.views.generic import ListView, UpdateView, DetailView
 from decimal import Decimal
 from datetime import timedelta
 from datetime import date
@@ -20,6 +20,7 @@ from django.db import models
 
 from django.db.models import Sum, Count, Q, F
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.db.models.functions import TruncMonth
 
 import json
@@ -36,6 +37,7 @@ from loans.utils import get_loans_by_risk_category
 from django.views.decorators.http import require_POST
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.csrf import csrf_exempt
+
 
 
 
@@ -218,29 +220,36 @@ def download_lender_document(request, document_type):
 
 
 @login_required
-def upload_lender_docs2(request):
-	lender = request.user.lender
-	if request.method == 'POST':
-		for doc_type, _ in LenderDocs.DOCUMENT_TYPES:
-			file = request.FILES.get(doc_type)
-			if file:
-				LenderDocs.objects.update_or_create(
-					lender=lender,
-					document_type=doc_type,
-					defaults={'file': file}
-				)
-		messages.success(request, "Documents uploaded successfully.")
-		return redirect('lender_dashboard')
-	
-	existing_docs = {
-		doc.document_type: doc
-		for doc in LenderDocs.objects.filter(lender=lender)
-	}
+def lender_list(request):
+	lenders = (LenderProfile.objects.filter(user__is_superuser=False, user__role='lender')
+		.annotate(average_rating=Avg('ratings__rating')))
 
-	return render(request, 'upload_lender_documents.html', {
-		'document_types': LenderDocs.DOCUMENT_TYPES,
-		'existing_documents': existing_docs,
-	})
+
+	return render(request, 'borrower_index.html', {'lenders': lenders})
+
+
+@method_decorator(staff_member_required, name='dispatch')
+class LenderVerificationListView(ListView):
+    model = LenderProfile
+    template_name = 'lender_verification_list.html'
+    context_object_name = 'lenders'
+
+    def get_queryset(self):
+        return LenderProfile.objects.filter(verification_status='pending')
+
+
+@method_decorator(staff_member_required, name='dispatch')
+class LenderVerificationDetailView(UpdateView):
+    model = LenderProfile
+    fields = ['verification_status']
+    template_name = 'lender_verification_detail.html'
+    success_url = '/admin/lender-verifications/'  # Or reverse to this view
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        lender = self.get_object()
+        context['lender_documents'] = lender.compliance_docs.all()
+        return context
 
 
 
@@ -347,6 +356,7 @@ class LoanApplicationListView(ListView):
 	template_name = 'loan_application_list.html'
 	context_object_name = 'loan_applications'
 
+
 	def get_queryset(self):
 		# Filter loan applications by the current lender and status 'pending'
 		return LoanApplication.objects.filter(
@@ -375,7 +385,7 @@ class LoanApplicationUpdateView(UpdateView):
 				if not loan_application.linked_loan:
 					loan = Loan.objects.create(
 						#borrower=loan_application.borrower,
-						borrower=request.user.borrowerprofile,
+						borrower=request.user.borrower,
 						lender=loan_application.lender,
 						amount=Decimal(loan_amount),
 						loan_term=loan_application.loan_term,

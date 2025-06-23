@@ -1,0 +1,19 @@
+<!-- templates/lenders/lender_verification_list.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Pending Lender Verifications</h2>
+    <ul class="list-group mt-4">
+        {% for lender in lenders %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ lender.company_name }} - {{ lender.user.get_full_name }}
+                <a href="{% url 'lender_verification_detail' lender.pk %}" class="btn btn-primary btn-sm">Review</a>
+            </li>
+        {% empty %}
+            <li class="list-group-item">No pending verifications.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
+

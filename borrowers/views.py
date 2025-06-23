@@ -132,6 +132,7 @@ def generate_random_color():
 
 
 
+
 @login_required
 def lender_details(request, lender_id):
 	lender = get_object_or_404(LenderProfile, id=lender_id)

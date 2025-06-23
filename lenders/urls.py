@@ -1,6 +1,13 @@
 from django.urls import path
 from . import views
-from .views import LoanApplicationListView, LoanApplicationUpdateView, LoanListView, RejectedLoanListView, FullyPaidLoanListView, LoanStatusUpdateView, ApprovedLoansView, PendingLoansView, RejectedLoansView, OverdueLoansView, FullyPaidLoansView
+from .views import (
+    LoanApplicationListView, 
+    LoanApplicationUpdateView, 
+    LoanListView, RejectedLoanListView, 
+    FullyPaidLoanListView, LoanStatusUpdateView, 
+    ApprovedLoansView, PendingLoansView, RejectedLoansView, 
+    OverdueLoansView, FullyPaidLoansView, LenderVerificationListView, LenderVerificationDetailView,
+    )
 
 urlpatterns = [
     path('lender_index/', views.lender_index, name='lender_index'),
@@ -50,6 +57,8 @@ urlpatterns = [
 
     path('credit-reports/', views.credit_reports, name='credit_reports'),
 
-   
+    path('admin/lender-verifications/', LenderVerificationListView.as_view(), name='lender_verification_list'),
+    path('admin/lender-verifications/<int:pk>/', LenderVerificationDetailView.as_view(), name='lender_verification_detail'),
+
 
 ]

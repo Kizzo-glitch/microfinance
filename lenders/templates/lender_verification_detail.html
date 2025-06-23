@@ -1,0 +1,27 @@
+<!-- templates/lenders/lender_verification_detail.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>Review: {{ object.company_name }}</h2>
+
+    <h4>Compliance Documents</h4>
+    <ul class="list-group mb-4">
+        {% for doc in lender_documents %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ doc.get_document_type_display }}
+                <a href="{{ doc.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">View Document</a>
+            </li>
+        {% empty %}
+            <li class="list-group-item">No documents uploaded.</li>
+        {% endfor %}
+    </ul>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-success">Update Verification Status</button>
+    </form>
+</div>
+{% endblock %}
+
