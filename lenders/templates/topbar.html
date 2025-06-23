@@ -93,58 +93,7 @@
                 </li>
 
 
-                <!-- Pending Loan Updates Notification -->
-                <!--<li class="nav-item dropdown no-arrow mx-1">
-                    <a class="nav-link dropdown-toggle" href="#" id="pendingLoanUpdateDropdown" role="button"
-                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <i class="fas fas fa-sync-alt fa-fw"></i>
-                        <span class="badge badge-danger badge-counter">
-                            {{ unread_pending_loan_updates_count }}
-                        </span>
-                    </a>
-                    <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                        aria-labelledby="pendingLoanUpdateDropdown">
-                        <h6 class="dropdown-header">Pending Loan Updates Notifications</h6>
-
-                        {% if grouped_pending_loan_updates %}
-                            {% for borrower_name, updates in grouped_pending_loan_updates.items %}
-                                <div class="dropdown-item text-primary"><strong>{{ borrower_name }}</strong></div>
-                                {% for note in updates %}
-                                 <a class="dropdown-item d-flex align-items-center" 
-                             href="{% if note.loan_application %}{% url 'loan-application-update' note.loan_application.id %}{% else %}#{% endif %}">
-                            <div class="me-3">
-                              <div class="icon-circle bg-info">
-                                <i class="fas fa-sync-alt text-white"></i>
-                              </div>
-                            </div>
-                            <div>
-                              <span class="small text-gray-500">{{ note.date_created|date:"M d, Y H:i" }}</span>
-                              <div class="font-weight-bold">{{ note.message }}</div>
-                            </div>
-                          </a>
-                        {% endfor %}
-                        <div class="dropdown-divider"></div>
-                      {% endfor %}
-                    {% else %}
-                      <span class="dropdown-item text-muted small">No recent updates yet.</span>
-                    {% endif %}
-
-                     <h6 class="dropdown-header">Read Notifications</h6>
-                        {% if read_loan_update_notifications %}
-                            {% for borrower_name, updates in read_loan_update_notifications.items %}
-                            <div class="dropdown-item text-primary"><strong>{{ borrower_name }}</strong></div>
-                                {% for note in updates %}
-                                <a class="dropdown-item d-flex align-items-center" href="{% if note.loan_application %}{% url 'loan-application-update' note.loan_application.id %}{% else %}#{% endif %}">
-                                    <div>
-                                        <div class="small text-gray-500">{{ note.date_created|date:"F j, Y, g:i a" }}</div>
-                                        {{ note.message }}
-                                    </div>
-                                </a>
-                                {% endfor %}
-                            {% endfor %}
-                        {% else %}
-                            <a class="dropdown-item text-center small text-gray-500" href="#">No read notifications</a>
-                        {% endif %}-->
+                
 
                     <li class="nav-item dropdown no-arrow mx-1">
                     <a class="nav-link dropdown-toggle" href="#" id="pendingLoanUpdateDropdown" role="button"
@@ -234,16 +183,16 @@
 
                 
                 <!-- Nav Item - Messages -->
-                <li class="nav-item dropdown no-arrow mx-1">
+                <!--<li class="nav-item dropdown no-arrow mx-1">
                     <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <i class="fas fa-envelope fa-fw"></i>
-                        <!-- Counter - Messages -->
+                       
                         <span class="badge badge-success badge-counter">             
                             {{ read_count }}                                  
                         </span>
                     </a>
-                    <!-- Dropdown - Messages -->
+                    
                     <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
                         aria-labelledby="messagesDropdown">
                         <h6 class="dropdown-header">
@@ -270,7 +219,7 @@
 
                         
                     </div>
-                </li>
+                </li>-->
 
                 <div class="topbar-divider d-none d-sm-block"></div>
 
@@ -285,18 +234,22 @@
                     <!-- Dropdown - User Information -->
                     <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
                         aria-labelledby="userDropdown">
+                        <a class="dropdown-item" href="{% url 'landing' %}">
+                            <i class="fas fa-home fa-sm fa-fw mr-2 text-gray-400"></i>
+                            Home
+                        </a>
                         <a class="dropdown-item" href="{% url 'lender_profile' %}">
                             <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
                             Profile
                         </a>
-                        <a class="dropdown-item" href="#">
+                        <!--<a class="dropdown-item" href="#">
                             <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
                             Settings
                         </a>
                         <a class="dropdown-item" href="#">
                             <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>
                             Activity Log
-                        </a>
+                        </a>-->
                         <div class="dropdown-divider"></div>
                         <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
                             <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
