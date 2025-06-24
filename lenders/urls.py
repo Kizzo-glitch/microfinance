@@ -16,9 +16,11 @@ urlpatterns = [
     
     path('lender_profile/', views.lender_profile, name='lender_profile'),
 
+    # Lender Documents
     path('upload-lender-docs/', views.upload_lender_docs, name='upload_lender_docs'),
     path('my-documents/', views.view_lender_documents, name='view_lender_documents'),
     path('download-lender-document/<str:document_type>/', views.download_lender_document, name='download_lender_document'),
+    path('update-lender-docs/', views.update_lender_documents, name='update_lender_documents'),
 
     # Top-bar notifications
     path('mark-loan-application-notifications-read/', views.mark_loan_application_notifications_read, name="mark_loan_application_notifications_read"),
@@ -27,7 +29,7 @@ urlpatterns = [
 
     # Side-bar notification
     #path('mark_loan_approved_read/', views.mark_loan_approved_read, name='mark_loan_approved_read'),
-    path('notification/read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'),
+    path('notification/read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'), 
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
 
     path('lender_notifications/', LenderNotificationListView.as_view(), name='lender_notifications'),

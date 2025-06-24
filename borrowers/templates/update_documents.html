@@ -15,7 +15,7 @@
               <input type="file" name="{{ doc_type }}" class="form-control">
 
               {% with existing_doc=existing_documents|get_item:doc_type %}
-                  {% if existing_doc %}
+                  {% if existing_doc and existing_doc.file %}
                       <small>
                           Existing file: 
                           <a href="{{ existing_doc.file.url }}" target="_blank">View</a>

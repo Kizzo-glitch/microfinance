@@ -50,6 +50,7 @@
                     <a class="dropdown-item text-center small text-gray-500">No new approved loans</a>
                 {% endif %}
 
+
                 <h6 class="dropdown-header fw-bold border-bottom pb-1">Rejected Loan Notifications</h6>
                 {% if unread_loan_rejected %}
                     {% for notification in unread_loan_rejected %}
@@ -68,6 +69,7 @@
                 {% else %}
                     <a class="dropdown-item text-center small text-gray-500">No new rejected loans</a>
                 {% endif %}
+
 
                 <h6 class="dropdown-header fw-bold border-bottom pb-1">Pending Loan Notifications</h6>
                 {% if unread_loan_pending %}

@@ -629,7 +629,7 @@ def update_loan_application(request, application_id):
 			# Send notification to lender
 			Notification.objects.create(
 				user=application.lender.user,
-				message=f"{application.borrower.full_name} updated their pending loan application.",
+				message=f"✅ {application.borrower.full_name} updated their pending loan application.",
 				category="loan_update",
 				loan_application=application
 			)
@@ -701,12 +701,6 @@ def update_documents(request, loan_id):
 		messages.success(request, f"Loan Documents for {loan_application.lender.company_name} are updated successfully.")
 		return redirect('borrower_index')
 
-	# Get existing documents for the current application
-	#existing_documents = BorrowerDocs.objects.filter(borrower=borrower, loan_application=loan_application)
-	#existing_documents = {
-	#	doc.document_type: doc
-	#	for doc in BorrowerDocs.objects.filter(borrower=borrower, loan_application=loan_application)
-	#}
 
 	existing_documents_qs = BorrowerDocs.objects.filter(
 		borrower=borrower,
@@ -724,41 +718,6 @@ def update_documents(request, loan_id):
 		'loan_application': loan_application,
 		'existing_documents': existing_documents,
 		'document_types': allowed_documents  # Pass filtered list to template
-	})
-
-
-
-
-@login_required
-def update_documents2(request, loan_id):
-	borrower = request.user.borrower
-	loan_application = get_object_or_404(LoanApplication, id=loan_id, borrower=borrower, status='pending')
-	
-	if request.method == 'POST':
-		for doc_type in BorrowerDocs.DOCUMENT_TYPES:
-			file = request.FILES.get(doc_type[0])
-			if file:
-				# Overwrite or create new document
-				BorrowerDocs.objects.update_or_create(
-					borrower=borrower,
-					loan_application=loan_application,
-					document_type=doc_type[0],
-					defaults={'file': file}
-				)
-		Notification.objects.create(
-			user=loan_application.lender.user,
-			message=f"📄 Borrower {application.borrower.full_name} updated loan documents for review.",
-			category="document_update",
-			loan_application=loan_application
-		)
-		messages.success(request, "Documents updated successfully.")
-		return redirect('borrower_index')
-
-	existing_documents = BorrowerDocs.objects.filter(borrower=borrower, loan_application=loan_application)
-	return render(request, 'update_documents.html', {
-		'loan_application': loan_application,
-		'existing_documents': existing_documents,
-		'document_types': BorrowerDocs.DOCUMENT_TYPES
 	})
 
 
@@ -796,7 +755,7 @@ def delete_pending_loan_application2(request, pk):
 	if request.method == 'POST':
 		Notification.objects.create(
 			user=loan.lender.user,
-			message=f"{loan.borrower.full_name} deleted their pending loan application.",
+			message=f"❌ {loan.borrower.full_name} deleted their pending loan application.",
 			category="loan_deleted"
 		)
 
@@ -813,9 +772,11 @@ def my_loan_applications(request):
 	return render(request, 'my_loan_applications.html', {'loan_applications': loan_applications})
 
 
+
 def my_active_loans(request):
 	borrower = get_object_or_404(BorrowerProfile, user=request.user)
 	active_loans = Loan.objects.filter(borrower=borrower, status='approved', outstanding_balance__gt=0)
+	adjusted_payment = None  # Safe default
 
 	for loan in active_loans:
 		total_paid = loan.total_repayable - loan.outstanding_balance
@@ -867,6 +828,7 @@ def calculate_first_and_next_payment_dates(loan):
 
 		next_payment = first_payment + timedelta(days=30 * loan.payments.count())
 		return first_payment, next_payment
+
 
 
 def recalculate_with_interest(loan, months_missed):
@@ -1048,7 +1010,7 @@ def record_payment(request, loan_id):
 				# Notify the lender for full payment
 				Notification.objects.create(
 					user=loan.lender.user,
-					message=f"Borrower {loan.borrower.user.username} finished a loan payment with R{payment.amount} for Loan ID {loan.id}.",
+					message=f"✅ ✅ Borrower {loan.borrower.user.username} finished a loan payment with R{payment.amount} for Loan ID {loan.id}.",
 					category="loan_payment",
 					loan=loan
 				)
@@ -1057,7 +1019,7 @@ def record_payment(request, loan_id):
 				# Notify the lender
 				Notification.objects.create(
 					user=loan.lender.user,
-					message=f"Borrower {loan.borrower.user.username} made a payment of R{payment.amount} for Loan ID {loan.id}.",
+					message=f"✅ Borrower {loan.borrower.user.username} made a payment of R{payment.amount} for Loan ID {loan.id}.",
 					category="loan_payment",
 					loan=loan
 				)
@@ -1096,9 +1058,6 @@ def borrower_payment_history(request):
 		loan.payment_history = loan.payments.all().order_by("-date_paid")
 
 	return render(request, 'borrower_payment_history.html', {'loans': loans})
-
-
-
 
 
 

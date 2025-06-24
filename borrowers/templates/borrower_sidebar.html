@@ -19,15 +19,17 @@
                                     
                                     <a class="nav-link {% if request.path == '/borrowers/apply-for-loan-list/' %}active-link{% endif %}" href="{% url 'apply-for-loan-list' %}">Apply For a Loan</a>
 
+                                    <a class="nav-link {% if request.path == '/borrowers/view_documents/' %}active-link{% endif %}" href="{% url 'view_documents' %}">View Documents</a>
+
                                     <a class="nav-link {% if request.path == '/borrowers/pending_loan/' %}active-link{% endif %}" href="{% url 'pending_loan' %}">My Pending Loan</a>
 
-                                    <a class="nav-link {% if request.path == '/borrowers/my-loan-applications/' %}active-link{% endif %}" href="{% url 'my-loan-applications' %}">My Loan Applications</a>
-
+                                    <a class="nav-link{% if request.path == '/borrowers/my-loan-list/' %}active-link{% endif %}" href="{% url 'my-loan-list' %}">My Approved Loans</a>
+                                  
                                     <a class="nav-link {% if request.path == '/borrowers/my-active-loans/' %}active-link{% endif %}" href="{% url 'my-active-loans' %}">My Active Loans</a>
 
-                                    <a class="nav-link" href="{% url 'view_documents' %}">View Documents</a>
+                                    <a class="nav-link {% if request.path == '/borrowers/my-loan-applications/' %}active-link{% endif %}" href="{% url 'my-loan-applications' %}">All My Loans</a>                                  
                                     
-                                    <a class="nav-link" href="{% url 'my-loan-list' %}">My Loans</a>
+                                    
                                     
                                 </nav>
                             </div>
@@ -45,8 +47,7 @@
                                     <div class="collapse" id="pagesCollapseAuth" aria-labelledby="headingOne" data-bs-parent="#sidenavAccordionPages">
                                         <nav class="sb-sidenav-menu-nested nav">
                                             <a class="nav-link" href="#">Monthly Payments</a>
-                                            <a class="nav-link" href="register.html">Yearly Payments</a>
-                                            <a class="nav-link" href="password.html">Forgot Password</a>
+                                            <a class="nav-link" href="#">Yearly Payments</a>                                          
                                         </nav>
                                     </div>
                                     

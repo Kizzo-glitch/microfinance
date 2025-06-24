@@ -186,7 +186,6 @@ def upload_lender_docs(request):
 	return render(request, 'upload_lender_documents.html', {'form': form})
 
 
-
 @login_required
 def view_lender_documents(request):
 	lender = request.user.lender
@@ -217,6 +216,40 @@ def download_lender_document(request, document_type):
 		response = HttpResponse(f.read(), content_type="application/octet-stream")
 		response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
 		return response
+
+
+def update_lender_documents(request):
+    lender = get_object_or_404(LenderProfile, user=request.user)
+
+    if request.method == 'POST':
+        for doc_type in LenderDocs.DOCUMENT_TYPES:
+            file = request.FILES.get(doc_type[0])
+            if file:
+                LenderDocs.objects.update_or_create(
+                    lender=lender,
+                    document_type=doc_type[0],
+                    defaults={'file': file}
+                )
+        
+        # Optional: Notify admin about document update
+        Notification.objects.create(
+            user=None,  # Assign to specific admin user if needed
+            message=f"📄 Lender {lender.company_name} updated their business documents for verification.",
+            category="lender_document_update",
+        )
+
+        messages.success(request, "Your documents were updated successfully.")
+        return redirect('lender_dashboard')
+
+    # Get existing documents for display
+    existing_documents_qs = LenderDocs.objects.filter(lender=lender)
+    existing_documents = {doc.document_type: doc for doc in existing_documents_qs}
+
+    return render(request, 'update_lender_documents.html', {
+        'existing_documents': existing_documents,
+        'document_types': LenderDocs.DOCUMENT_TYPES
+    })
+
 
 
 @login_required

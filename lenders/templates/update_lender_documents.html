@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block content %}
+	<div class="container-fluid">
+		<form method="post" enctype="multipart/form-data">
+		    {% csrf_token %}
+		    {% for doc_type, doc_label in document_types %}
+		        <div class="mb-3">
+		            <label>{{ doc_label }}</label>
+		            <input type="file" name="{{ doc_type }}" class="form-control">
+		            {% with existing_doc=existing_documents|get_item:doc_type %}
+					    {% if existing_doc and existing_doc.file %}
+					        <p>Existing file: <a href="{{ existing_doc.file.url }}" target="_blank">View</a></p>
+					    {% endif %}
+					{% endwith %}
+		            <!--{% with existing_doc=existing_documents|get_item:doc_type %}
+					    {% if existing_doc %}
+					        <p>Existing file: <a href="{{ existing_doc.file.url }}" target="_blank">View</a></p>
+					    {% endif %}
+					{% endwith %}-->
+		        </div>
+		    {% endfor %}
+		    <button type="submit" class="btn btn-primary">Update Documents</button>
+		</form>
+	</div>
+
+{% endblock %}
