@@ -229,6 +229,7 @@ class Notification(models.Model):
 		('loan_payment', 'Loan Payment'),
 		('loan_approved', 'Loan Approved'),
 		('loan_rejected', 'Loan Rejected'),
+		
 		('loan_update', 'Loan Update'),
 		('document_update', 'Documents Updated'),
 		('loan_deleted', 'Loan Deleted'),

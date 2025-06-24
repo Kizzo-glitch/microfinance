@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container">
+<h2 class="text-xl font-bold mb-4">All Notifications</h2>
+</div>
+
+<!-- Filter Tabs -->
+<div class="container-fluid">
+  {% for label, value in filters %}
+
+    <a href="?filter={{ value }}" class="filter-button
+        {% if current_filter == value %}
+            active
+        {% else %}
+            inactive
+        {% endif %}">
+        {{ label }}
+    </a>
+    <!--<a href="?filter={{ value }}" class="px-4 py-2 rounded-lg border 
+       {% if current_filter == value %}
+         bg-blue-600 text-white
+       {% else %}
+         bg-white text-gray-700 hover:bg-blue-100
+       {% endif %}">
+      {{ label }}
+    </a>-->
+  {% endfor %}
+</div>
+<br><br>
+<!-- Notifications List -->
+<div class="container">
+<div class="space-y-4">
+  {% for note in lender_notifications %}
+    <div class="p-4 rounded-md border shadow-sm 
+      {% if note.category == 'loan_application' %}bg-green-100
+      {% elif note.category == 'loan_payment' %}bg-green-100
+      {% elif note.category == 'loan_update' %}bg-green-100
+      {% elif note.category == 'document_update' %}bg-yellow-100
+      {% elif note.category == 'loan_deleted' %}bg-red-100      
+      {% endif %}">
+      <p class="font-medium"><strong>{{ note.message }}</strong></p>
+      <small class="text-gray-600">{{ note.date_created|date:"M d, Y - H:i" }}</small>
+    </div>
+  {% empty %}
+    <p class="text-gray-500">No notifications to show.</p> 
+  {% endfor %}
+</div>
+</div>
+
+
+
+<style>
+  .flex-container {
+  display: flex;
+  justify-content: center;
+
+}
+  /* Background colors */
+.bg-green-100 {
+    background-color: #d1fae5; /* A light green, commonly used for success/info */
+}
+
+.bg-yellow-100 {
+    background-color: #fffacd; /* A light yellow, commonly used for warnings */
+}
+
+.bg-red-100 {
+    background-color: #fee2e2; /* A light red, commonly used for errors/danger */
+}
+
+/* Optional: Text colors for better contrast, though Bootstrap's text classes might suffice */
+.text-green-800 {
+    color: #065f46; /* Darker green for text on light green background */
+}
+
+.text-yellow-800 {
+    color: #9a3412; /* Darker yellow/orange for text on light yellow background */
+}
+
+.text-red-800 {
+    color: #991b1b; /* Darker red for text on light red background */
+}
+
+/* CSS for Filter Buttons */
+
+/* Base button styles */
+.filter-button {
+    padding: 0.5rem 1rem; /* px-4 py-2 */
+    border-radius: 0.5rem; /* rounded-lg */
+    border: 1px solid #e2e8f0; /* default border color, you might need to adjust based on overall design */
+    text-decoration: none; /* Remove underline for links */
+    display: inline-block; /* Allows padding and width */
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out; /* Smooth transitions for hover */
+}
+
+/* Style for the active/selected filter button */
+.filter-button.active {
+    background-color: #2563eb; /* bg-blue-600 */
+    color: #ffffff; /* text-white */
+}
+
+/* Style for inactive filter buttons */
+.filter-button.inactive {
+    background-color: #ffffff; /* bg-white */
+    color: #4a5568; /* text-gray-700 */
+}
+
+/* Hover effect for inactive filter buttons */
+.filter-button.inactive:hover {
+    background-color: #dbeafe; /* hover:bg-blue-100 */
+}
+
+</style>
+
+
+{% endblock %}

@@ -278,11 +278,11 @@ def mark_pending_loan_update_notifications_read(request):
 
 # Side-bar notifications
 '''@csrf_exempt
-def mark_loan_approved_read(request):
+def mark_loan_application_read(request):
 	if request.user.is_authenticated and request.method == "POST":
 		Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
 		return JsonResponse({"success": True})
-	return JsonResponse({"success": False}, status=400)
+	return JsonResponse({"success": False}, status=400)'''
 
 
 # Remember to add this to individual clicks of notification
@@ -312,7 +312,7 @@ def mark_all_notifications_read(request):
 class LenderNotificationListView(ListView):
 	model = Notification
 	template_name = 'lender_notifications.html'
-	context_object_name = 'notifications'
+	context_object_name = 'lender_notifications'
 
 	def get_queryset(self):
 		user = self.request.user
@@ -324,12 +324,17 @@ class LenderNotificationListView(ListView):
 			return base_qs.filter(is_read=False)
 		elif filter_type == 'read':
 			return base_qs.filter(is_read=True)
-		elif filter_type == 'approved':
-			return base_qs.filter(category='loan_approved')
-		elif filter_type == 'rejected':
-			return base_qs.filter(category='loan_rejected')
-		elif filter_type == 'pending':
-			return base_qs.filter(category='loan_pending')
+		elif filter_type == 'loan_update':
+			return base_qs.filter(category='loan_update')
+		elif filter_type == 'document_update':
+			return base_qs.filter(category='document_update')
+		elif filter_type == 'loan_deleted':
+			return base_qs.filter(category='loan_deleted')
+		elif filter_type == 'loan_application':
+			return base_qs.filter(category='loan_application')
+		elif filter_type == 'loan_payment':
+			return base_qs.filter(category='loan_payment')
+
 
 		return base_qs.order_by('-date_created')
 
@@ -340,11 +345,15 @@ class LenderNotificationListView(ListView):
 			("All", "all"),
 			("Unread", "unread"),
 			("Read", "read"),
-			("Approved", "approved"),
-			("Rejected", "rejected"),
-			("Pending", "pending"),
+
+			("Loan Application", "loan_application"),
+			("Loan Payment", "loan_payment"),
+
+			("Loan Update", "loan_update"),
+			("Documents Updated", "document_update"),
+			("Loan Deleted", "loan_deleted"),
 		]
-		return context'''
+		return context
 
 
 
@@ -456,6 +465,7 @@ class LoanApplicationListView(ListView):
 
 
 
+
 # Update the status of a loan application (approve/reject/pending)
 class LoanApplicationUpdateView(UpdateView):
 	model = LoanApplication
@@ -466,7 +476,7 @@ class LoanApplicationUpdateView(UpdateView):
 		loan_application = form.save(commit=False)
 		old_status = LoanApplication.objects.get(pk=loan_application.pk).status
 		loan_amount = loan_application.loan_amount
-		borrower_user = loan_application.borrower.user
+		borrower_user = loan_application.borrower
 
 		# Check if status changed
 		if loan_application.status != old_status:
@@ -490,14 +500,14 @@ class LoanApplicationUpdateView(UpdateView):
 					loan_application.application = loan
 
 				Notification.objects.create(
-					user=borrower_user,
+					user=borrower_user.user,
 					message=f"🎉 Your Loan application from {loan_application.lender.company_name} for R{loan_amount} has been approved.",
 					category="loan_approved"
 				)
 
 			elif loan_application.status == 'rejected':
 				Notification.objects.create(
-					user=borrower_user,
+					user=borrower_user.user,
 					message=f"❌ Your loan of R{loan_amount} from {loan_application.lender.company_name} was rejected. Reason: {loan_application.status_reason}",
 					category="loan_rejected"
 				)

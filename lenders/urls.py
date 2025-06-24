@@ -7,7 +7,7 @@ from .views import (
     FullyPaidLoanListView, LoanStatusUpdateView, 
     ApprovedLoansView, PendingLoansView, RejectedLoansView, 
     OverdueLoansView, FullyPaidLoansView, LenderVerificationListView, 
-    LenderVerificationDetailView, #LenderNotificationListView,
+    LenderVerificationDetailView, LenderNotificationListView,
     )
 
 
@@ -27,10 +27,10 @@ urlpatterns = [
 
     # Side-bar notification
     #path('mark_loan_approved_read/', views.mark_loan_approved_read, name='mark_loan_approved_read'),
-    #path('notification/read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'),
-    #path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
+    path('notification/read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'),
+    path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
 
-    #path('lendernotifications/', BorrowerNotificationListView.as_view(), name='borrower-notifications'),
+    path('lender_notifications/', LenderNotificationListView.as_view(), name='lender_notifications'),
 
 
     #path('applied_loans/', views.applied_loans, name='applied_loans'),
