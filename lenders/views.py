@@ -252,7 +252,7 @@ class LenderVerificationDetailView(UpdateView):
         return context
 
 
-
+# Top-bar notifications
 def mark_loan_application_notifications_read(request):
 	Notification.objects.filter(category="loan_application", is_read=False).update(is_read=True)
 	return JsonResponse({"success": True})
@@ -261,8 +261,6 @@ def mark_loan_application_notifications_read(request):
 def mark_loan_payment_notifications_read(request):
 	Notification.objects.filter(category="loan_payment", is_read=False).update(is_read=True)
 	return JsonResponse({"success": True})
-
-
 
 @login_required
 def mark_pending_loan_update_notifications_read(request):
@@ -275,6 +273,98 @@ def mark_pending_loan_update_notifications_read(request):
 		return JsonResponse({'success': True})
 	return JsonResponse({'success': False}, status=400)
 
+
+
+
+# Side-bar notifications
+'''@csrf_exempt
+def mark_loan_approved_read(request):
+	if request.user.is_authenticated and request.method == "POST":
+		Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+		return JsonResponse({"success": True})
+	return JsonResponse({"success": False}, status=400)
+
+
+# Remember to add this to individual clicks of notification
+def mark_notification_read(request, notification_id):
+	notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+	notification.is_read = True
+	notification.save()
+
+	# Optionally, redirect based on category
+	if notification.category == 'loan_approved':
+		return redirect('loan-detail', notification.loan_application.id)
+	elif notification.category == 'loan_rejected':
+		return redirect('loan-status')
+	elif notification.category == 'loan_pending':
+		return redirect('pending-loans')
+
+	return redirect('notifications')
+
+
+@require_POST
+@login_required
+def mark_all_notifications_read(request):
+	request.user.notifications.filter(is_read=False).update(is_read=True)
+	return JsonResponse({'status': 'success'})
+
+
+class LenderNotificationListView(ListView):
+	model = Notification
+	template_name = 'lender_notifications.html'
+	context_object_name = 'notifications'
+
+	def get_queryset(self):
+		user = self.request.user
+		filter_type = self.request.GET.get('filter', 'all')
+
+		base_qs = Notification.objects.filter(user=user)
+
+		if filter_type == 'unread':
+			return base_qs.filter(is_read=False)
+		elif filter_type == 'read':
+			return base_qs.filter(is_read=True)
+		elif filter_type == 'approved':
+			return base_qs.filter(category='loan_approved')
+		elif filter_type == 'rejected':
+			return base_qs.filter(category='loan_rejected')
+		elif filter_type == 'pending':
+			return base_qs.filter(category='loan_pending')
+
+		return base_qs.order_by('-date_created')
+
+	def get_context_data(self, **kwargs):
+		context = super().get_context_data(**kwargs)
+		context['current_filter'] = self.request.GET.get('filter', 'all')
+		context['filters'] = [
+			("All", "all"),
+			("Unread", "unread"),
+			("Read", "read"),
+			("Approved", "approved"),
+			("Rejected", "rejected"),
+			("Pending", "pending"),
+		]
+		return context'''
+
+
+
+
+
+
+
+def loan_application_success(request):
+	return render(request, 'loan_application_success.html', {})
+
+
+def my_loan_list(request):
+	lender_id = request.session.get('lender_id')
+
+	if request.user.is_authenticated:
+		loans = Loan.objects.filter(borrower__user=request.user)  # Filter by logged-in borrower
+	else:
+		loans = Loan.objects.none()  # No loans if not logged in
+
+	return render(request, 'my_loan_list.html', {'loans': loans})
 
 
 def lender_repayment_data(request):
@@ -385,7 +475,7 @@ class LoanApplicationUpdateView(UpdateView):
 				if not loan_application.linked_loan:
 					loan = Loan.objects.create(
 						#borrower=loan_application.borrower,
-						borrower=request.user.borrower,
+						borrower=borrower_user,
 						lender=loan_application.lender,
 						amount=Decimal(loan_amount),
 						loan_term=loan_application.loan_term,
@@ -703,6 +793,7 @@ def borrower_payment_history(request, borrower_id):
 	return render(request, 'borrower_payment_history.html', {'loans': borrower_loans})
 
 
+
 @login_required
 def my_borrower_payment_history(request, loan_id):
 	"""Allows the lender to see a borrower's loan payment history."""
@@ -722,6 +813,7 @@ def my_borrower_payment_history(request, loan_id):
 	}
 
 	return render(request, 'my_borrower_payment_history.html', context)
+
 
 # List all loans  paid for a specific lender
 class FullyPaidLoanListView(ListView):

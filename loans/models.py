@@ -15,6 +15,7 @@ from datetime import date
 
 
 
+
 # Choices
 LOAN_TERM_CHOICES = [
 		#('', ''),
@@ -25,6 +26,7 @@ LOAN_TERM_CHOICES = [
 
 		(3, '3 Months'),
 		(6, '6 Months'),
+		(9, '9 Months'),
 		(12, '12 Months'),
 		(24, '24 Months'),
 		(36, '36 Months'),

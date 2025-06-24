@@ -573,7 +573,7 @@ def apply_loan(request):
 		)
 		
 
-		messages.success(request, "Loan application submitted successfully!")
+		messages.success(request, f"Loan application submitted successfully to {lender.company_name}")
 		return redirect('borrower_index')
 
 	return redirect('loan-calculator')
@@ -596,6 +596,7 @@ def pending_loan_application(request):
 	return render(request, 'pending_loan.html', {
 		'pending_loan': pending_loan
 	})
+
 
 
 def update_loan_application(request, application_id):
@@ -633,7 +634,7 @@ def update_loan_application(request, application_id):
 				loan_application=application
 			)
 
-			messages.success(request, "Your loan application was successfully updated.")
+			messages.success(request, f"Your loan application to {application.lender.company_name} was successfully updated.")
 			return redirect('borrower_index')
 	else:
 		form = LoanApplicationForm(instance=application)
@@ -697,7 +698,7 @@ def update_documents(request, loan_id):
 			category="document_update",
 			loan_application=loan_application
 		)
-		messages.success(request, "Documents updated successfully.")
+		messages.success(request, f"Loan Documents for {loan_application.lender.company_name} are updated successfully.")
 		return redirect('borrower_index')
 
 	# Get existing documents for the current application

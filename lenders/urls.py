@@ -6,8 +6,10 @@ from .views import (
     LoanListView, RejectedLoanListView, 
     FullyPaidLoanListView, LoanStatusUpdateView, 
     ApprovedLoansView, PendingLoansView, RejectedLoansView, 
-    OverdueLoansView, FullyPaidLoansView, LenderVerificationListView, LenderVerificationDetailView,
+    OverdueLoansView, FullyPaidLoansView, LenderVerificationListView, 
+    LenderVerificationDetailView, #LenderNotificationListView,
     )
+
 
 urlpatterns = [
     path('lender_index/', views.lender_index, name='lender_index'),
@@ -18,11 +20,17 @@ urlpatterns = [
     path('my-documents/', views.view_lender_documents, name='view_lender_documents'),
     path('download-lender-document/<str:document_type>/', views.download_lender_document, name='download_lender_document'),
 
-    #path('mark_notifications_read/', views.mark_notifications_read, name='mark_notifications_read'),
-
+    # Top-bar notifications
     path('mark-loan-application-notifications-read/', views.mark_loan_application_notifications_read, name="mark_loan_application_notifications_read"),
     path('mark-loan-payment-notifications-read/', views.mark_loan_payment_notifications_read, name="mark_loan_payment_notifications_read"),
     path('notifications/mark-pending-loan-updates-read/', views.mark_pending_loan_update_notifications_read, name='mark_pending_loan_update_notifications_read'),
+
+    # Side-bar notification
+    #path('mark_loan_approved_read/', views.mark_loan_approved_read, name='mark_loan_approved_read'),
+    #path('notification/read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'),
+    #path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
+
+    #path('lendernotifications/', BorrowerNotificationListView.as_view(), name='borrower-notifications'),
 
 
     #path('applied_loans/', views.applied_loans, name='applied_loans'),

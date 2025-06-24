@@ -55,7 +55,7 @@ urlpatterns = [
     path('notification/read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'),
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
 
-    path('borrower/notifications/', BorrowerNotificationListView.as_view(), name='borrower-notifications'),
+    path('borrower-notifications/', BorrowerNotificationListView.as_view(), name='borrower-notifications'),
 
     path('api/loan-chart-data/', views.loan_chart_data, name='loan_chart_data'),
     path('api/borrower/monthly-repayments/', views.monthly_repayments, name='monthly_repayments'),
