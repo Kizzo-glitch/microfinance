@@ -181,7 +181,19 @@ LOGOUT_REDIRECT_URL = '/'  # Redirect to landing page after logout
 
 AUTH_USER_MODEL = 'micro.User'
 
-
+# Twilio
 TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
 TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
+
+
+# Email settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # Replace with your email provider's SMTP server
+EMAIL_PORT = 587  # Use the appropriate port
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER') 
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')  
+EMAIL_USE_TLS = True
+#DEFAULT_FROM_EMAIL = 'Your Company Name <...@gmail.com>'
+EMAIL_USE_SSL = False
+

@@ -37,6 +37,13 @@ from loans.utils import get_loans_by_risk_category
 from django.views.decorators.http import require_POST
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
+
+from django.core.mail import EmailMessage
+from django.template.loader import render_to_string
+from django.core.mail import send_mail
+from django.http import HttpResponse
+
 
 
 
@@ -219,36 +226,36 @@ def download_lender_document(request, document_type):
 
 
 def update_lender_documents(request):
-    lender = get_object_or_404(LenderProfile, user=request.user)
+	lender = get_object_or_404(LenderProfile, user=request.user)
 
-    if request.method == 'POST':
-        for doc_type in LenderDocs.DOCUMENT_TYPES:
-            file = request.FILES.get(doc_type[0])
-            if file:
-                LenderDocs.objects.update_or_create(
-                    lender=lender,
-                    document_type=doc_type[0],
-                    defaults={'file': file}
-                )
-        
-        # Optional: Notify admin about document update
-        Notification.objects.create(
-            user=None,  # Assign to specific admin user if needed
-            message=f"📄 Lender {lender.company_name} updated their business documents for verification.",
-            category="lender_document_update",
-        )
+	if request.method == 'POST':
+		for doc_type in LenderDocs.DOCUMENT_TYPES:
+			file = request.FILES.get(doc_type[0])
+			if file:
+				LenderDocs.objects.update_or_create(
+					lender=lender,
+					document_type=doc_type[0],
+					defaults={'file': file}
+				)
+		
+		# Optional: Notify admin about document update
+		Notification.objects.create(
+			user=None,  # Assign to specific admin user if needed
+			message=f"📄 Lender {lender.company_name} updated their business documents for verification.",
+			category="lender_document_update",
+		)
 
-        messages.success(request, "Your documents were updated successfully.")
-        return redirect('lender_dashboard')
+		messages.success(request, "Your documents were updated successfully.")
+		return redirect('lender_dashboard')
 
-    # Get existing documents for display
-    existing_documents_qs = LenderDocs.objects.filter(lender=lender)
-    existing_documents = {doc.document_type: doc for doc in existing_documents_qs}
+	# Get existing documents for display
+	existing_documents_qs = LenderDocs.objects.filter(lender=lender)
+	existing_documents = {doc.document_type: doc for doc in existing_documents_qs}
 
-    return render(request, 'update_lender_documents.html', {
-        'existing_documents': existing_documents,
-        'document_types': LenderDocs.DOCUMENT_TYPES
-    })
+	return render(request, 'update_lender_documents.html', {
+		'existing_documents': existing_documents,
+		'document_types': LenderDocs.DOCUMENT_TYPES
+	})
 
 
 
@@ -263,26 +270,26 @@ def lender_list(request):
 
 @method_decorator(staff_member_required, name='dispatch')
 class LenderVerificationListView(ListView):
-    model = LenderProfile
-    template_name = 'lender_verification_list.html'
-    context_object_name = 'lenders'
+	model = LenderProfile
+	template_name = 'lender_verification_list.html'
+	context_object_name = 'lenders'
 
-    def get_queryset(self):
-        return LenderProfile.objects.filter(verification_status='pending')
+	def get_queryset(self):
+		return LenderProfile.objects.filter(verification_status='pending')
 
 
 @method_decorator(staff_member_required, name='dispatch')
 class LenderVerificationDetailView(UpdateView):
-    model = LenderProfile
-    fields = ['verification_status']
-    template_name = 'lender_verification_detail.html'
-    success_url = '/admin/lender-verifications/'  # Or reverse to this view
+	model = LenderProfile
+	fields = ['verification_status']
+	template_name = 'lender_verification_detail.html'
+	success_url = '/admin/lender-verifications/'  # Or reverse to this view
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        lender = self.get_object()
-        context['lender_documents'] = lender.compliance_docs.all()
-        return context
+	def get_context_data(self, **kwargs):
+		context = super().get_context_data(**kwargs)
+		lender = self.get_object()
+		context['lender_documents'] = lender.compliance_docs.all()
+		return context
 
 
 # Top-bar notifications
@@ -310,13 +317,6 @@ def mark_pending_loan_update_notifications_read(request):
 
 
 # Side-bar notifications
-'''@csrf_exempt
-def mark_loan_application_read(request):
-	if request.user.is_authenticated and request.method == "POST":
-		Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
-		return JsonResponse({"success": True})
-	return JsonResponse({"success": False}, status=400)'''
-
 
 # Remember to add this to individual clicks of notification
 def mark_notification_read(request, notification_id):
@@ -387,8 +387,6 @@ class LenderNotificationListView(ListView):
 			("Loan Deleted", "loan_deleted"),
 		]
 		return context
-
-
 
 
 
@@ -541,18 +539,45 @@ class LoanApplicationUpdateView(UpdateView):
 			elif loan_application.status == 'rejected':
 				Notification.objects.create(
 					user=borrower_user.user,
-					message=f"❌ Your loan of R{loan_amount} from {loan_application.lender.company_name} was rejected. Reason: {loan_application.status_reason}",
+					message=f"❌ Your loan of R{loan_amount} from {loan_application.lender.company_name} was rejected. Reasons: {', '.join(loan_application.get_rejection_reasons_display())}",
+					#message=f"❌ Your loan of R{loan_amount} from {loan_application.lender.company_name} was rejected. Reason: {loan_application.status_reason}",
 					category="loan_rejected"
 				)
 
 			elif loan_application.status == 'pending':
 				Notification.objects.create(
-					user=borrower_user,
-					message=f"⏳ Your loan application from {loan_application.lender.company_name} is pending. Reason: {loan_application.status_reason}",
+					user=borrower_user.user,
+					message=f"⏳ Your loan application from {loan_application.lender.company_name} is pending. Reasons: {', '.join(loan_application.get_pending_reasons_display())}",
+					#message=f"⏳ Your loan application from {loan_application.lender.company_name} is pending. Reason: {loan_application.status_reason}",
 					category="loan_pending"
 				)
 
 		loan_application.save()
+
+		form.save_m2m()  # Save multi-select fields
+
+		reasons = []
+		if loan_application.status == 'rejected':
+			reasons = loan_application.get_rejection_reasons_display()
+		elif loan_application.status == 'pending':
+			reasons = loan_application.get_pending_reasons_display()
+
+		# Render email template
+		subject = f"Loan Application {loan_application.status.capitalize()}"
+		message = render_to_string('loan_notification_letter.html', {
+			'loan_application': loan_application,
+			'status': loan_application.status,
+			'reasons': reasons,
+		})
+
+		send_mail(
+			subject,
+			message,
+			settings.EMAIL_HOST_USER,  # Replace with your from email
+			[borrower_user.email_address],
+			fail_silently=False,
+		)
+
 		return super().form_valid(form)
 
 	def get_context_data(self, **kwargs):
@@ -624,7 +649,6 @@ def borrower_documents(request, loan_id):
 		'documents': documents,
 		'document_fields': document_fields,
 	})
-
 
 
 

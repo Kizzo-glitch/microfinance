@@ -3,19 +3,21 @@
 
 {% block content %}
 
+
         <!-- Begin Page Content -->
         <div class="container-fluid">
          <center>
+            <div class="card-header bg-secondary text-white">
             <h1>Review Loan Application</h1>
+            </div>
+            <br><br>
          </center>
-
-            <h2>Borrower Information</h2>
-            <!--<p><strong>Name:</strong> {{ borrower.full_name }}</p>
-            <p><strong>Marital Status:</strong> {{ marital_status }}</p>
-            <p><strong>Income Amount:</strong> R{{ income_amount }}</p>-->
+            <div class="card-header bg-primary text-white">
+                <h2>Borrower Information</h2>
+            </div>
             <div class="card shadow">
              <table class="table table-bordered">
-                <thead>
+                <thead class="table-primary">
                     <tr>
                         <th>Borrower</th>
                         <th>Title</th>
@@ -42,7 +44,7 @@
             <br>
             <div class="card shadow">
             <table class="table table-bordered">
-                <thead>
+                <thead class="table-primary">
                     <tr>
                         <th>Identity Number</th>
                         <th>Home Address</th>
@@ -70,23 +72,15 @@
             </div>
             <br>
 
-            <div class="card shadow">
-                 <center> 
-            {% if overdue_loans > 0 %}
-                <p class="text-danger"><strong>Warning:</strong> This Borrower has {{ overdue_loans }} overdue loans!</p>
-            {% elif outstanding_loans > 0 %}
-                <p class="text-warning" style="font-size:18px"><strong>Note:</strong> This Borrower already has {{ outstanding_loans }} outstanding loans.</p>
-            {% else %}
-                <p class="text-success"><strong>No Issues:</strong> Borrower has no outstanding loans.</p>
-            {% endif %}
-            </center>  
-            </div>
-            <br>
+           
 
-            <h2>Loan Details</h2>
+           
+            <div class="card-header bg-primary text-white">
+                <h2>Loan Details</h2>
+            </div>
             <div class="card shadow">
             <table class="table table-bordered">
-                <thead>
+                <thead class="table-primary">
                     <tr>
                         <th>Loan Amount:</th>
                         <th>Loan Term:</th>
@@ -111,11 +105,14 @@
             </table>
             </div>
             <br> 
-            <h2>Uploaded Documents</h2>
+            
+            <div class="card-header bg-primary text-white">
+                <h2>Uploaded Documents</h2>
+            </div>
             {% if documents %}
             <div class="card shadow">
                 <table class="table table-bordered">
-                    <thead>
+                    <thead class="table-primary">
                         <tr>
                             <th>Document Type</th>
                             <th>View</th>
@@ -140,23 +137,63 @@
             {% else %}
             <div class="alert alert-warning">No documents uploaded for this application.</div>
             {% endif %}
-            <br> <br> 
+            <br> 
+             <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h2>Past / Pending Loan Issues</h2>
+                </div>
+                <center> 
+                    {% if overdue_loans > 0 %}
+                        <p class="text-danger"><strong>Warning:</strong> This Borrower has {{ overdue_loans }} overdue loans!</p>
+                    {% elif outstanding_loans > 0 %}
+                        <p class="text-warning" style="font-size:18px"><strong>Note:</strong> This Borrower already has {{ outstanding_loans }} outstanding loans.</p>
+                    {% else %}
+                        <p class="text-success"><strong>No Issues:</strong> Borrower has no outstanding loans.</p>
+                    {% endif %}
+                </center>  
+            </div>
+            <br>
+
+            <br> 
 
         <center>
-        <form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="btn btn-success btn-icon-split">
-                <span class="icon text-white-50">
-                    <i class="fas fa-save"></i> <!-- Font Awesome Save Icon -->
-                </span>
-                <span class="text">Approve/Reject Loan</span>
-            </button>
-        </form>
+            <div class="card shadow">
+               <form method="post">
+                    {% csrf_token %}
+                    <div class="card-header bg-primary text-white">
+                       <h4>Update Application {{ form.status.label_tag }} {{ form.status }}</h4>
+                    </div>
+
+                    <div id="rejectionReasons" style="display: none;">
+                        <strong><h5>Rejection Reasons:</h5></strong>
+                        {{ form.rejection_reasons }}
+                    </div>
+
+                    <div id="pendingReasons" style="display: none;">
+                        <strong><h5>Pending Reasons:</h5></strong>
+                        {{ form.pending_reasons }}
+                    </div>
+
+                    <button type="submit" class="btn btn-success mt-3">Approve/Reject Loan</button>
+                </form>
+            </div>
         </center>
 
         </div>
         <!-- /.container-fluid -->
         
+        <script>
+            function toggleReasonFields() {
+                const status = document.querySelector('select[name="status"]').value;
+                document.getElementById('rejectionReasons').style.display = (status === 'rejected') ? 'block' : 'none';
+                document.getElementById('pendingReasons').style.display = (status === 'pending') ? 'block' : 'none';
+            }
+
+            document.querySelector('select[name="status"]').addEventListener('change', toggleReasonFields);
+
+            // Run on page load in case of form re-render
+            window.onload = toggleReasonFields;
+        </script>
+
    
 {% endblock %}

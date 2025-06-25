@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from django.db.models import Sum
 from django.utils.timezone import now
 from datetime import date
-
+from multiselectfield import MultiSelectField
 
 
 
@@ -32,12 +32,37 @@ LOAN_TERM_CHOICES = [
 		(36, '36 Months'),
 	]
 
+REJECTION_REASONS = [
+	('low_credit_score', 'Low credit score'),
+	('job_instability', 'Unstable employment or job instability'),
+	('high_dti', 'High Debt-to-Income ratio'),
+	('insufficient_income', 'Insufficient income'),
+	('incomplete_docs', 'Incomplete or incorrect documentation (post 14 days pending)'),
+	('income_requirement_not_met', 'Income requirements not met'),
+	('high_existing_debts', 'High volume of Existing debts'),
+	('insufficient_credit_history', 'Insufficient credit history'),
+	('public_records', 'Items of public record'),
+	('multiple_loans', 'Multiple loan applications or Excessive loan take outs'),
+	('default_existing_loans', 'Default on existing loans'),
+]
+
+PENDING_REASONS = [
+	('outstanding_docs', 'Outstanding documentation'),
+	('inconsistent_info', 'Inconsistent or mismatched information'),
+	('recent_activity', 'Recent application activity'),
+	('income_instability', 'Income instability or unclear source of funds'),
+	('kyc_checks', 'KYC/AML Compliance checks'),
+	('unverified_contact', 'Unverified contact details'),
+]
+
+
 # Loan Application Model
 class LoanApplication(models.Model):
 	LOAN_STATUS_CHOICES = [
 		('pending', 'Pending'),
-		('approved', 'Approved'),
-		('rejected', 'Rejected'),
+		('rejected', 'Reject'),
+		('approved', 'Approve'),
+		
 		
 	]
 	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE)
@@ -57,6 +82,10 @@ class LoanApplication(models.Model):
 	status_reason = models.TextField(blank=True, null=True) 
 	date_applied = models.DateTimeField(default=timezone.now)
 
+	rejection_reasons = MultiSelectField(choices=REJECTION_REASONS, blank=True)
+	pending_reasons = MultiSelectField(choices=PENDING_REASONS, blank=True)
+	status_last_updated = models.DateTimeField(auto_now=True)
+
 	linked_loan = models.OneToOneField(
 		'Loan',
 		null=True,
@@ -67,6 +96,14 @@ class LoanApplication(models.Model):
 
 	def __str__(self):
 		return f"Application {self.id} - {self.borrower.user.username} - {self.lender.user.username} - {self.status}"
+
+
+	def get_rejection_reasons_display(self):
+		return [dict(self.REJECTION_REASONS).get(reason, reason) for reason in self.rejection_reasons]
+
+	def get_pending_reasons_display(self):
+		return [dict(self.PENDING_REASONS).get(reason, reason) for reason in self.pending_reasons]
+
 
 
 

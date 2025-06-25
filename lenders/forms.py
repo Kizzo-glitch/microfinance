@@ -6,7 +6,6 @@ from loans.models import LoanApplication, Loan
 
 class LenderInfoForm(forms.ModelForm):
 	
-
 	ceo_first_name = forms.CharField(label="", widget=forms.TextInput(attrs={'placeholder':'CEO First Name'}), required=True)
 	ceo_last_name = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'CEO Last Name'}), required=True)
 	company_name = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Company Name'}), required=True)
@@ -105,7 +104,6 @@ class VerificationStatusForm(forms.ModelForm):
 
 
 
-
 class LenderDocumentsForm(forms.ModelForm):
 	company_registration = forms.FileField(required=True)
 	financial_statements = forms.FileField(required=True)
@@ -122,6 +120,33 @@ class LenderDocumentsForm(forms.ModelForm):
 class LoanApplicationStatusForm(forms.ModelForm):
 	class Meta:
 		model = LoanApplication
+		fields = ['status', 'rejection_reasons', 'pending_reasons']
+		widgets = {
+			'rejection_reasons': forms.CheckboxSelectMultiple,
+			'pending_reasons': forms.CheckboxSelectMultiple,
+		}
+
+
+'''class LoanApplicationStatusForm(forms.ModelForm):
+	class Meta:
+		model = LoanApplication
+		fields = ['status', 'rejection_reasons', 'pending_reasons']
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+
+		if self.instance.status == 'rejected':
+			self.fields['rejection_reasons'].widget = forms.CheckboxSelectMultiple()
+		elif self.instance.status == 'pending':
+			self.fields['pending_reasons'].widget = forms.CheckboxSelectMultiple()
+		else:
+			self.fields.pop('rejection_reasons')
+			self.fields.pop('pending_reasons')'''
+
+
+'''class LoanApplicationStatusForm(forms.ModelForm):
+	class Meta:
+		model = LoanApplication
 		fields = ['status', 'status_reason']
 		widgets = {
 			'status': forms.Select(choices=LoanApplication.status),
@@ -133,7 +158,7 @@ class LoanApplicationStatusForm(forms.ModelForm):
 
 		if status in ['rejected', 'pending'] and not reason:
 			raise forms.ValidationError("Please provide a reason for rejection or pending status.")
-		return cleaned_data
+		return cleaned_data'''
 
 
 
@@ -144,3 +169,7 @@ class LoanStatusForm(forms.ModelForm):
 		widgets = {
 			'status': forms.Select(attrs={'class': 'form-control'}),
 		}
+
+
+
+

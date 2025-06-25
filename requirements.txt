@@ -34,3 +34,5 @@ wcwidth==0.2.13
 whitenoise==6.9.0
 psycopg2==2.9.10
 twilio==9.6.3
+multidict==6.4.4
+requests==2.32.4
