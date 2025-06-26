@@ -11,9 +11,9 @@
                     <p>Interest Rate: {{ lender.interest_rate }}%</p>
                     <p>Contact: {{ lender.phone_number }}</p>
                     <p>Address: {{ lender.office_address }}</p>
-                    <a href="{% url 'lender_details' lender.id %}" class="btn btn-outline-primary btn-sm">View Details</a>
+                    <a href="{% url 'lender_details' lender.id %}" class="btn btn-outline-primary btn-sm">View Details and Apply</a>
                     <br>
-                    <a href="{% url 'apply-loan' %}" class="btn btn-primary btn-sm">Apply for Loan</a>
+                    <!--<a href="{% url 'apply-loan' %}" class="btn btn-primary btn-sm">Apply for Loan</a>-->
                 </div>
             </div>
         {% endfor %}
