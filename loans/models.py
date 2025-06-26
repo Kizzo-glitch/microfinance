@@ -82,8 +82,8 @@ class LoanApplication(models.Model):
 	status_reason = models.TextField(blank=True, null=True) 
 	date_applied = models.DateTimeField(default=timezone.now)
 
-	rejection_reasons = MultiSelectField(choices=REJECTION_REASONS, blank=True)
-	pending_reasons = MultiSelectField(choices=PENDING_REASONS, blank=True)
+	rejection_reasons = models.JSONField(default=list, blank=True)
+	pending_reasons = models.JSONField(default=list, blank=True)
 	status_last_updated = models.DateTimeField(auto_now=True)
 
 	linked_loan = models.OneToOneField(
