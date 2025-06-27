@@ -10,24 +10,39 @@
 	<p>Dear {{ loan_application.borrower.full_name }},</p>
 
 	{% if status == 'approved' %}
-	    <p>🎉 Congratulations! Your loan application has been approved.</p>
+	    <p>🎉 Congratulations! Your loan application for loan ID {{loan_application.id}} at Sanders Finance has been approved.
+              Approval details: QUALIFIED</p>
+
+
+	    <p>You have met the required criteria and we are excited to proceed with the disbursement process.
+           We sincerely appreciate your interest in our product and are pleased to support your financial goals. 
+           Please log in to your loans portal to review the loan terms and complete the final acceptance steps.</p>
+
+        <p>Thank you for choosing {{loan_application.lender.company_name}}!</p>
+
 	{% elif status == 'rejected' %}
-	    <p>❌ Unfortunately, your loan application has been rejected for the following reason(s):</p>
-	    <ul>
+	    <p>❌ Unfortunately your loan application for loan ID {{loan_application.id}} at {{loan_application.lender.company_name}} was unsuccessful.</p>
+	   
 	        {% for reason in reasons %}
-	            <li>{{ reason }}</li>
+	            <li>Rejection Reason(s): {{ reason }}</li>
 	        {% endfor %}
-	    </ul>
+
+	        <p>We really appreciate your interest in our product and we truly hope to give you more opportunities in the near-future. Remember to keep checking back on our loans portal for the product that is potentially perfect for your financial goals!</p>
+
+	        <p>Regards</p>
+            <p>{{loan_application.lender.company_name}}</p>
+
+	    
 	{% elif status == 'pending' %}
-	    <p>⏳ Your loan application is currently pending due to the following reason(s):</p>
+	    <p>⏳ Your loan application for loan ID {{loan_application.id}} at {{loan_application.lender.company_name}} is currently pending.</p>
 	    <ul>
 	        {% for reason in reasons %}
-	            <li>{{ reason }}</li>
+	            Reason(s): {{ reason }}
 	        {% endfor %}
 	    </ul>
+	    <p>Thank you for choosing {{loan_application.lender.company_name}}!</p>
 	{% endif %}
 
-	<p>Thank you for using our service.</p>
 
 	<!--<p>Dear {{ loan_application.borrower.full_name }},</p>
 

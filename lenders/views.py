@@ -544,7 +544,7 @@ class LoanApplicationUpdateView(UpdateView):
 			elif loan_application.status == 'rejected':
 				Notification.objects.create(
 					user=borrower_user.user,
-					message=f"❌ Your loan of R{loan_amount} from {loan_application.lender.company_name} was rejected. Reasons: Reasons: {loan_application.get_rejection_reasons_display()}",
+					message=f"❌ Your loan of R{loan_amount} from {loan_application.lender.company_name} was rejected. Reasons: {loan_application.get_rejection_reasons_display()}",
 					#message=f"❌ Your loan of R{loan_amount} from {loan_application.lender.company_name} was rejected. Reason: {loan_application.status_reason}",
 					category="loan_rejected"
 				)
@@ -552,7 +552,7 @@ class LoanApplicationUpdateView(UpdateView):
 			elif loan_application.status == 'pending':
 				Notification.objects.create(
 					user=borrower_user.user,
-					message=f"⏳ Your loan application from {loan_application.lender.company_name} is pending. Reasons: Reasons: {loan_application.get_pending_reasons_display()}",
+					message=f"⏳ Your loan application from {loan_application.lender.company_name} is pending. Reasons: {loan_application.get_pending_reasons_display()}",
 					#message=f"⏳ Your loan application from {loan_application.lender.company_name} is pending. Reason: {loan_application.status_reason}",
 					category="loan_pending"
 				)
