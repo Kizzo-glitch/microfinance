@@ -44,6 +44,8 @@ from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from django.http import HttpResponse
 
+from django.core.mail import EmailMultiAlternatives
+
 
 
 
@@ -542,7 +544,7 @@ class LoanApplicationUpdateView(UpdateView):
 			elif loan_application.status == 'rejected':
 				Notification.objects.create(
 					user=borrower_user.user,
-					message=f"❌ Your loan of R{loan_amount} from {loan_application.lender.company_name} was rejected. Reasons: {', '.join(loan_application.get_rejection_reasons_display())}",
+					message=f"❌ Your loan of R{loan_amount} from {loan_application.lender.company_name} was rejected. Reasons: Reasons: {loan_application.get_rejection_reasons_display()}",
 					#message=f"❌ Your loan of R{loan_amount} from {loan_application.lender.company_name} was rejected. Reason: {loan_application.status_reason}",
 					category="loan_rejected"
 				)
@@ -550,7 +552,7 @@ class LoanApplicationUpdateView(UpdateView):
 			elif loan_application.status == 'pending':
 				Notification.objects.create(
 					user=borrower_user.user,
-					message=f"⏳ Your loan application from {loan_application.lender.company_name} is pending. Reasons: {', '.join(loan_application.get_pending_reasons_display())}",
+					message=f"⏳ Your loan application from {loan_application.lender.company_name} is pending. Reasons: Reasons: {loan_application.get_pending_reasons_display()}",
 					#message=f"⏳ Your loan application from {loan_application.lender.company_name} is pending. Reason: {loan_application.status_reason}",
 					category="loan_pending"
 				)
@@ -567,7 +569,7 @@ class LoanApplicationUpdateView(UpdateView):
 			reasons = loan_application.get_pending_reasons_display()
 
 		# Render email template
-		subject = f"Loan Application {loan_application.status.capitalize()}"
+		'''subject = f"Loan Application {loan_application.status.capitalize()}"
 		message = render_to_string('loan_notification_letter.html', {
 			'loan_application': loan_application,
 			'status': loan_application.status,
@@ -580,7 +582,23 @@ class LoanApplicationUpdateView(UpdateView):
 			settings.EMAIL_HOST_USER,  # Replace with your from email
 			[borrower_user.email_address],
 			fail_silently=False,
-		)
+		)'''
+
+		# Render the email content
+		subject = f"Loan Application {loan_application.status.capitalize()}"
+		from_email = settings.EMAIL_HOST_USER
+		to_email = [borrower_user.email_address]
+
+		message = render_to_string('loan_notification_letter.html', {
+			'loan_application': loan_application,
+			'status': loan_application.status,
+			'reasons': reasons,
+		})
+
+		# Send as HTML email
+		email = EmailMultiAlternatives(subject, '', from_email, to_email)
+		email.attach_alternative(message, "text/html")
+		email.send()
 
 		return super().form_valid(form)
 

@@ -1,7 +1,11 @@
-{% extends 'base.html' %}
-{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Loan Application Notification</title>
+</head>
+<body>
 
-{% block content %}
 
 	<p>Dear {{ loan_application.borrower.full_name }},</p>
 
@@ -47,4 +51,5 @@
 
 	<p>Thank you for using our platform.</p>-->
 
-{% endblock %}
+</body>
+</html>
