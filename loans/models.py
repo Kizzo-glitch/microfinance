@@ -93,6 +93,7 @@ class LoanApplication(models.Model):
 		on_delete=models.SET_NULL,
 		related_name='application_source'
 	)
+	is_deleted = models.BooleanField(default=False)
 
 	def __str__(self):
 		return f"Application {self.id} - {self.borrower.user.username} - {self.lender.user.username} - {self.status}"

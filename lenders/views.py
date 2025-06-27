@@ -59,7 +59,8 @@ def lender_index(request):
 		total_recovered = LoanPayment.objects.filter(loan__in=loans).aggregate(Sum('amount'))['amount__sum'] or 0
 		
 		# Pull loan applications by this lender
-		loan_applications = LoanApplication.objects.filter(lender=lender)
+		loan_applications = LoanApplication.objects.filter(lender=lender, is_deleted=False)
+		deleted_loan_applications = LoanApplication.objects.filter(lender=lender, is_deleted=True)
 
 		# New loan applications this week
 		one_week_ago = timezone.now() - timedelta(days=7)
@@ -82,7 +83,8 @@ def lender_index(request):
 		rejected_percent = int((rejected_loans / total_applications) * 100) if total_applications else 0
 		overdue_percent = int((overdue_loans / total_applications) * 100) if total_applications else 0
 			
-		total_loans = loans.count()	
+		total_loans = loans.count()
+		deleted_loan_applications = deleted_loan_applications.count()	
 
 		high_risk_count = get_loans_by_risk_category("high").count()
 		mid_risk_count = get_loans_by_risk_category("mid").count()
@@ -108,6 +110,7 @@ def lender_index(request):
 			'overdue_loans': overdue_loans,
 			'fully_paid_loans': fully_paid_loans,
 			'total_applications': total_applications,
+			'deleted_loan_applications': deleted_loan_applications,
 
 			# Percentages
 			'pending_percent': pending_percent,
@@ -932,6 +935,7 @@ def client_documents(request):
 	documents = BorrowerDocs.objects.filter(borrower__id__in=borrower_ids).select_related('borrower')
 
 	return render(request, 'client_documents.html', {'documents': documents})
+
 
 @login_required
 def client_documents2(request):

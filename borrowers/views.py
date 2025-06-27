@@ -724,8 +724,31 @@ def update_documents(request, loan_id):
 
 
 
-@login_required
 def delete_loan_application(request, application_id):
+	loan_application = get_object_or_404(LoanApplication, id=application_id, borrower__user=request.user)
+
+	if loan_application.status != 'pending':
+		messages.error(request, "Only pending loan applications can be deleted.")
+		return redirect('borrower_index')
+
+	loan_application.is_deleted = True
+	loan_application.save()
+
+	# Send notification to lender
+	Notification.objects.create(
+		user=loan_application.lender.user,
+		message=f"🗑️ Borrower {loan_application.borrower.user.get_full_name()} has deleted their pending loan application.",
+		category="loan_deleted",
+		loan_application=loan_application
+	)
+
+	messages.success(request, "Loan application deleted successfully.")
+	return redirect('borrower_index')
+
+
+
+@login_required
+def delete_loan_application2(request, application_id):
 	application = get_object_or_404(LoanApplication, id=application_id, borrower__user=request.user)
 
 	if application.status != 'pending':
