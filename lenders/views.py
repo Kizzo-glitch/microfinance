@@ -564,9 +564,14 @@ class LoanApplicationUpdateView(UpdateView):
 
 		reasons = []
 		if loan_application.status == 'rejected':
+			reasons = loan_application.rejection_reasons
+		elif loan_application.status == 'pending':
+			reasons = loan_application.pending_reasons
+			
+		'''if loan_application.status == 'rejected':
 			reasons = loan_application.get_rejection_reasons_display()
 		elif loan_application.status == 'pending':
-			reasons = loan_application.get_pending_reasons_display()
+			reasons = loan_application.get_pending_reasons_display()'''
 
 		# Render email template
 		'''subject = f"Loan Application {loan_application.status.capitalize()}"
@@ -771,6 +776,7 @@ class RejectedLoansView(ListView):
 	def get_queryset(self):
 		return LoanApplication.objects.filter(lender__user=self.request.user, status='rejected')
  
+
 
 
 class OverdueLoansView(ListView):
