@@ -38,6 +38,7 @@ from micro.utils import generate_otp, send_otp_sms
 
 
 
+
 @login_required
 def borrower_profile(request):
 	if request.user.is_borrower():
@@ -131,6 +132,10 @@ def generate_random_color():
 	return random.choice(COLORS)
 
 
+# For Sidebar 
+def apply_for_loan_list(request):
+	lenders = LenderProfile.objects.all()
+	return render(request, 'apply_loan_list.html', {'lenders': lenders})
 
 
 @login_required
@@ -567,7 +572,7 @@ def apply_loan(request):
 		# Notify the lender about a new loan application
 		Notification.objects.create(
 			user=loan_application.lender.user,
-			message=f"New loan application submitted by {loan_application.borrower.user.username} for R{loan_amount}.",
+			message=f"New loan application submitted by {loan_application.borrower.full_name} for R{loan_amount}.",
 			category="loan_application",
 			loan_application=loan_application
 		)
@@ -581,10 +586,7 @@ def apply_loan(request):
 
 
 
-# For Sidebar 
-def apply_for_loan_list(request):
-	lenders = LenderProfile.objects.all()
-	return render(request, 'apply_loan_list.html', {'lenders': lenders})
+
 
 
 
@@ -743,27 +745,6 @@ def delete_loan_application(request, application_id):
 	return redirect('borrower_index')
 
 
-@login_required
-def delete_pending_loan_application2(request, pk):
-	loan = get_object_or_404(
-		LoanApplication,
-		pk=pk,
-		borrower=request.user.borrower,
-		status='pending'
-	)
-
-	if request.method == 'POST':
-		Notification.objects.create(
-			user=loan.lender.user,
-			message=f"❌ {loan.borrower.full_name} deleted their pending loan application.",
-			category="loan_deleted"
-		)
-
-		loan.delete()
-		messages.success(request, "Loan application deleted successfully.")
-		return redirect('borrower_index')
-
-	return render(request, 'confirm_delete_loan_application.html', {'loan': loan})
 
 
 @login_required

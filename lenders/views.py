@@ -268,6 +268,7 @@ def lender_list(request):
 	return render(request, 'borrower_index.html', {'lenders': lenders})
 
 
+
 @method_decorator(staff_member_required, name='dispatch')
 class LenderVerificationListView(ListView):
 	model = LenderProfile
@@ -496,7 +497,6 @@ class LoanApplicationListView(ListView):
 
 
 
-
 # Update the status of a loan application (approve/reject/pending)
 class LoanApplicationUpdateView(UpdateView):
 	model = LoanApplication
@@ -554,6 +554,7 @@ class LoanApplicationUpdateView(UpdateView):
 
 		loan_application.save()
 
+
 		form.save_m2m()  # Save multi-select fields
 
 		reasons = []
@@ -585,7 +586,7 @@ class LoanApplicationUpdateView(UpdateView):
 		loan_application = self.get_object()
 		borrower = loan_application.borrower
 
-		documents = BorrowerDocs.objects.filter(loan_application=loan_application)
+		documents = BorrowerDocs.objects.filter(borrower=borrower, loan_application=loan_application)
 
 		# Check outstanding and overdue loans
 		outstanding_loans = Loan.objects.filter(borrower=borrower, outstanding_balance__gt=0).count()

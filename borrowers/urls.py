@@ -3,6 +3,7 @@ from . import views
 from .views import BorrowerNotificationListView 
 
 
+
 urlpatterns = [
     path('borrower_index/', views.borrower_index, name='borrower_index'),
    
