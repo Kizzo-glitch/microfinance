@@ -17,7 +17,7 @@
             <tr>
                 <td>{{ loan.borrower.user.get_full_name }}</td>
                 <td>R{{ loan.loan_amount }}</td>
-                <td>{{ loan.status_reason }}</td>
+                <td>{{ loan.rejection_reasons }}</td>
                 <td>{{ loan.date_applied }}</td>
                 <td><a href="{% url 'loan-status-update' loan.id %}" class="btn btn-sm btn-warning">Edit</a></td>
             </tr>
@@ -29,3 +29,5 @@
 
 </div>
 {% endblock %}
+
+
