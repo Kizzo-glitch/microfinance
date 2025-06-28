@@ -588,8 +588,6 @@ def apply_loan(request):
 
 
 
-
-
 @login_required
 def pending_loan_application(request):
 	borrower = request.user.borrower
@@ -723,8 +721,29 @@ def update_documents(request, loan_id):
 	})
 
 
-
+@login_required
 def delete_loan_application(request, application_id):
+	loan_application = get_object_or_404(LoanApplication, id=application_id, borrower__user=request.user, status='pending')
+
+	# Unlink documents instead of deleting them
+	BorrowerDocs.objects.filter(loan_application=loan_application).delete()
+
+	# Send notification to lender
+	Notification.objects.create(
+		user=loan_application.lender.user,
+		message=f"❌ {loan_application.borrower.full_name} has deleted their pending loan application.",
+		category="loan_deleted"
+	)
+
+	loan_application.delete()
+	messages.success(request, "Loan application deleted successfully.")
+
+	return redirect('borrower_index')
+
+
+
+
+def delete_loan_application2(request, application_id):
 	loan_application = get_object_or_404(LoanApplication, id=application_id, borrower__user=request.user)
 
 	if loan_application.status != 'pending':
@@ -733,6 +752,7 @@ def delete_loan_application(request, application_id):
 
 	loan_application.is_deleted = True
 	loan_application.save()
+
 
 	# Send notification to lender
 	Notification.objects.create(
@@ -748,7 +768,7 @@ def delete_loan_application(request, application_id):
 
 
 @login_required
-def delete_loan_application2(request, application_id):
+def delete_loan_application3(request, application_id):
 	application = get_object_or_404(LoanApplication, id=application_id, borrower__user=request.user)
 
 	if application.status != 'pending':
