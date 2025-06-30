@@ -513,7 +513,7 @@ class LoanApplicationUpdateView(UpdateView):
 		old_status = LoanApplication.objects.get(pk=loan_application.pk).status
 		loan_amount = loan_application.loan_amount
 		borrower_user = loan_application.borrower
-		phone_number = borrower_profile.phone_number
+		phone_number = borrower_user.phone_number
 
 		# Check if status changed
 		if loan_application.status != old_status:
