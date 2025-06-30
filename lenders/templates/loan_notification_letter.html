@@ -24,7 +24,7 @@
 	    <p>❌ Unfortunately your loan application for loan ID {{loan_application.id}} at {{loan_application.lender.company_name}} was unsuccessful.</p>
 	   	 <ul>
 	        {% for reason in reasons %}
-	            <li>Rejection Reason(s): {{ reason }}</li>
+	            <li>Rejection Reason: {{ reason }}</li>
 	        {% endfor %}
         </ul>
 
@@ -38,34 +38,12 @@
 	    <p>⏳ Your loan application for loan ID {{loan_application.id}} at {{loan_application.lender.company_name}} is currently pending.</p>
 	    <ul>
 	        {% for reason in reasons %}
-	            <li>Reason(s): {{ reason }}</li>
+	            <li>Pending Reason: {{ reason }}</li>
 	        {% endfor %}
 	    </ul>
 	    <p>Thank you for choosing {{loan_application.lender.company_name}}!</p>
 	{% endif %}
 
-
-	<!--<p>Dear {{ loan_application.borrower.full_name }},</p>
-
-	{% if loan_application.status == 'approved' %}
-	    <p>Congratulations! Your loan application (ID: {{ loan_application.id }}) has been approved.</p>
-	{% elif loan_application.status == 'rejected' %}
-	    <p>Unfortunately, your loan application (ID: {{ loan_application.id }}) has been rejected for the following reasons:</p>
-	    <ul>
-	        {% for reason in loan_application.get_rejection_reasons_display %}
-	            <li>{{ reason }}</li>
-	        {% endfor %}
-	    </ul>
-	{% elif loan_application.status == 'pending' %}
-	    <p>Your loan application is currently pending for the following reasons:</p>
-	    <ul>
-	        {% for reason in loan_application.get_pending_reasons_display %}
-	            <li>{{ reason }}</li>
-	        {% endfor %}
-	    </ul>
-	{% endif %}
-
-	<p>Thank you for using our platform.</p>-->
 
 </body>
 </html>

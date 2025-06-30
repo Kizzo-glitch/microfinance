@@ -158,7 +158,17 @@ class BorrowerDocs(models.Model):
 	def __str__(self):
 		return f"{self.borrower.user.username} - {self.get_document_type_display()}"
 
+class BorrowerOTP(models.Model):
+    borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE)
+    otp_code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_verified = models.BooleanField(default=False)
 
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(minutes=10)  # OTP valid for 5 minutes
+
+    def __str__(self):
+        return f"{self.borower.full_name} - {self.otp_code}"
 
 
 class OTPVerification(models.Model):

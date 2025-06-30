@@ -3,6 +3,9 @@ from django.utils import timezone
 from decimal import Decimal
 from .models import Loan
 
+import requests
+from django.conf import settings
+
 
 # Grace period for late payments
 GRACE_PERIOD_DAYS = 7
@@ -54,3 +57,25 @@ def get_loans_by_risk_category(category):
 		loans = Loan.objects.none()
 
 	return loans
+
+
+def send_sms(phone_number, message):
+	payload = {
+		"messages": [
+			{
+				"content": message,
+				"destination": phone_number
+			}
+		]
+	}
+
+	headers = {
+		"Authorization": f"Bearer {settings.SMS_API_KEY}",
+		"Content-Type": "application/json"
+	}
+
+	response = requests.post(settings.SMS_API_URL, json=payload, headers=headers)
+
+	return response.status_code == 200
+
+	

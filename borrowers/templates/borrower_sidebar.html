@@ -23,9 +23,9 @@
 
                                     <a class="nav-link {% if request.path == '/borrowers/pending_loan/' %}active-link{% endif %}" href="{% url 'pending_loan' %}">My Pending Loan</a>
 
-                                    <a class="nav-link{% if request.path == '/borrowers/my-loan-list/' %}active-link{% endif %}" href="{% url 'my-loan-list' %}">My Approved Loans</a>
+                                    <a class="nav-link{% if request.path == '/borrowers/my-loan-list/' %}active-link{% endif %}" href="{% url 'my-loan-list' %}">Approved Loans List</a>
                                   
-                                    <a class="nav-link {% if request.path == '/borrowers/my-active-loans/' %}active-link{% endif %}" href="{% url 'my-active-loans' %}">My Active Loans</a>
+                                    <a class="nav-link {% if request.path == '/borrowers/my-active-loans/' %}active-link{% endif %}" href="{% url 'my-active-loans' %}">Active Loans Details</a>
 
                                     <a class="nav-link {% if request.path == '/borrowers/my-loan-applications/' %}active-link{% endif %}" href="{% url 'my-loan-applications' %}">All My Loans</a>                                  
                                     

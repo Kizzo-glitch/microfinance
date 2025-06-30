@@ -39,6 +39,7 @@ from micro.utils import generate_otp, send_otp_sms
 
 
 
+
 @login_required
 def borrower_profile(request):
 	if request.user.is_borrower():
@@ -542,11 +543,11 @@ def apply_loan(request):
 		# Check if borrower has an active or pending loan
 		existing_loans = LoanApplication.objects.filter(
 			borrower=borrower,
-			status__in=['approved', 'pending']
+			status__in=['pending']
 		)
 
 		if existing_loans.exists():
-			messages.error(request, "You cannot apply for a new loan while you have an active or pending loan.")
+			messages.error(request, "You cannot apply for a new loan while you have a pending loan.")
 			return redirect('apply-loan')
 
 		# Save loan application
@@ -735,58 +736,12 @@ def delete_loan_application(request, application_id):
 		category="loan_deleted"
 	)
 
-	loan_application.delete()
-	messages.success(request, "Loan application deleted successfully.")
-
-	return redirect('borrower_index')
-
-
-
-
-def delete_loan_application2(request, application_id):
-	loan_application = get_object_or_404(LoanApplication, id=application_id, borrower__user=request.user)
-
-	if loan_application.status != 'pending':
-		messages.error(request, "Only pending loan applications can be deleted.")
-		return redirect('borrower_index')
-
 	loan_application.is_deleted = True
-	loan_application.save()
-
-
-	# Send notification to lender
-	Notification.objects.create(
-		user=loan_application.lender.user,
-		message=f"🗑️ Borrower {loan_application.borrower.user.get_full_name()} has deleted their pending loan application.",
-		category="loan_deleted",
-		loan_application=loan_application
-	)
-
+	loan_application.delete()
+	
 	messages.success(request, "Loan application deleted successfully.")
+
 	return redirect('borrower_index')
-
-
-
-@login_required
-def delete_loan_application3(request, application_id):
-	application = get_object_or_404(LoanApplication, id=application_id, borrower__user=request.user)
-
-	if application.status != 'pending':
-		messages.error(request, "You can only delete a pending loan application.")
-		return redirect('borrower_index')
-
-	# Send notification before deletion
-	Notification.objects.create(
-		user=application.lender.user,
-		message=f"{application.borrower.full_name} has deleted their loan application of R{application.loan_amount}.",
-		category="loan_deleted"
-	)
-
-	application.delete()
-
-	messages.success(request, "Your loan application has been deleted.")
-	return redirect('borrower_index')
-
 
 
 
@@ -1034,7 +989,7 @@ def record_payment(request, loan_id):
 				# Notify the lender for full payment
 				Notification.objects.create(
 					user=loan.lender.user,
-					message=f"✅ ✅ Borrower {loan.borrower.user.username} finished a loan payment with R{payment.amount} for Loan ID {loan.id}.",
+					message=f"✅ ✅ Borrower {loan.borrower.full_name} finished a loan payment with R{payment.amount} for Loan ID {loan.id}.",
 					category="loan_payment",
 					loan=loan
 				)
@@ -1043,7 +998,7 @@ def record_payment(request, loan_id):
 				# Notify the lender
 				Notification.objects.create(
 					user=loan.lender.user,
-					message=f"✅ Borrower {loan.borrower.user.username} made a payment of R{payment.amount} for Loan ID {loan.id}.",
+					message=f"✅ Borrower {loan.borrower.full_name} made a payment of R{payment.amount} for Loan ID {loan.id}.",
 					category="loan_payment",
 					loan=loan
 				)

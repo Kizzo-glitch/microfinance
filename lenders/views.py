@@ -32,7 +32,7 @@ from datetime import timedelta
 from django.http import JsonResponse
 from collections import OrderedDict
 
-from loans.utils import get_loans_by_risk_category
+from loans.utils import get_loans_by_risk_category, send_sms
 
 from django.views.decorators.http import require_POST
 from django.contrib.admin.views.decorators import staff_member_required
@@ -513,6 +513,7 @@ class LoanApplicationUpdateView(UpdateView):
 		old_status = LoanApplication.objects.get(pk=loan_application.pk).status
 		loan_amount = loan_application.loan_amount
 		borrower_user = loan_application.borrower
+		phone_number = borrower_profile.phone_number
 
 		# Check if status changed
 		if loan_application.status != old_status:
@@ -541,21 +542,32 @@ class LoanApplicationUpdateView(UpdateView):
 					category="loan_approved"
 				)
 
+				message = f"Hi {borrower_user.full_name}, your loan application for R{loan_amount} has been approved!"
+				send_sms(phone_number, message)
+
 			elif loan_application.status == 'rejected':
+				reasons = loan_application.get_rejection_reasons_display()
 				Notification.objects.create(
 					user=borrower_user.user,
-					message=f"❌ Your loan of R{loan_amount} from {loan_application.lender.company_name} was rejected. Reasons: {loan_application.get_rejection_reasons_display()}",
+					message=f"❌ Your loan of R{loan_amount} from {loan_application.lender.company_name} was rejected. Reasons: {reasons}",
 					#message=f"❌ Your loan of R{loan_amount} from {loan_application.lender.company_name} was rejected. Reason: {loan_application.status_reason}",
 					category="loan_rejected"
 				)
+				
+				message = f"Hi {borrower_user.first_name}, your loan of R{loan_amount} was rejected. Reasons: {reasons}."
+				send_sms(phone_number, message)
 
 			elif loan_application.status == 'pending':
+				reasons = loan_application.get_pending_reasons_display()
 				Notification.objects.create(
 					user=borrower_user.user,
 					message=f"⏳ Your loan application from {loan_application.lender.company_name} is pending. Reasons: {loan_application.get_pending_reasons_display()}",
 					#message=f"⏳ Your loan application from {loan_application.lender.company_name} is pending. Reason: {loan_application.status_reason}",
 					category="loan_pending"
 				)
+				
+				message = f"Hi {borrower_user.first_name}, your loan of R{loan_amount} is pending. Reasons: {reasons}."
+				send_sms(phone_number, message)
 
 		loan_application.save()
 
@@ -567,28 +579,7 @@ class LoanApplicationUpdateView(UpdateView):
 			reasons = loan_application.rejection_reasons
 		elif loan_application.status == 'pending':
 			reasons = loan_application.pending_reasons
-			
-		'''if loan_application.status == 'rejected':
-			reasons = loan_application.get_rejection_reasons_display()
-		elif loan_application.status == 'pending':
-			reasons = loan_application.get_pending_reasons_display()'''
-
-		# Render email template
-		'''subject = f"Loan Application {loan_application.status.capitalize()}"
-		message = render_to_string('loan_notification_letter.html', {
-			'loan_application': loan_application,
-			'status': loan_application.status,
-			'reasons': reasons,
-		})
-
-		send_mail(
-			subject,
-			message,
-			settings.EMAIL_HOST_USER,  # Replace with your from email
-			[borrower_user.email_address],
-			fail_silently=False,
-		)'''
-
+		
 		# Render the email content
 		subject = f"Loan Application {loan_application.status.capitalize()}"
 		from_email = settings.EMAIL_HOST_USER

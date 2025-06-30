@@ -96,6 +96,7 @@ def pending_loan_update_notifications(request):
 	return {}
 
 
+
 def borrower_notifications(request):
 	if request.user.is_authenticated and hasattr(request.user, 'borrower'):
 		borrower = request.user.borrower
