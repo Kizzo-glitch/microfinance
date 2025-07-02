@@ -234,6 +234,7 @@ def verify_otp(request):
 @login_required
 def select_employment_type(request):
 	profile = request.user.borrower
+	lender_id = request.session.get('lender_id')
 	if request.method == 'POST':
 		form = EmploymentTypeForm(request.POST, instance=profile)
 		if form.is_valid():
@@ -261,15 +262,20 @@ def select_employment_type(request):
 @login_required
 def upload_documents_employed(request):
 	borrower = request.user.borrower
+	lender_id = request.session.get('lender_id')
+
+	if not lender_id:
+		messages.error(request, "Lender not selected.")
+		return redirect('borrower_index')
 
 	if request.method == 'POST':
 		form = EmployedDocumentsForm(request.POST, request.FILES)
 		if form.is_valid():
 			# Get latest unsubmitted loan application (or however you're tracking it)
-			try:
-				loan_app = LoanApplication.objects.filter(borrower=borrower).latest('id')
-			except LoanApplication.DoesNotExist:
-				loan_app = None
+			#try:
+			#	loan_app = LoanApplication.objects.filter(borrower=borrower).latest('id')
+			#except LoanApplication.DoesNotExist:
+			#	loan_app = None
 
 			doc_map = {
 				'id_proof': 'ID Proof',
@@ -283,7 +289,7 @@ def upload_documents_employed(request):
 				if file:
 					BorrowerDocs.objects.create(
 						borrower=borrower,
-						loan_application=loan_app,
+						loan_application=None,
 						document_type=field_name,
 						file=file
 					)
@@ -299,15 +305,20 @@ def upload_documents_employed(request):
 @login_required
 def upload_documents_self_employed(request):
 	borrower = request.user.borrower
+	lender_id = request.session.get('lender_id')
+
+	if not lender_id:
+		messages.error(request, "Lender not selected.")
+		return redirect('borrower_index')
 
 	if request.method == 'POST':
 		form = SelfEmployedDocumentsForm(request.POST, request.FILES)
 		if form.is_valid():
 			# Get latest unsubmitted loan application (or however you're tracking it)
-			try:
-				loan_app = LoanApplication.objects.filter(borrower=borrower).latest('id')
-			except LoanApplication.DoesNotExist:
-				loan_app = None
+			#try:
+			#	loan_app = LoanApplication.objects.filter(borrower=borrower).latest('id')
+			#except LoanApplication.DoesNotExist:
+			#	loan_app = None
 
 			doc_map = {
 				'id_proof': 'ID Proof',
@@ -324,7 +335,7 @@ def upload_documents_self_employed(request):
 				if file:
 					BorrowerDocs.objects.create(
 						borrower=borrower,
-						loan_application=loan_app,
+						loan_application=None,
 						document_type=field_name,
 						file=file
 					)
@@ -341,15 +352,20 @@ def upload_documents_self_employed(request):
 @login_required
 def upload_documents_registered_business(request):
 	borrower = request.user.borrower
+	lender_id = request.session.get('lender_id')
+
+	if not lender_id:
+		messages.error(request, "Lender not selected.")
+		return redirect('borrower_index')
 
 	if request.method == 'POST':
 		form = RegisteredBusinessDocumentsForm(request.POST, request.FILES)
 		if form.is_valid():
 			# Get latest unsubmitted loan application (or however you're tracking it)
-			try:
-				loan_app = LoanApplication.objects.filter(borrower=borrower).latest('id')
-			except LoanApplication.DoesNotExist:
-				loan_app = None
+			#try:
+			#	loan_app = LoanApplication.objects.filter(borrower=borrower).latest('id')
+			#except LoanApplication.DoesNotExist:
+			#	loan_app = None
 
 			doc_map = {
 				'id_proof': 'ID Proof',
@@ -367,7 +383,7 @@ def upload_documents_registered_business(request):
 				if file:
 					BorrowerDocs.objects.create(
 						borrower=borrower,
-						loan_application=loan_app,
+						loan_application=None,
 						document_type=field_name,
 						file=file
 					)
@@ -567,8 +583,13 @@ def apply_loan(request):
 		# ✅ Link previously uploaded documents (with loan_application=None) to this new loan
 		BorrowerDocs.objects.filter(
 			borrower=borrower,
-			loan_application__isnull=True
+			loan_application=None  # Only unlinked docs
 		).update(loan_application=loan_application)
+		
+		#BorrowerDocs.objects.filter(
+		#	borrower=borrower,
+		#	loan_application__isnull=True
+		#).update(loan_application=loan_application)
 
 		# Notify the lender about a new loan application
 		Notification.objects.create(
@@ -641,6 +662,7 @@ def update_loan_application(request, application_id):
 		form = LoanApplicationForm(instance=application)
 
 	return render(request, 'update_loan_application.html', {'form': form, 'application': application})
+
 
 
 
@@ -728,6 +750,8 @@ def delete_loan_application(request, application_id):
 
 	# Unlink documents instead of deleting them
 	BorrowerDocs.objects.filter(loan_application=loan_application).delete()
+	#BorrowerDocs.objects.filter(loan_application=loan_application).update(loan_application=None)
+
 
 	# Send notification to lender
 	Notification.objects.create(
@@ -735,8 +759,9 @@ def delete_loan_application(request, application_id):
 		message=f"❌ {loan_application.borrower.full_name} has deleted their pending loan application.",
 		category="loan_deleted"
 	)
-
-	loan_application.is_deleted = True
+	
+	#loan_application.is_deleted = True
+	#loan_application.save()
 	loan_application.delete()
 	
 	messages.success(request, "Loan application deleted successfully.")
