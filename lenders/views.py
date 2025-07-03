@@ -575,7 +575,7 @@ class LoanApplicationUpdateView(UpdateView):
 
 		form.save_m2m()  # Save multi-select fields
 
-		'''reasons = []
+		reasons = []
 		if loan_application.status == 'rejected':
 			reasons = loan_application.rejection_reasons
 		elif loan_application.status == 'pending':
@@ -595,7 +595,7 @@ class LoanApplicationUpdateView(UpdateView):
 		# Send as HTML email
 		email = EmailMultiAlternatives(subject, '', from_email, to_email)
 		email.attach_alternative(message, "text/html")
-		email.send()'''
+		email.send()
 
 		return super().form_valid(form)
 

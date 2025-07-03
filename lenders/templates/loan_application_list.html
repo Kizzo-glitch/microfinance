@@ -5,7 +5,6 @@
 
     <!-- Begin Page Content -->
     <div class="container-fluid">
-
         <h1>Loan Applications</h1>
         <table class="table table-bordered">
             <thead>
@@ -17,6 +16,7 @@
                     <th>First Payment</th>
                     <th>Monthly Installment</th>
                     <th>Total Repayable</th>
+                    <th>Submission Date</th>
                     <th>Status</th>
                     <th>Action</th>
                 </tr>
@@ -31,6 +31,7 @@
                     <td>R{{ application.first_payment }}</td>
                     <td>R{{ application.monthly_installment }}</td>
                     <td>R{{ application.total_repayable }}</td>
+                    <td>{{ application.date_applied }}</td>
                     <td>{{ application.status }}</td>
                     <td>
                         <a href="{% url 'loan-application-update' application.pk %}">Review</a>
