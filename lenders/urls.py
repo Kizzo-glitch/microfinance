@@ -63,7 +63,7 @@ urlpatterns = [
     path("dashboard/risk-customers/<str:category>/", views.risk_customer_list, name="risk_customer_list"),
 
     path('my-clients/', views.my_clients, name='my_clients'),
-    path('lender/loan/<int:loan_id>/documents/', views.borrower_documents, name='view_borrower_documents'),
+    path('loan/<int:loan_id>/documents/', views.view_borrower_documents, name='view_borrower_documents'),
 
     path('credit-reports/', views.credit_reports, name='credit_reports'),
 

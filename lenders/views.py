@@ -492,7 +492,6 @@ class LoanApplicationListView(ListView):
 	template_name = 'loan_application_list.html'
 	context_object_name = 'loan_applications'
 
-
 	def get_queryset(self):
 		# Filter loan applications by the current lender and status 'pending'
 		return LoanApplication.objects.filter(
@@ -555,7 +554,7 @@ class LoanApplicationUpdateView(UpdateView):
 					category="loan_rejected"
 				)
 				
-				message = f"Hi {borrower_user.first_name}, your loan of R{loan_amount} was rejected. Reasons: {reasons}."
+				message = f"Hi {borrower_user.full_name}, your loan of R{loan_amount} was rejected. Reasons: {reasons}."
 				send_sms_smsportal(phone_number, message)
 
 			elif loan_application.status == 'pending':
@@ -567,7 +566,7 @@ class LoanApplicationUpdateView(UpdateView):
 					category="loan_pending"
 				)
 				
-				message = f"Hi {borrower_user.first_name}, your loan of R{loan_amount} is pending. Reasons: {reasons}."
+				message = f"Hi {borrower_user.full_name}, your loan of R{loan_amount} is pending. Reasons: {reasons}."
 				send_sms_smsportal(phone_number, message)
 
 		loan_application.save()
@@ -582,7 +581,7 @@ class LoanApplicationUpdateView(UpdateView):
 			reasons = loan_application.pending_reasons
 		
 		# Render the email content
-		subject = f"Loan Application {loan_application.status.capitalize()}"
+		'''subject = f"Loan Application {loan_application.status.capitalize()}"
 		from_email = settings.EMAIL_HOST_USER
 		to_email = [borrower_user.email_address]
 
@@ -595,7 +594,7 @@ class LoanApplicationUpdateView(UpdateView):
 		# Send as HTML email
 		email = EmailMultiAlternatives(subject, '', from_email, to_email)
 		email.attach_alternative(message, "text/html")
-		email.send()
+		email.send()'''
 
 		return super().form_valid(form)
 
@@ -651,10 +650,21 @@ class LoanApplicationUpdateView(UpdateView):
 		return reverse('loan-application-list')
 
 
+def view_borrower_documents(request, loan_id):
+	# Ensure lender only accesses their own loan applications
+	loan_application = get_object_or_404(LoanApplication, id=loan_id, lender=request.user.lender)
+
+	# Fetch documents linked to this loan application
+	documents = BorrowerDocs.objects.filter(loan_application=loan_application)
+
+	return render(request, 'view_borrower_documents.html', {
+		'loan_application': loan_application,
+		'documents': documents
+	})
 
 
 @login_required
-def borrower_documents(request, loan_id):
+def view_borrower_documents2(request, loan_id):
 	loan = get_object_or_404(LoanApplication, id=loan_id, lender=request.user.lender)
 	borrower = loan.borrower
 	documents = BorrowerDocs.objects.filter(borrower=borrower).order_by('-upload_date')
@@ -700,7 +710,6 @@ class PendingLoansView(ListView):
 			lender__user=self.request.user,
 			status='pending'
 		).select_related('borrower', 'lender')
-
 
 
 @require_POST

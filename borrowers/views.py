@@ -212,7 +212,7 @@ def send_otp(request):
 	OTP.objects.create(user=request.user, phone_number=phone_number, otp_code=otp_code)
 
 	# Send SMS
-	message = f"Your FedhaGrow OTP code is: {otp_code}"
+	message = f"Hello {borrower.full_name}, your FedhaGrow OTP code is: {otp_code}"
 	send_sms_smsportal(phone_number, message)
 	
 	# Render the email content
