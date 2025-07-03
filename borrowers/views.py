@@ -3,13 +3,15 @@ from django.contrib.auth.decorators import login_required
 
 from lenders.models import LenderProfile
 from loans.models import LoanApplication, Loan, LoanPayment, Notification, Rating
+from micro.models import OTP
+
 from .forms import RatingForm, BorrowerProfileForm, LoanApplicationForm, BorrowerDocumentsForm, LoanPaymentForm, OTPForm, EmploymentTypeForm, EmployedDocumentsForm, SelfEmployedDocumentsForm, RegisteredBusinessDocumentsForm
 
 import random
 
 from django.contrib import messages
 
-from .models import BorrowerProfile, BorrowerDocs, OTPVerification
+from .models import BorrowerProfile, BorrowerDocs
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg
 
@@ -34,7 +36,9 @@ from django.views.decorators.http import require_POST
 
 import os
 from django.conf import settings
-from micro.utils import generate_otp, send_otp_sms
+from micro.utils import generate_otp 
+from loans.utils import send_sms_smsportal
+from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
 
 
 
@@ -197,38 +201,67 @@ def rate_lender(request, lender_id):
 		return redirect('lender_detail', lender_id=lender.id)
 
 
-@login_required
-def request_otp(request):
+
+def send_otp(request):
 	borrower = request.user.borrower
+	phone_number = borrower.phone_number
 
-	# Generate and send OTP
 	otp_code = generate_otp()
-	send_otp_sms(borrower.phone_number, otp_code)
 
-	# Store OTP
-	OTPVerification.objects.create(borrower=borrower, otp_code=otp_code)
+	# Save OTP
+	OTP.objects.create(user=request.user, phone_number=phone_number, otp_code=otp_code)
+
+	# Send SMS
+	message = f"Your FedhaGrow OTP code is: {otp_code}"
+	send_sms_smsportal(phone_number, message)
+	
+	# Render the email content
+	subject = f"OTP Verification"
+	from_email = settings.EMAIL_HOST_USER
+	to_email = [borrower.email_address]
+
+	
+	# Send as HTML email
+	#email = EmailMultiAlternatives(subject, '', from_email, to_email)
+	#email.attach_alternative(message, "text/html")
+	#email.send()
+
+	send_mail(
+		subject,
+		message,
+		from_email,  
+		to_email,
+		fail_silently=False,
+	)
 
 	return redirect('verify_otp')
 
 
 
-@login_required
 def verify_otp(request):
-	borrower = request.user.borrower
-	latest_otp = OTPVerification.objects.filter(borrower=borrower).order_by('-created_at').first()
-
 	if request.method == 'POST':
-		form = OTPForm(request.POST)
-		if form.is_valid():
-			if latest_otp and not latest_otp.is_expired() and form.cleaned_data['otp_code'] == latest_otp.otp_code:
-				# OTP success: Proceed
-				return redirect('employment_type')
-			else:
-				form.add_error(None, 'Invalid or expired OTP.')
-	else:
-		form = OTPForm()
+		otp_input = request.POST.get('otp')
 
-	return render(request, 'verify_otp.html', {'form': form})
+		try:
+			otp_entry = OTP.objects.filter(user=request.user, is_verified=False).latest('created_at')
+		except OTP.DoesNotExist:
+			messages.error(request, "No OTP found. Please try again.")
+			return redirect('send_otp')
+
+		if otp_entry.is_expired():
+			messages.error(request, "OTP expired. Please request a new one.")
+			return redirect('send_otp')
+
+		if otp_entry.otp_code == otp_input:
+			otp_entry.is_verified = True
+			otp_entry.save()
+			messages.success(request, "OTP verified successfully!")
+			return redirect('employment_type')  
+		else:
+			messages.error(request, "Invalid OTP. Please try again.")
+
+	return render(request, 'verify_otp.html')
+
 
 
 @login_required

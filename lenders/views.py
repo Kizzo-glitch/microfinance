@@ -26,25 +26,25 @@ from django.db.models.functions import TruncMonth
 import json
 import calendar
 
+
 from django.utils.timezone import now
 from datetime import timedelta
 
 from django.http import JsonResponse
 from collections import OrderedDict
 
-from loans.utils import get_loans_by_risk_category, send_sms
+from loans.utils import get_loans_by_risk_category, send_sms_smsportal
 
 from django.views.decorators.http import require_POST
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
-from django.core.mail import EmailMessage
+
 from django.template.loader import render_to_string
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
 from django.http import HttpResponse
 
-from django.core.mail import EmailMultiAlternatives
 
 
 
@@ -543,7 +543,8 @@ class LoanApplicationUpdateView(UpdateView):
 				)
 
 				message = f"Hi {borrower_user.full_name}, your loan application for R{loan_amount} has been approved!"
-				send_sms(phone_number, message)
+				#send_sms(phone_number, message)
+				send_sms_smsportal(phone_number, message)
 
 			elif loan_application.status == 'rejected':
 				reasons = loan_application.get_rejection_reasons_display()
@@ -555,7 +556,7 @@ class LoanApplicationUpdateView(UpdateView):
 				)
 				
 				message = f"Hi {borrower_user.first_name}, your loan of R{loan_amount} was rejected. Reasons: {reasons}."
-				send_sms(phone_number, message)
+				send_sms_smsportal(phone_number, message)
 
 			elif loan_application.status == 'pending':
 				reasons = loan_application.get_pending_reasons_display()
@@ -567,14 +568,14 @@ class LoanApplicationUpdateView(UpdateView):
 				)
 				
 				message = f"Hi {borrower_user.first_name}, your loan of R{loan_amount} is pending. Reasons: {reasons}."
-				send_sms(phone_number, message)
+				send_sms_smsportal(phone_number, message)
 
 		loan_application.save()
 
 
 		form.save_m2m()  # Save multi-select fields
 
-		reasons = []
+		'''reasons = []
 		if loan_application.status == 'rejected':
 			reasons = loan_application.rejection_reasons
 		elif loan_application.status == 'pending':
@@ -594,7 +595,7 @@ class LoanApplicationUpdateView(UpdateView):
 		# Send as HTML email
 		email = EmailMultiAlternatives(subject, '', from_email, to_email)
 		email.attach_alternative(message, "text/html")
-		email.send()
+		email.send()'''
 
 		return super().form_valid(form)
 

@@ -185,10 +185,11 @@ AUTH_USER_MODEL = 'micro.User'
 TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
 TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
+ 
  #SMSPortal
 SMS_API_URL = "https://rest.smsportal.com/bulkmessages"
-SMS_API_KEY = os.getenv('SMS_API_KEY')
-SMS_SENDER = os.getenv('SMS_SENDER')
+SMS_API_SECRET = os.getenv('SMS_API_SECRET')
+CLIENT_ID = os.getenv('CLIENT_ID')
 
 
 # Email settings
