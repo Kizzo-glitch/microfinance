@@ -5,6 +5,12 @@
 
         <div class="container">
             <h1 class="mb-4">Upload These Required Documents For Compliance</h1>
+                <div id="loadingSpinner" class="text-center mt-4" style="display: none;">
+                    <div class="spinner-border text-primary" role="status" style="width: 4rem; height: 4rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Please wait while your documents are uploading...</p>
+                </div>
 
                 <form id="uploadForm" method="post" enctype="multipart/form-data">
                     {% csrf_token %}
@@ -81,6 +87,51 @@
                     e.preventDefault();
                     const formData = new FormData(form);
 
+                    // Show loading spinner
+                    document.getElementById('loadingSpinner').style.display = 'block';
+
+                    // Initialize progress
+                    progressBar.style.width = '0%';
+                    progressBar.textContent = '0%';
+
+                    fetch("{% url 'upload_lender_docs' %}", {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        },
+                        body: formData
+                    }).then(response => response.json())
+                      .then(data => {
+                          // Hide spinner
+                          document.getElementById('loadingSpinner').style.display = 'none';
+
+                          if (data.success) {
+                              progressBar.style.width = '100%';
+                              progressBar.textContent = '100%';
+                              responseDiv.innerHTML = `<div class="alert alert-success">${data.success}</div>`;
+                              setTimeout(() => {
+                                window.location.href = data.redirect_url;
+                              }, 2000);
+                          } else if (data.error) {
+                              responseDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                          }
+                      }).catch(error => {
+                          document.getElementById('loadingSpinner').style.display = 'none';
+                          responseDiv.innerHTML = `<div class="alert alert-danger">An error occurred. Please try again later.</div>`;
+                      });
+                });
+
+            </script>
+
+            <!--<script>
+                const form = document.getElementById('uploadForm');
+                const progressBar = document.querySelector('.progress-bar');
+                const responseDiv = document.getElementById('response');
+
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    const formData = new FormData(form);
+
                     // Initialize progress
                     progressBar.style.width = '0%';
                     progressBar.textContent = '0%';
@@ -117,7 +168,7 @@
                     progressBar.style.width = `${progress}%`;
                     progressBar.textContent = `${progress}%`;
                 });
-            </script>
+            </script>-->
 
            
   <style>
@@ -135,7 +186,7 @@
     </style>
 
 
-    <br><br><br><br><br><br>
+    <br><br><br><br>
      
    
 
