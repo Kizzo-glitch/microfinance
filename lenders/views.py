@@ -571,7 +571,6 @@ class LoanApplicationUpdateView(UpdateView):
 
 		loan_application.save()
 
-
 		form.save_m2m()  # Save multi-select fields
 
 		reasons = []

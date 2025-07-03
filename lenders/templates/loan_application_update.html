@@ -162,7 +162,9 @@
                <form method="post">
                     {% csrf_token %}
                     <div class="card-header bg-primary text-white">
-                       <h4>Update Application {{ form.status.label_tag }} {{ form.status }}</h4>
+                       <h4>
+                       Update Application {{ form.status.label_tag }} {{ form.status }}
+                    </h4>
                     </div>
 
                     <div id="rejectionReasons" style="display: none;">
@@ -174,8 +176,11 @@
                         <strong><h5>Pending Reasons:</h5></strong>
                         {{ form.pending_reasons }}
                     </div>
+                    <button type="submit" id="statusButton" class="btn btn-success mt-3">
+                        Approve Loan
+                    </button>
 
-                    <button type="submit" class="btn btn-success mt-3">Approve/Reject Loan</button>
+                    <!--<button type="submit" class="btn btn-success mt-3">Approve/Reject Loan</button>-->
                 </form>
             </div>
         </center>
@@ -194,7 +199,44 @@
 
             // Run on page load in case of form re-render
             window.onload = toggleReasonFields;
+
+            document.addEventListener('DOMContentLoaded', function () {
+                const dropdown = document.getElementById('statusDropdown');
+                const statusButton = document.getElementById('statusButton');
+
+                function updateButton() {
+                    const selectedStatus = dropdown.value;
+
+                    if (selectedStatus === 'approved') {
+                        statusButton.textContent = 'Approve Loan';
+                        statusButton.className = 'btn btn-success mt-3';
+                    } else if (selectedStatus === 'pending') {
+                        statusButton.textContent = 'Mark as Pending';
+                        statusButton.className = 'btn btn-warning mt-3';
+                    } else if (selectedStatus === 'rejected') {
+                        statusButton.textContent = 'Reject Loan';
+                        statusButton.className = 'btn btn-danger mt-3';
+                    } else {
+                        statusButton.textContent = 'Approve/Reject Loan';
+                        statusButton.className = 'btn btn-secondary mt-3';
+                    }
+                }
+
+                // Trigger on load (in case form is pre-populated)
+                updateButton();
+
+                // Trigger on change
+                dropdown.addEventListener('change', updateButton);
+            });
         </script>
+
+        <style>
+            .small-dropdown {
+                max-width: 300px;  /* You can adjust this */
+                width: 100%;
+                display: inline-block;
+            }
+        </style>
 
    
 {% endblock %}

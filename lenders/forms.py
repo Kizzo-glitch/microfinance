@@ -124,6 +124,7 @@ class LoanApplicationStatusForm(forms.ModelForm):
 		widgets = {
 			'rejection_reasons': forms.CheckboxSelectMultiple,
 			'pending_reasons': forms.CheckboxSelectMultiple,
+			'status': forms.Select(attrs={'id': 'statusDropdown', 'class': 'form-control small-dropdown'}),
 		}
 
 
