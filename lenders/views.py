@@ -167,6 +167,7 @@ def lender_profile(request):
 		return redirect('landing')
 
 
+
 def upload_lender_docs(request):
 	lender = request.user.lender
 
@@ -175,10 +176,13 @@ def upload_lender_docs(request):
 		if form.is_valid():
 			
 			doc_map = {
-				'id_proof': 'ID Proof',
-				'bank_statement': 'Bank Statement',
-				'payslip': 'Payslip',
-				'chief_letter': 'Chief Letter',
+				'company_registration': 'Company Registration',
+				'financial_statements': 'Financial Statement',
+				'tax_clearance': 'Tax Clearance Certificate',
+				'license_certificate': 'License Certificate',
+
+				'proof_of_address': 'Proof of Address',
+				'Other': 'Other',
 			}
 
 			for doc_type in form.cleaned_data:
@@ -189,7 +193,7 @@ def upload_lender_docs(request):
 						document_type=doc_type,
 						file=file
 					)
-			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/view_lender_documents/'})
+			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/lenders/view_lender_documents/'})
 		else:
 			return JsonResponse({'error': form.errors})
 	else:

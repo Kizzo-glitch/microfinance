@@ -103,7 +103,6 @@ class VerificationStatusForm(forms.ModelForm):
 
 
 
-
 class LenderDocumentsForm(forms.ModelForm):
 	company_registration = forms.FileField(required=True)
 	financial_statements = forms.FileField(required=True)
