@@ -585,7 +585,7 @@ class LoanApplicationUpdateView(UpdateView):
 			reasons = loan_application.pending_reasons
 		
 		# Render the email content
-		'''subject = f"Loan Application {loan_application.status.capitalize()}"
+		subject = f"Loan Application {loan_application.status.capitalize()}"
 		from_email = settings.EMAIL_HOST_USER
 		to_email = [borrower_user.email_address]
 
@@ -598,7 +598,7 @@ class LoanApplicationUpdateView(UpdateView):
 		# Send as HTML email
 		email = EmailMultiAlternatives(subject, '', from_email, to_email)
 		email.attach_alternative(message, "text/html")
-		email.send()'''
+		email.send()
 
 		return super().form_valid(form)
 

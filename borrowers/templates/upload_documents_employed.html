@@ -153,6 +153,15 @@
                           responseDiv.innerHTML = `<div class="alert alert-danger">An error occurred. Please try again later.</div>`;
                       });
                 });
+                // Update progress bar dynamically based on file input
+                form.addEventListener('change', function () {
+                    const totalFiles = form.querySelectorAll('input[type="file"]').length;
+                    const uploadedFiles = Array.from(form.querySelectorAll('input[type="file"]')).filter(input => input.files.length > 0).length;
+                    const progress = Math.floor((uploadedFiles / totalFiles) * 100);
+
+                    progressBar.style.width = `${progress}%`;
+                    progressBar.textContent = `${progress}%`;
+                });
 
             </script>
 
