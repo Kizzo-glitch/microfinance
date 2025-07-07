@@ -192,6 +192,7 @@ SMS_API_SECRET = os.getenv('SMS_API_SECRET')
 CLIENT_ID = os.getenv('CLIENT_ID')
 
 
+
 # Email settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'  # Replace with your email provider's SMTP server
