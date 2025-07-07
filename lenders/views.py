@@ -193,13 +193,14 @@ def upload_lender_docs(request):
 						document_type=doc_type,
 						file=file
 					)
-			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/lenders/view_lender_documents/'})
+			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/lenders/my-documents/'})
 		else:
 			return JsonResponse({'error': form.errors})
 	else:
 		form = LenderDocumentsForm()
 
 	return render(request, 'upload_lender_documents.html', {'form': form})
+
 
 
 @login_required
