@@ -4,8 +4,13 @@
 {% block content %}
 
         <div class="container">
-            <h1 class="mb-4">For Unregisterd Business Owners</h1>
-            <h1 class="mb-4">Upload These Required Documents</h1>
+            <br>
+            <div class="card-header bg-secondary text-white">
+                <center>
+                    <h3 class="mb-4">Unregisterd Business Owners</h3>
+                </center>
+            </div>
+            <h5 class="mb-4">Upload These Required Documents</h5>
 
                 <form id="uploadForm" method="post" enctype="multipart/form-data">
                     {% csrf_token %}
