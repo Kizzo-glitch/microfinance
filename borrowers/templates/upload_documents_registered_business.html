@@ -14,6 +14,14 @@
             <h5 class="mb-4">Upload These Required Documents</h5>
             </center>
 
+            <!-- Loading Spinner -->
+                <div id="loadingSpinner" class="text-center mt-4" style="display: none;">
+                    <div class="spinner-border text-primary" role="status" style="width: 4rem; height: 4rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Please wait while your documents are uploading...</p>
+                </div>
+
                 <form id="uploadForm" method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     
