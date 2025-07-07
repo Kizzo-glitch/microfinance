@@ -226,13 +226,13 @@ def send_otp(request):
 	#email.attach_alternative(message, "text/html")
 	#email.send()
 
-	send_mail(
-		subject,
-		message,
-		from_email,  
-		to_email,
-		fail_silently=False,
-	)
+	#send_mail(
+	#	subject,
+	#	message,
+	#	from_email,  
+	#	to_email,
+	#	fail_silently=False,
+	#)
 
 	return redirect('verify_otp')
 
