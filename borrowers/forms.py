@@ -193,7 +193,7 @@ EMPLOYMENT_EXPENSE_TYPES = {
 		'Insurance',
 		'Other Personal Expenses'
 	],
-	'self_employed_unregistered': [
+	'self_employed': [
 		#'Net Income',
 		'Rent/Mortgage',
 		'Groceries',
