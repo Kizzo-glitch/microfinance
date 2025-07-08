@@ -159,7 +159,40 @@
                 <div class="card-header bg-primary text-white">
                     <h4>Affordability Assessment</h4>
                 </div>
-            <table class="table table-bordered">
+                <table class="table table-bordered mt-3">
+                    <thead class="thead-light">
+                      <tr>
+                        <th></th>
+                        <th class="text-center">Before Loan Installment</th>
+                        <th class="text-center">After Loan Installment</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <th>Monthly Net Income</th>
+                        <td colspan="2" class="text-center">R{{ income }}</td>
+                      </tr>
+                      <tr>
+                        <th>Total Monthly Expenses</th>
+                        <td colspan="2" class="text-center">R{{ total_expenses }}</td>
+                      </tr>
+                      <tr>
+                        <th>Proposed Monthly Installment</th>
+                        <td colspan="2" class="text-center">R{{ monthly_installment }}</td>
+                      </tr>
+                      <tr>
+                        <th>Surplus</th>
+                        <td class="text-center">R{{ surplus_before_loan }}</td>
+                        <td class="text-center">R{{ surplus_after_loan }}</td>
+                      </tr>
+                      <tr>
+                        <th>Affordability Index</th>
+                        <td>{{ index_before }}% ({{ affordability_before_flag }})</td>
+                        <td>{{ index_after }}% ({{ affordability_after_flag }})</td>
+                      </tr>
+                    </tbody>
+                  </table>
+            <!--<table class="table table-bordered">
                 <tr><th>Net Monthly Income</th><td>R{{ affordability.income }}</td></tr>
                 <tr><th>Total Expenses</th><td>R{{ affordability.total_expenses }}</td></tr>
                 <tr><th>Disposable Income</th><td>R{{ affordability.disposable_income }}</td></tr>
@@ -174,7 +207,7 @@
                         {% endif %}
                     </td>
                 </tr>
-            </table>
+            </table>-->
             </div>
 
             <br> 

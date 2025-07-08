@@ -5,8 +5,7 @@ from .models import LenderProfile, LenderDocs
 from django.contrib import messages
 from loans.models import Notification, LoanApplication, Loan, LoanPayment
 from django.http import JsonResponse
-from borrowers.models import BorrowerProfile, BorrowerDocs
-from loans.models import LoanApplication
+from borrowers.models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
 
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponseRedirect
@@ -25,7 +24,6 @@ from django.db.models.functions import TruncMonth
 
 import json
 import calendar
-
 
 from django.utils.timezone import now
 from datetime import timedelta
@@ -578,7 +576,6 @@ class LoanApplicationUpdateView(UpdateView):
 
 		form.save_m2m()  # Save multi-select fields
 
-
 		reasons = []
 		if loan_application.status == 'rejected':
 			reasons = loan_application.rejection_reasons
@@ -608,7 +605,7 @@ class LoanApplicationUpdateView(UpdateView):
 		loan_application = self.get_object()
 		borrower = loan_application.borrower
 
-		affordability = calculate_affordability(borrower, loan_application, loan_application.monthly_installment)
+		#affordability = calculate_affordability(borrower, loan_application, loan_application.monthly_installment)
 
 		documents = BorrowerDocs.objects.filter(borrower=borrower, loan_application=loan_application)
 
@@ -616,6 +613,32 @@ class LoanApplicationUpdateView(UpdateView):
 		outstanding_loans = Loan.objects.filter(borrower=borrower, outstanding_balance__gt=0).count()
 		overdue_loans = Loan.objects.filter(borrower=borrower, due_date__lt=date.today(), outstanding_balance__gt=0).count()
 		total_debt = Loan.objects.filter(borrower=borrower).aggregate(total=models.Sum('outstanding_balance'))['total'] or 0
+
+		# Get borrower's income and expenses
+		income = borrower.income or 0
+
+		# Sum expenses for this application only
+		expenses_qs = ExpenseAnalysis.objects.filter(borrower=borrower, loan_application=loan_application)
+		total_expenses = expenses_qs.aggregate(total=Sum('amount'))['total'] or 0
+
+		# Affordability calculations
+		surplus_before_loan = income - total_expenses
+		monthly_installment = loan_application.monthly_installment or 0
+		surplus_after_loan = income - (total_expenses + monthly_installment)
+
+		# Calculate indexes
+		index_before = round((surplus_before_loan / income) * 100, 2) if income else 0
+		index_after = round((surplus_after_loan / income) * 100, 2) if income else 0
+
+		# Flags (affordable/unaffordable)
+		def interpret_index(index):
+			if index >= 20:
+				return '✅ Can Afford Loan'
+			elif index >= 10:
+				return '⚠️ Marginal'
+			else:
+				return '❌ Cannot Afford Loan'
+
 
 		# Add borrower loan history details to context
 		context.update({
@@ -647,10 +670,20 @@ class LoanApplicationUpdateView(UpdateView):
 			'overdue_loans': overdue_loans,
 			'total_debt': total_debt,
 
-			'affordability': affordability,
+			#'affordability': affordability,
 
 			'documents': documents,
 			'document_fields': ['id_proof', 'bank_statement', 'payslip', 'chief_letter', 'business_address', 'customer_invoice', 'supplier_invoice', 'business_registration', 'tax_clearance', 'business_statements'],
+
+			'income': income,
+			'total_expenses': total_expenses,
+			'monthly_installment': monthly_installment,
+			'surplus_before_loan': surplus_before_loan,
+			'surplus_after_loan': surplus_after_loan,
+			'index_before': index_before,
+			'index_after': index_after,
+			'affordability_before_flag': interpret_index(index_before),
+			'affordability_after_flag': interpret_index(index_after),
 		})
 
 		return context
