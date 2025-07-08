@@ -10,6 +10,9 @@ import requests
 from requests.auth import HTTPBasicAuth
 import logging
 import random
+from django.db import models
+
+from borrowers.models import ExpenseAnalysis
 
 
 # Grace period for late payments
@@ -141,6 +144,26 @@ def send_sms_smsportal(destination_number, message_content):
 		logger.error(f"An unexpected error occurred sending SMS to {destination_number}: {e}")
 		return {"success": False, "error": f"Unexpected Error: {e}"}
 
+
+
+def calculate_affordability(borrower, loan_application, monthly_installment):
+	income = borrower.income or Decimal('0.00')
+	
+	expenses = ExpenseAnalysis.objects.filter(
+		borrower=borrower,
+		loan_application=loan_application
+	).aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
+
+	disposable_income = income - expenses
+	can_afford = disposable_income >= monthly_installment
+
+	return {
+		'income': income,
+		'total_expenses': expenses,
+		'disposable_income': disposable_income,
+		'monthly_installment': monthly_installment,
+		'can_afford': can_afford
+	}
 
 
 

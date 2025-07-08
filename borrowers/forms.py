@@ -1,7 +1,8 @@
 from django import forms
 from loans.models import Rating
-from .models import BorrowerProfile, BorrowerDocs
+from .models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
 from loans.models import LoanApplication, LoanPayment
+from django.forms import modelformset_factory
 
 
 
@@ -116,7 +117,6 @@ class OTPForm(forms.Form):
 	otp_code = forms.CharField(max_length=6)
 
 
-
 class EmploymentTypeForm(forms.ModelForm):
 	employment_type = forms.Select(attrs={'class': 'form-control'})
 	class Meta:
@@ -169,17 +169,6 @@ class RegisteredBusinessDocumentsForm(forms.ModelForm):
 		fields = ['id_proof', 'business_address', 'bank_statement', 'business_statements', 'business_registration', 'customer_invoice', 'supplier_invoice', 'tax_clearance']
 
 
-'''class BorrowerDocumentsForm(forms.ModelForm):
-	class Meta:
-		model = BorrowerDocs
-		fields = ['id_proof', 'bank_statement', 'payslip', 'chief_letter']'''
-
-
-'''class BorrowerDocumentUploadForm2(forms.ModelForm):
-	class Meta:
-		model = BorrowerDocuments3
-		fields = ['document_type', 'file']'''
-
 
 class LoanApplicationForm(forms.ModelForm):
 	loan_amount = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control','placeholder':'Loan Amount Needed',}), required=True)
@@ -191,6 +180,95 @@ class LoanApplicationForm(forms.ModelForm):
 			'loan_amount', 
 			'loan_term', 
 			]
+
+EMPLOYMENT_EXPENSE_TYPES = {
+	'employed': [
+		#'Net Income',
+		'Rent/Mortgage',
+		'Transport',
+		'Utilities',
+		'Groceries',
+		'School Fees',
+		'Medical Aid',
+		'Insurance',
+		'Other Personal Expenses'
+	],
+	'self_employed_unregistered': [
+		#'Net Income',
+		'Rent/Mortgage',
+		'Groceries',
+		'Transport',
+		'Business Rent',
+		'Business Utilities',
+		'Supplies',
+		'Marketing',
+		'Personal Drawings',
+		'Other'
+	],
+	'registered_business': [
+		#'Net Income',
+		'Salaries',
+		'Business Rent',
+		'Utilities',
+		'Loan Repayments',
+		'Tax Obligations',
+		'Insurance',
+		'Inventory',
+		'Marketing & Sales',
+		'Admin Costs',
+		'Personal Drawings',
+		'Other'
+	]
+}
+
+
+class DynamicExpenseForm2(forms.Form):
+	def __init__(self, employment_type, income=None, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+
+		# Prefilled Income Field
+		self.fields['income'] = forms.DecimalField(
+			label="Monthly Net Income",
+			initial=income,
+			required=False,
+			disabled=True,
+			widget=forms.NumberInput(attrs={'class': 'form-control'})
+		)
+
+		# Dynamic Expense Fields
+		expense_types = EMPLOYMENT_EXPENSE_TYPES.get(employment_type, [])
+		for expense in expense_types:
+			field_name = expense.lower().replace(' ', '_')
+			self.fields[field_name] = forms.DecimalField(
+				label=expense,
+				required=False,
+				min_value=0,
+				widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Amount in R | Write 0 if does not apply'})
+			)
+
+
+class DynamicExpenseForm(forms.Form):
+	def __init__(self, employment_type, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		expense_types = EMPLOYMENT_EXPENSE_TYPES.get(employment_type, [])
+		for expense in expense_types:
+			field_name = expense.lower().replace(' ', '_')
+			self.fields[field_name] = forms.DecimalField(
+				label=expense,
+				required=False,
+				min_value=0,
+				widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Amount in R | Write 0 if does not apply'})
+			)
+
+
+class ExpenseForm(forms.ModelForm):
+	class Meta:
+		model = ExpenseAnalysis
+		fields = ['expense_type', 'amount']
+
+ExpenseFormSet = modelformset_factory(ExpenseAnalysis, form=ExpenseForm, extra=1, can_delete=True)
+
+
 
 
 class LoanPaymentForm(forms.ModelForm):

@@ -155,6 +155,28 @@
             </div>
             <br>
 
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4>Affordability Assessment</h4>
+                </div>
+            <table class="table table-bordered">
+                <tr><th>Net Monthly Income</th><td>R{{ affordability.income }}</td></tr>
+                <tr><th>Total Expenses</th><td>R{{ affordability.total_expenses }}</td></tr>
+                <tr><th>Disposable Income</th><td>R{{ affordability.disposable_income }}</td></tr>
+                <tr><th>Loan Monthly Installment</th><td>R{{ affordability.monthly_installment }}</td></tr>
+                <tr>
+                    <th>Can Afford</th>
+                    <td>
+                        {% if affordability.can_afford %}
+                            <span class="badge bg-success">Yes</span>
+                        {% else %}
+                            <span class="badge bg-danger">No</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
+            </div>
+
             <br> 
 
         <center>

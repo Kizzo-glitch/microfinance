@@ -33,7 +33,7 @@ from datetime import timedelta
 from django.http import JsonResponse
 from collections import OrderedDict
 
-from loans.utils import get_loans_by_risk_category, send_sms_smsportal
+from loans.utils import get_loans_by_risk_category, send_sms_smsportal, calculate_affordability
 
 from django.views.decorators.http import require_POST
 from django.contrib.admin.views.decorators import staff_member_required
@@ -578,6 +578,7 @@ class LoanApplicationUpdateView(UpdateView):
 
 		form.save_m2m()  # Save multi-select fields
 
+
 		reasons = []
 		if loan_application.status == 'rejected':
 			reasons = loan_application.rejection_reasons
@@ -606,6 +607,8 @@ class LoanApplicationUpdateView(UpdateView):
 		context = super().get_context_data(**kwargs)
 		loan_application = self.get_object()
 		borrower = loan_application.borrower
+
+		affordability = calculate_affordability(borrower, loan_application, loan_application.monthly_installment)
 
 		documents = BorrowerDocs.objects.filter(borrower=borrower, loan_application=loan_application)
 
@@ -643,6 +646,8 @@ class LoanApplicationUpdateView(UpdateView):
 			'outstanding_loans': outstanding_loans,
 			'overdue_loans': overdue_loans,
 			'total_debt': total_debt,
+
+			'affordability': affordability,
 
 			'documents': documents,
 			'document_fields': ['id_proof', 'bank_statement', 'payslip', 'chief_letter', 'business_address', 'customer_invoice', 'supplier_invoice', 'business_registration', 'tax_clearance', 'business_statements'],

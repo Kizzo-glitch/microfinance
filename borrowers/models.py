@@ -34,16 +34,17 @@ class BorrowerProfile(models.Model):
 
 	POSITION_LEVEL_CHOICES = [
 		#('', ''),
-		('entry-level', 'entry-level'),
-		('intermediate', 'intermediate'),
-		('senior-level', 'senior-level'),
+		('entry-level', 'Entry-level'),
+		('intermediate', 'Intermediate'),
+		('senior-level', 'Senior-level'),
+		('business-owner', 'Business owner'),
 	]
 
 	INCOME_TYPE_CHOICES = [
 		#('', ''),
 		('Salary', 'Salary'),
 		('Wages', 'Wages'),
-		('Other', 'Other'),
+		('other', 'Other'),
 	]
 
 	MARITAL_STATUS_CHOICES = [
@@ -61,6 +62,7 @@ class BorrowerProfile(models.Model):
 		('Debt payment', 'Debt payment'),
 		('Insurence', 'Insurence'),
 		('Stokvel', 'Stokvel'),
+		('other', 'Other'),
 	]
 
 	EXISTING_DEBTS_CHOICES = [
@@ -68,6 +70,7 @@ class BorrowerProfile(models.Model):
 		('Loans', 'Loans'), 
 		('Credit Cards', 'Credit Cards'),
 		('Credit Accounts', 'Credit Accounts'),
+		('other', 'Other'),
 		('No Debts', 'No Debts')
 	]
 
@@ -157,6 +160,19 @@ class BorrowerDocs(models.Model):
 
 	def __str__(self):
 		return f"{self.borrower.user.username} - {self.get_document_type_display()}"
+
+class ExpenseAnalysis(models.Model):
+	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE)
+	loan_application = models.ForeignKey('loans.LoanApplication', on_delete=models.CASCADE, related_name='expenses', null=True, blank=True)
+	expense_type = models.CharField(max_length=100)
+	amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+	def __str__(self):
+		return f"{self.borrower.user.username} - {self.get_expense_type_display()}: {self.amount}"
+
+
+
+
 
 
 

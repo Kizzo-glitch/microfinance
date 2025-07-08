@@ -5,13 +5,17 @@ from lenders.models import LenderProfile
 from loans.models import LoanApplication, Loan, LoanPayment, Notification, Rating
 from micro.models import OTP
 
-from .forms import RatingForm, BorrowerProfileForm, LoanApplicationForm, BorrowerDocumentsForm, LoanPaymentForm, OTPForm, EmploymentTypeForm, EmployedDocumentsForm, SelfEmployedDocumentsForm, RegisteredBusinessDocumentsForm
+from .forms import (
+	RatingForm, BorrowerProfileForm, LoanApplicationForm, BorrowerDocumentsForm, 
+	LoanPaymentForm, OTPForm, EmploymentTypeForm, EmployedDocumentsForm, SelfEmployedDocumentsForm, 
+	RegisteredBusinessDocumentsForm, ExpenseForm, DynamicExpenseForm
+	)
 
 import random
 
 from django.contrib import messages
 
-from .models import BorrowerProfile, BorrowerDocs
+from .models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg
 
@@ -73,7 +77,6 @@ def borrower_profile(request):
 
 	messages.error(request, "You Must Be Logged In To Access That Page!!")
 	return redirect('landing')
-
 
 
 @login_required
@@ -263,7 +266,6 @@ def verify_otp(request):
 	return render(request, 'verify_otp.html')
 
 
-
 @login_required
 def select_employment_type(request):
 	profile = request.user.borrower
@@ -304,11 +306,6 @@ def upload_documents_employed(request):
 	if request.method == 'POST':
 		form = EmployedDocumentsForm(request.POST, request.FILES)
 		if form.is_valid():
-			# Get latest unsubmitted loan application (or however you're tracking it)
-			#try:
-			#	loan_app = LoanApplication.objects.filter(borrower=borrower).latest('id')
-			#except LoanApplication.DoesNotExist:
-			#	loan_app = None
 
 			doc_map = {
 				'id_proof': 'ID Proof',
@@ -326,7 +323,7 @@ def upload_documents_employed(request):
 						document_type=field_name,
 						file=file
 					)
-			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/loan-calculator/'})
+			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/update-expenses/'})
 		else:
 			return JsonResponse({'error': form.errors})
 	else:
@@ -347,11 +344,6 @@ def upload_documents_self_employed(request):
 	if request.method == 'POST':
 		form = SelfEmployedDocumentsForm(request.POST, request.FILES)
 		if form.is_valid():
-			# Get latest unsubmitted loan application (or however you're tracking it)
-			#try:
-			#	loan_app = LoanApplication.objects.filter(borrower=borrower).latest('id')
-			#except LoanApplication.DoesNotExist:
-			#	loan_app = None
 
 			doc_map = {
 				'id_proof': 'ID Proof',
@@ -372,7 +364,7 @@ def upload_documents_self_employed(request):
 						document_type=field_name,
 						file=file
 					)
-			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/loan-calculator/'})
+			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/update-expenses/'})
 		else:
 			return JsonResponse({'error': form.errors})
 	else:
@@ -394,11 +386,6 @@ def upload_documents_registered_business(request):
 	if request.method == 'POST':
 		form = RegisteredBusinessDocumentsForm(request.POST, request.FILES)
 		if form.is_valid():
-			# Get latest unsubmitted loan application (or however you're tracking it)
-			#try:
-			#	loan_app = LoanApplication.objects.filter(borrower=borrower).latest('id')
-			#except LoanApplication.DoesNotExist:
-			#	loan_app = None
 
 			doc_map = {
 				'id_proof': 'ID Proof',
@@ -420,7 +407,7 @@ def upload_documents_registered_business(request):
 						document_type=field_name,
 						file=file
 					)
-			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/loan-calculator/'})
+			return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/update-expenses/'})
 		else:
 			return JsonResponse({'error': form.errors})
 	else:
@@ -428,6 +415,36 @@ def upload_documents_registered_business(request):
 
 	return render(request, 'upload_documents_registered_business.html', {'form': form})
 
+
+@login_required
+def update_expenses(request):
+	borrower = request.user.borrower
+	employment_type = borrower.employment_type
+	income = borrower.income
+	lender_id = request.session.get('lender_id')
+
+	if request.method == 'POST':
+		form = DynamicExpenseForm(employment_type, data=request.POST or None)
+		if form.is_valid():
+			for field_name, value in form.cleaned_data.items():
+				if value:
+					expense_type_label = field_name.replace('_', ' ').title()
+					ExpenseAnalysis.objects.update_or_create(
+						borrower=borrower,
+						loan_application=None,
+						expense_type=expense_type_label,
+						defaults={'amount': value}
+					)
+			messages.success(request, "Expenses saved successfully.")
+			return redirect('loan-calculator')
+	else:
+		form = DynamicExpenseForm(employment_type)
+
+	return render(request, 'update_expenses.html', {
+		'form': form,
+		'employment_type': employment_type,
+		'income': income
+	})
 
 
 @login_required
@@ -618,11 +635,9 @@ def apply_loan(request):
 			borrower=borrower,
 			loan_application=None  # Only unlinked docs
 		).update(loan_application=loan_application)
-		
-		#BorrowerDocs.objects.filter(
-		#	borrower=borrower,
-		#	loan_application__isnull=True
-		#).update(loan_application=loan_application)
+
+		# Link any unlinked expenses
+		ExpenseAnalysis.objects.filter(borrower=borrower, loan_application=None).update(loan_application=loan_application)
 
 		# Notify the lender about a new loan application
 		Notification.objects.create(
@@ -632,14 +647,10 @@ def apply_loan(request):
 			loan_application=loan_application
 		)
 		
-
 		messages.success(request, f"Loan application submitted successfully to {lender.company_name}")
 		return redirect('borrower_index')
 
 	return redirect('loan-calculator')
-
-
-
 
 
 

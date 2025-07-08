@@ -3,7 +3,6 @@ from . import views
 from .views import BorrowerNotificationListView 
 
 
-
 urlpatterns = [
     path('borrower_index/', views.borrower_index, name='borrower_index'),
    
@@ -19,13 +18,16 @@ urlpatterns = [
     
     path('send-otp/', views.send_otp, name='send_otp'),
     path('verify-otp/', views.verify_otp, name='verify_otp'),
-
+    
     path('employment-type/', views.select_employment_type, name='employment_type'),
+   
     path('upload_documents_employed/', views.upload_documents_employed, name='upload_documents_employed'),
     path('upload_documents_self_employed/', views.upload_documents_self_employed, name='upload_documents_self_employed'),
     path('upload_documents_registered_business/', views.upload_documents_registered_business, name='upload_documents_registered_business'),
     path('my-documents/', views.view_documents, name='view_documents'),
     path('download-document/<str:document_type>/', views.download_document, name='download_document'),
+
+    path('update-expenses/', views.update_expenses, name='update_expenses'),
 
     path('loan_application/', views.loan_application, name='loan_application'),
     path('apply-loan/', views.apply_loan, name='apply-loan'),
