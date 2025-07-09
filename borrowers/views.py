@@ -588,7 +588,7 @@ def apply_loan(request):
 
 		# Calculate total repayable amount
 		#total_repayable = loan_amount * (1 + (interest_rate * (loan_term / 12)))
-		total_repayable = amount * (1 + (Decimal(interest_rate) / 100))
+		total_repayable = loan_amount * (1 + (Decimal(interest_rate) / 100))
 
 		# Calculate monthly installment
 		monthly_installment = total_repayable / loan_term
