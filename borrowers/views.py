@@ -578,18 +578,18 @@ def apply_loan(request):
 			messages.error(request, "Invalid lender selection.")
 			return redirect('loan-calculator')
 
-		loan_amount = float(request.POST.get('loan_amount'))
+		loan_amount = Decimal(request.POST.get('loan_amount'))
 		loan_term = int(request.POST.get('loan_term'))
 		#collateral = request.POST.get('collateral')
 		#payment_plan = request.POST.get('payment_plan')
 
 		# Get lender's interest rate
 		#interest_rate = float(lender.interest_rate) / 100
-		interest_rate = lender.interest_rate    
+		interest_rate = lender.interest_rate 
 
 		# Calculate total repayable amount
 		#total_repayable = loan_amount * (1 + (interest_rate * (loan_term / 12)))
-		total_repayable = loan_amount * (1 + (Decimal(interest_rate) / 100))
+		total_repayable = loan_amount * Decimal(1 + (interest_rate) / 100)
 
 		# Calculate monthly installment
 		monthly_installment = total_repayable / loan_term
