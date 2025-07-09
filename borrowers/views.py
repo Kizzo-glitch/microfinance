@@ -566,6 +566,7 @@ def calculate_loan(request):
 	
 
 
+
 def apply_loan(request):
 	if request.method == "POST":
 		borrower = BorrowerProfile.objects.get(user=request.user)
@@ -579,7 +580,7 @@ def apply_loan(request):
 			return redirect('loan-calculator')
 
 		loan_amount = float(request.POST.get('loan_amount'))
-		loan_term = int(request.POST.get('loan_term'))
+		loan_term = int(request.POST.get('term'))
 		#collateral = request.POST.get('collateral')
 		#payment_plan = request.POST.get('payment_plan')
 
