@@ -223,19 +223,7 @@ def send_otp(request):
 	from_email = settings.EMAIL_HOST_USER
 	to_email = [borrower.email_address]
 
-	
-	# Send as HTML email
-	#email = EmailMultiAlternatives(subject, '', from_email, to_email)
-	#email.attach_alternative(message, "text/html")
-	#email.send()
-
-	send_mail(
-		subject,
-		message,
-		from_email,  
-		to_email,
-		fail_silently=False,
-	)
+	send_mail(subject, message, from_email, to_email, fail_silently=False, )
 
 	return redirect('verify_otp')
 
@@ -651,7 +639,6 @@ def apply_loan(request):
 		return redirect('borrower_index')
 
 	return redirect('loan-calculator')
-
 
 
 @login_required

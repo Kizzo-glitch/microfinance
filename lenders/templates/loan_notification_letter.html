@@ -20,11 +20,12 @@
 
         <p>Thank you for choosing {{loan_application.lender.company_name}}!</p>
 
+
 	{% elif status == 'rejected' %}
-	    <p>❌ Unfortunately your loan application for loan ID {{loan_application.id}} at {{loan_application.lender.company_name}} was unsuccessful.</p>
+	    <p>❌ Unfortunately your loan application for loan ID {{loan_application.id}} at {{loan_application.lender.company_name}} was unsuccessful due to the following reason(s).</p>
 	   	 <ul>
 	        {% for reason in reasons %}
-	            <li>Rejection Reason: {{ reason }}</li>
+	            <li>{{ reason }}</li>
 	        {% endfor %}
         </ul>
 
@@ -35,13 +36,18 @@
 
 	    
 	{% elif status == 'pending' %}
-	    <p>⏳ Your loan application for loan ID {{loan_application.id}} at {{loan_application.lender.company_name}} is currently pending.</p>
+	    <p>⏳ Your loan application for loan ID {{loan_application.id}} at {{loan_application.lender.company_name}} is currently pending due to the following reason(s).</p>
 	    <ul>
 	        {% for reason in reasons %}
-	            <li>Pending Reason: {{ reason }}</li>
+	            <li>{{ reason }}</li>
 	        {% endfor %}
 	    </ul>
+	    <p>We appreciate your interest in our product. To proceed with your application, please log in to your Pending Loans portal and update or complete the necessary information. We look forward to finalising your application soon.</p>
+	    
 	    <p>Thank you for choosing {{loan_application.lender.company_name}}!</p>
+
+	    <p>Note: Loan status automatically changes from <strong>Pending</strong> to <strong>Rejected</strong> after 14 days of update request.</p>
+
 	{% endif %}
 
 
