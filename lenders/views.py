@@ -503,7 +503,6 @@ class LoanApplicationListView(ListView):
 		).order_by('-date_applied')
 
 
-
 # Update the status of a loan application (approve/reject/pending)
 class LoanApplicationUpdateView(UpdateView):
 	model = LoanApplication

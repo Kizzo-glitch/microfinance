@@ -61,9 +61,7 @@ class LoanApplication(models.Model):
 	LOAN_STATUS_CHOICES = [
 		('pending', 'Pending'),
 		('rejected', 'Reject'),
-		('approved', 'Approve'),
-		
-		
+		('approved', 'Approve'),		
 	]
 	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE)
 	lender = models.ForeignKey(LenderProfile, on_delete=models.CASCADE)

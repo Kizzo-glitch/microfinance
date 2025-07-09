@@ -565,6 +565,7 @@ def calculate_loan(request):
 		return JsonResponse({"error": str(e)}, status=400)
 	
 
+
 def apply_loan(request):
 	if request.method == "POST":
 		borrower = BorrowerProfile.objects.get(user=request.user)
@@ -586,7 +587,8 @@ def apply_loan(request):
 		interest_rate = float(lender.interest_rate) / 100  
 
 		# Calculate total repayable amount
-		total_repayable = loan_amount * (1 + (interest_rate * (loan_term / 12)))
+		#total_repayable = loan_amount * (1 + (interest_rate * (loan_term / 12)))
+		total_repayable = amount * (1 + (Decimal(interest_rate) / 100))
 
 		# Calculate monthly installment
 		monthly_installment = total_repayable / loan_term
@@ -615,7 +617,6 @@ def apply_loan(request):
 			monthly_installment=monthly_installment,
 			status='pending',
 			date_applied=now(),
-
 		)
 
 		# ✅ Link previously uploaded documents (with loan_application=None) to this new loan
