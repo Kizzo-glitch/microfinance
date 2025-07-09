@@ -535,7 +535,7 @@ def loan_calculator(request):
 def calculate_loan(request):
 	try:
 		amount = Decimal(request.GET.get('amount', 0))
-		term = int(request.GET.get('loan_term', 3))  # Default to 3 months
+		term = int(request.GET.get('term', 3))  # Default to 3 months
 		
 		lender_id = request.session.get('lender_id')
 		lender = LenderProfile.objects.get(id=lender_id)
@@ -564,7 +564,6 @@ def calculate_loan(request):
 	except Exception as e:
 		return JsonResponse({"error": str(e)}, status=400)
 	
-	
 
 
 def apply_loan(request):
@@ -585,7 +584,8 @@ def apply_loan(request):
 		#payment_plan = request.POST.get('payment_plan')
 
 		# Get lender's interest rate
-		interest_rate = float(lender.interest_rate) / 100  
+		#interest_rate = float(lender.interest_rate) / 100
+		interest_rate = lender.interest_rate    
 
 		# Calculate total repayable amount
 		#total_repayable = loan_amount * (1 + (interest_rate * (loan_term / 12)))
