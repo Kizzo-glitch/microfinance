@@ -535,7 +535,7 @@ def loan_calculator(request):
 def calculate_loan(request):
 	try:
 		amount = Decimal(request.GET.get('amount', 0))
-		term = int(request.GET.get('term', 3))  # Default to 3 months
+		term = int(request.GET.get('loan_term', 3))  # Default to 3 months
 		
 		lender_id = request.session.get('lender_id')
 		lender = LenderProfile.objects.get(id=lender_id)
@@ -564,7 +564,7 @@ def calculate_loan(request):
 	except Exception as e:
 		return JsonResponse({"error": str(e)}, status=400)
 	
-
+	
 
 
 def apply_loan(request):
@@ -580,7 +580,7 @@ def apply_loan(request):
 			return redirect('loan-calculator')
 
 		loan_amount = float(request.POST.get('loan_amount'))
-		loan_term = int(request.POST.get('term'))
+		loan_term = int(request.POST.get('loan_term'))
 		#collateral = request.POST.get('collateral')
 		#payment_plan = request.POST.get('payment_plan')
 
