@@ -67,17 +67,14 @@ class BorrowerProfile(models.Model):
 
 	EXISTING_DEBTS_CHOICES = [
 		#('', ''),
-		('Loans', 'Loans'), 
-		('Credit Cards', 'Credit Cards'),
-		('Credit Accounts', 'Credit Accounts'),
-		('other', 'Other'),
-		('No Debts', 'No Debts')
+		('yes', 'Yes'), 
+		('no', 'No'),
 	]
 
 	EMPLOYMENT_CHOICES = [
 		('employed', 'Employed'),
 		('self_employed', 'Self-Employed (Unregistered)'),
-		('registered_business', 'Registered Business'),
+		('registered_business', 'Self-Employed (Registered)'),
 	]
 
 	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='borrower')

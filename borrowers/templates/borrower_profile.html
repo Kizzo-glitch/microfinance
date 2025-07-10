@@ -13,111 +13,88 @@
             <h4>Personal Information</h4>
             </center>
 
-            <div class="row mb-3" style="padding: 0 20px;">
-                <div class="col-md-4">
-                   
-                    <label for="id_full_name">Full Name</label>
-                    {{ form.full_name }}
-                    <!--<label for="nameLast" class="form-label">Last Name</label>
-                    <input type="text" class="form-control" id="nameLast">-->
-                
+                <div class="row mb-3" style="padding: 0 20px;">
+                    <div class="col-md-4">
+                       
+                        <label for="id_full_name">Full Name</label>
+                        {{ form.full_name }}
+                    
+                    </div>
+                    <div class="col-md-4">
+                        <label for="id_gender">Gender</label>
+                        {{ form.gender }}
+     
+                    </div>
+                    <div class="col-md-4">
+                        <label for="id_title">Title</label>
+                        {{ form.title }}
+     
+                    </div>
                 </div>
-                <div class="col-md-4">
-                    <label for="id_gender">Gender</label>
-                    {{ form.gender }}
-                    <!--<label for="nameFirst" class="form-label">First Name</label>
-                    <input type="text" class="form-control" id="nameFirst">-->
-                </div>
-                <div class="col-md-4">
-                    <label for="id_title">Title</label>
-                    {{ form.title }}
-                    <!--<label for="nameMiddle" class="form-label">Initials</label>
-                    <input type="text" class="form-control" id="nameMiddle">-->
-                </div>
-            </div>
 
-            <div class="row mb-3" style="padding: 0 20px;">
-                <div class="col-md-4">
-                    {{ form.date_of_birth.label_tag }}
-                    {{ form.date_of_birth }}
-                    <!--<label for="nameLast" class="form-label">Date of Birth</label>
-                    <input type="text" class="form-control" id="nameLast">-->
-                </div>
-                <div class="col-md-4">
-                    <label for="id_id_number">ID Number</label>
-                    {{ form.id_number }}
-                    <!--<label for="nameFirst" class="form-label">ID Number</label>
-                    <input type="text" class="form-control" id="nameFirst">-->
-                </div>
-                <div class="col-md-4">
-                    <label for="id_marital_status">Marital Status</label>
-                     {{ form.marital_status }}
-                    <!--<label for="nameMiddle" class="form-label">Marital Status</label>
-                    <input type="text" class="form-control" id="nameMiddle">-->
-                </div>
-            </div>
+                <div class="row mb-3" style="padding: 0 20px;">
+                    <div class="col-md-4">
+                        {{ form.date_of_birth.label_tag }}
+                        {{ form.date_of_birth }}
 
-            <div class="row mb-3" style="padding: 0 20px;">
-                <div class="col-md-4">
-                    <label for="id_phone_number">Phone Number</label>
-                    {{ form.phone_number }}
-                    <!--<label for="nameLast" class="form-label">Phone Number</label>
-                    <input type="text" class="form-control" id="nameLast">-->
-                </div>
-                <div class="col-md-4">
-                    <label for="id_email_address">Email Address</label>
-                    {{ form.email_address }}
-                    <!--<label for="nameFirst" class="form-label">Email Address</label>
-                    <input type="text" class="form-control" id="nameFirst">-->
-                </div>
-                <div class="col-md-4">
-                    <label for="id_employer_name">Employer's Name</label>
-                    {{ form.employer_name }}
-                    <!--<label for="nameMiddle" class="form-label">Employer Name</label>
-                    <input type="text" class="form-control" id="nameMiddle">-->
-                </div>
-            </div>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="id_id_number">ID Number</label>
+                        {{ form.id_number }}
 
-            <div class="row mb-3" style="padding: 0 20px;">
-                <div class="col-md-4">
-                    <label for="id_employment_position">Employment Position</label>
-                    {{ form.employment_position }}
-                    <!--<label for="nameLast" class="form-label">Employment Position</label>
-                    <input type="text" class="form-control" id="nameLast">-->
-                </div>
-                <div class="col-md-4">
-                     <label for="id_income">Income Amount</label>
-                    {{ form.income }}
-                    <!--<label for="nameFirst" class="form-label">Income Amount</label>
-                    <input type="text" class="form-control" id="nameFirst">-->
-                </div>
-                <div class="col-md-4">
-                    <label for="position_level">Position Level</label>
-                    {{ form.position_level }}
-                    <!--<label for="nameMiddle" class="form-label">Possition Level</label>
-                    <select class="form-select" aria-label="Default select example">
-                      <option selected>Select</option>
-                      <option value="1">entry-level</option>
-                      <option value="2">intermediate</option>
-                      <option value="3">mid-level</option>
-                      <option value="3">senior-level</option>
-                    </select>-->
-                </div>
-            </div>      
+                    </div>
+                    <div class="col-md-4">
+                        <label for="id_marital_status">Marital Status</label>
+                         {{ form.marital_status }}
 
-            <div class="mb-3" style="padding: 0 20px;">
-                <label for="id_home_address">Home Address</label>
-                {{ form.home_address }}
-                <!--<label for="businessName" class="form-label">Home Address</label>
-                <input type="text" class="form-control" id="businessName">-->
-            </div>
+                    </div>
+                </div>
 
-            <div class="mb-3" style="padding: 0 20px;">
-                <label for="eid_mployer_address">Employer's Address</label>
-                {{ form.employer_address }}
-                <!--<label for="businessAddress" class="form-label">Employer Address</label>
-                <input type="text" class="form-control" id="businessAddress">-->
-            </div>
+                <div class="row mb-3" style="padding: 0 20px;">
+                    <div class="col-md-4">
+                        <label for="id_phone_number">Phone Number</label>
+                        {{ form.phone_number }}
+
+                    </div>
+                    <div class="col-md-4">
+                        <label for="id_email_address">Email Address</label>
+                        {{ form.email_address }}
+
+                    </div>
+                    <div class="col-md-4">
+                        <label for="id_employer_name">Employer's Name</label>
+                        {{ form.employer_name }}
+
+                    </div>
+                </div>
+
+                <div class="row mb-3" style="padding: 0 20px;">
+                    <div class="col-md-4">
+                        <label for="id_employment_position">Employment Position</label>
+                        {{ form.employment_position }}
+
+                    </div>
+                    <div class="col-md-4">
+                         <label for="id_income">Income Amount</label>
+                        {{ form.income }}
+
+                    </div>
+                    <div class="col-md-4">
+                        <label for="position_level">Position Level</label>
+                        {{ form.position_level }}
+
+                    </div>
+                </div>      
+
+                <div class="mb-3" style="padding: 0 20px;">
+                    <label for="id_home_address">Home Address</label>
+                    {{ form.home_address }}
+                </div>
+
+                <div class="mb-3" style="padding: 0 20px;">
+                    <label for="eid_mployer_address">Employer's Address</label>
+                    {{ form.employer_address }}
+                </div>
             </div>
 
             <br>
@@ -130,13 +107,6 @@
                 <div class="col-md-4">
                     <label for="id_income_type">Income Type</label>
                     {{ form.income_type }} 
-                    <!--<label for="nameFirst" class="form-label">Income Type</label>
-                    <select class="form-select" aria-label="Default select example">
-                      <option selected>Select</option>
-                      <option value="1">Salary</option>
-                      <option value="2">Wages</option>
-                      <option value="3">Other</option>
-                    </select>-->
 
                     <br>
                 </div>
@@ -144,38 +114,18 @@
                 <div class="col-md-4">
                     <label for="id_pay_date">Pay Day</label>
                     {{ form.pay_day }}
-                    <!--<label for="date" class="form-label">Pay Day</label>
-                <input type="date" class="form-control" id="date">-->
-                <!--<label for="date" class="form-label">Pay Day</label>
-                 <input type="date" class="form-control" id="date" name="pay_date">-->
+                  
                 </div>
 
-                <div class="col-md-4">
+                <!--<div class="col-md-4">
                     <label for="id_monthly_expenses">Monthly Expenses</label>
                     {{ form.monthly_expenses }}
-                    <!--<label for="nameFirst" class="form-label">Monthly Expenses</label>
-                    <select class="form-select" aria-label="Default select example">
-                      <option selected>Select</option>
-                      <option value="1">Rent</option>
-                      <option value="2">Utilities</option>
-                      <option value="3">Debt payment</option>
-                      <option value="3">Insurence</option>
-                      <option value="3">Stokvel</option>
-                    </select>-->
-
                     <br>
-                </div>
+                </div>-->
 
                 <div class="col-md-4">
                     <label for="id_existing_debts">Existing Debts</label>
                     {{ form.existing_debts }}
-                    <!--<label for="nameFirst" class="form-label">Existing Debts</label>
-                    <select class="form-select" aria-label="Default select example">
-                      <option selected>Select</option>
-                      <option value="1">Loans</option>
-                      <option value="2">Credit Cards</option>
-                      <option value="3">Credit Accounts</option>
-                    </select>-->
 
                     <br>
                 </div>
@@ -200,17 +150,7 @@
             </div>
 
             <br>
-            <!--<div class="border">
-                <center>
-            <h4>Purpose of loan</h4>
-            </center>
-
-            <div class="mb-3" style="padding: 0 20px;">
-                <label for="id_credit_intend">Credit Intend</label>
-                {{ form.credit_intend }}
-                
-            </div>        
-            </div>-->  
+ 
             <br><br>
 
                 <div class="form-check">

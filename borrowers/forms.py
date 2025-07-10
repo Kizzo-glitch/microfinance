@@ -65,7 +65,7 @@ class BorrowerProfileForm(forms.ModelForm):
 		),
 		label="Pay Day",  # Label for the field
 	)'''
-	monthly_expenses = forms.Select(attrs={'class': 'form-control'})
+	#monthly_expenses = forms.Select(attrs={'class': 'form-control'})
 	existing_debts = forms.Select(attrs={'class': 'form-control'})
 	employment_type = forms.Select(attrs={'class': 'form-control'})
 	
@@ -102,7 +102,7 @@ class BorrowerProfileForm(forms.ModelForm):
 			'employer_address',
 			'income_type',
 			'pay_day',
-			'monthly_expenses',
+			#'monthly_expenses',
 			'existing_debts',
 			#'credit_score',
 			#'credit_intend',
