@@ -114,7 +114,7 @@ class Loan(models.Model):
 		('defaulted', 'Defaulted'),
 	]
 	application = models.OneToOneField(LoanApplication, on_delete=models.CASCADE, null=True, blank=True)
-	# application_source = Reverse OneToOne from LoanApplication (related_name='application_source')
+	
 	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE, related_name='loans')
 	lender = models.ForeignKey(LenderProfile, on_delete=models.CASCADE, related_name='loans_given')
 	loan_term = models.CharField(max_length=100, choices=LOAN_TERM_CHOICES, default='')
@@ -127,7 +127,7 @@ class Loan(models.Model):
 	status = models.CharField(max_length=10, choices=LOAN_STATUS_CHOICES, default='pending')
 	status_reason = models.TextField(blank=True, null=True) 
 	due_date = models.DateField()
-	#date_created = models.DateTimeField(default=timezone.now)
+	
 	date_created = models.DateField(auto_now_add=True)
 	first_payment_day = models.DateField(null=True, blank=True)
 

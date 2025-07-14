@@ -723,15 +723,15 @@ def view_borrower_documents2(request, loan_id):
 
 
 class ApprovedLoansView(ListView):
-	model = LoanApplication
+	model = Loan
 	template_name = 'approved_loans.html'
 	context_object_name = 'approved_loans'
 
 	def get_queryset(self):
-		return LoanApplication.objects.filter(
+		return Loan.objects.filter(
 			lender__user=self.request.user,
 			status='approved'
-		).select_related('borrower', 'lender')
+		).select_related('borrower', 'lender').order_by('-date_created')
 
 @login_required
 def approved_loans(request):
@@ -935,9 +935,10 @@ def borrower_payment_history(request, borrower_id):
 def my_borrower_payment_history(request, loan_id):
 	"""Allows the lender to see a borrower's loan payment history."""
 	loan = get_object_or_404(Loan, id=loan_id, lender__user=request.user)
-	payments = loan.payments.order_by('-date_paid')  # Get payments (latest first)
+	payments = loan.payments.order_by('-date_paid')  
 
 	# Calculate months left based on the loan term
+	payments = loan.payments.order_by('-date_paid')
 	total_months = int(loan.loan_term.split()[0])  # Extract numeric value from term
 	months_paid = payments.count()
 	months_left = max(total_months - months_paid, 0)

@@ -1098,7 +1098,6 @@ def borrower_payment_history(request):
 
 
 
-
 def loan_chart_data(request):
 	user = request.user
 	loans = Loan.objects.none()

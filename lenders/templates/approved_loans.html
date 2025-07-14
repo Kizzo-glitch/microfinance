@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'lender_base.html' %}
 {% block content %}
 <div class="container mt-5">
 	<div class="card-header bg-primary text-white">
@@ -8,22 +8,28 @@
 		<table class="table table-hover">
 			<thead class="table-primary">
 				<tr>
+					<th>Loan ID</th>
 					<th>Borrower</th>
 					<th>Amount</th>
+					<th>Loan Term</th>
 					<th>Monthly Installment</th>
 					<th>Total Repayable</th>
 					<th>Status</th>
+
 					<th>Payment History</th>
 				</tr>
 			</thead>
 			<tbody>
 				{% for loan in approved_loans %}
 					<tr>
-						<td>{{ loan.borrower.user.username }}</td>
-						<td>R{{ loan.loan_amount }}</td>
+						<td>{{ loan.id }}</td>
+						<td>{{ loan.borrower.full_name }}</td>
+						<td>R{{ loan.amount }}</td>
+						<td>{{ loan.loan_term }} Months</td>
 						<td>R{{ loan.monthly_installment }}</td>
 						<td>R{{ loan.total_repayable }}</td>
-						<td><span class="badge bg-success">Approved</span></td>
+						<td><span class="badge bg-success">Approved</span></td> 
+						
 						<td><a href="{% url 'my-borrower-payment-history' loan.id %}" class="btn btn-sm btn-outline-primary">View</a></td>
 					</tr>
 				{% endfor %}
@@ -33,6 +39,7 @@
 		<p>No approved loans found.</p>
 	{% endif %}
 </div>
+
 {% endblock %}
 
 
