@@ -900,12 +900,29 @@ def calculate_adjusted_payment(loan):
 #	return JsonResponse({'success': False}, status=400)
 
 
-@csrf_exempt
+# Top-bar notifications
+def mark_loan_approved_read(request):
+	Notification.objects.filter(category="loan_approved", is_read=False).update(is_read=True)
+	return JsonResponse({"success": True})
+
+
+def mark_loan_rejected_read(request):
+	Notification.objects.filter(category="loan_rejected", is_read=False).update(is_read=True)
+	return JsonResponse({"success": True})
+
+
+def mark_loan_pending_read(request):
+	Notification.objects.filter(category="loan_pending", is_read=False).update(is_read=True)
+	return JsonResponse({"success": True})
+
+
+
+'''@csrf_exempt
 def mark_loan_approved_read(request):
 	if request.user.is_authenticated and request.method == "POST":
 		Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
 		return JsonResponse({"success": True})
-	return JsonResponse({"success": False}, status=400)
+	return JsonResponse({"success": False}, status=400)'''
 
 # Remember to add this to individual clicks of notification
 def mark_notification_read(request, notification_id):
@@ -928,6 +945,8 @@ def mark_notification_read(request, notification_id):
 def mark_all_notifications_read(request):
 	request.user.notifications.filter(is_read=False).update(is_read=True)
 	return JsonResponse({'status': 'success'})
+
+
 
 
 def loan_application_success(request):

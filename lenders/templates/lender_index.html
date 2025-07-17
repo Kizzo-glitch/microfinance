@@ -3,16 +3,8 @@
 
 {% block content %}
 
-	<div class="container-fluid">
-                     <!--{% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                              {{message}}
-                              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}-->
-
+	   <div class="container-fluid">
+                   
                     <!-- Page Heading -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
                         <h1 class="h3 mb-0 text-gray-800">My Dashboard</h1>
@@ -339,71 +331,71 @@
                     <h4 class="h3 mb-0 text-success">Customer Analysis</h4>
                     </center>
 
-<div class="row">
-    <!-- High Risk Customers -->
-    <div class="col-xl-4 col-md-6 mb-4">
-        <a href="{% url 'risk_customers' 'high' %}" class="text-decoration-none">
-            <div class="card border-left-danger shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                High Risk (Defaulted)</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ high_risk_count }}</div>
+                    <div class="row">
+                        <!-- High Risk Customers -->
+                        <div class="col-xl-4 col-md-6 mb-4">
+                            <a href="{% url 'risk_customers' 'high' %}" class="text-decoration-none">
+                                <div class="card border-left-danger shadow h-100 py-2">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                                    High Risk (Defaulted)</div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ high_risk_count }}</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
                         </div>
-                        <div class="col-auto">
-                            <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+
+                        <!-- Mid Risk Customers -->
+                        <div class="col-xl-4 col-md-6 mb-4">
+                            <a href="{% url 'risk_customers' 'mid' %}" class="text-decoration-none">
+                                <div class="card border-left-warning shadow h-100 py-2">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                                    Mid Risk (Skipped Payments)</div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ mid_risk_count }}</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-user-clock fa-2x text-warning"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
+
+                        <!-- Late Payers -->
+                        <div class="col-xl-4 col-md-6 mb-4">
+                            <a href="{% url 'risk_customers' 'late' %}" class="text-decoration-none">
+                                <div class="card border-left-info shadow h-100 py-2">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                                    Late Payers (Beyond Grace)</div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800">{{ late_payers_count }}</div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-clock fa-2x text-info"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
                         </div>
                     </div>
-                </div>
-            </div>
-        </a>
-    </div>
 
-    <!-- Mid Risk Customers -->
-    <div class="col-xl-4 col-md-6 mb-4">
-        <a href="{% url 'risk_customers' 'mid' %}" class="text-decoration-none">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Mid Risk (Skipped Payments)</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ mid_risk_count }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-user-clock fa-2x text-warning"></i>
-                        </div>
+                        
+
                     </div>
-                </div>
-            </div>
-        </a>
-    </div>
-
-    <!-- Late Payers -->
-    <div class="col-xl-4 col-md-6 mb-4">
-        <a href="{% url 'risk_customers' 'late' %}" class="text-decoration-none">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Late Payers (Beyond Grace)</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ late_payers_count }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clock fa-2x text-info"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </a>
-    </div>
-</div>
-
-                    
-
-                </div>
                 <!-- /.container-fluid -->
 
                 <script>

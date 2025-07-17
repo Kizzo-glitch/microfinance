@@ -56,6 +56,9 @@ urlpatterns = [
     path('borrower/payment-history/', views.borrower_payment_history, name='borrower_payment_history'),
 
     path('mark_loan_approved_read/', views.mark_loan_approved_read, name='mark_loan_approved_read'),
+    path('mark_loan_rejected_read/', views.mark_loan_rejected_read, name='mark_loan_rejected_read'),
+    path('mark_loan_pending_read/', views.mark_loan_pending_read, name='mark_loan_pending_read'),
+
     path('notification/read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'),
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
 
