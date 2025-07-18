@@ -158,14 +158,16 @@ class BorrowerDocs(models.Model):
 	def __str__(self):
 		return f"{self.borrower.user.username} - {self.get_document_type_display()}"
 
+
+
 class ExpenseAnalysis(models.Model):
 	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE)
 	loan_application = models.ForeignKey('loans.LoanApplication', on_delete=models.CASCADE, related_name='expenses', null=True, blank=True)
-	expense_type = models.CharField(max_length=100)
+	expense_type = models.CharField(max_length=500)
 	amount = models.DecimalField(max_digits=10, decimal_places=2)
 
 	def __str__(self):
-		return f"{self.borrower.user.username} - {self.get_expense_type_display()}: {self.amount}"
+		return f"{self.borrower.user.username} - {self.expense_type}: {self.amount}"
 
 
 
