@@ -3,6 +3,7 @@
 
 {% block content %}
 
+
 <div class="container-fluid">
 
                         <h1 class="mt-4">My Dashboard</h1>
@@ -11,6 +12,57 @@
                         </ol>
 
                         <div class="row">
+                            {% for lender in lenders %}                      
+                            
+                            <div class="col-xl-3 col-md-6 mb-4">
+                                <div class="card border-left-primary shadow h-100 py-2">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                                    {{ lender.company_name }}
+                                                </div>
+                                                <!--<p style="font-weight: bold; font-style: italic;">Average Rating: -->
+                                                    {% if lender.average_rating %} 
+                                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                            {{ lender.average_rating|floatformat:1 }}
+                                                            <i class="fas fa-star" style="color:yellow"></i>s
+                                                        </div>
+                                                    
+                                                    {% else %}
+                                                        Not Rated Yet
+                                                    {% endif %}
+                                                <!--</p>-->
+                                            </div>
+
+                                            <div class="badge-overlay text-white"> 
+                                                {% if lender.verification_status == 'licensed' %}
+                                                    <span class="badge bg-success"><i class="fas fa-check-circle"></i> Licensed</span>
+                                                {% elif lender.verification_status == 'verified' %}
+                                                    <span class="badge bg-info"><i class="fas fa-check-circle"></i> Verified</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary"><i class="fas fa-user-clock"></i> Unverified</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                    <div class="card-footer d-flex align-items-center justify-content-between">
+                                                <a class="small text-primary stretched-link" href="{% url 'lender_details' lender.id %}">View Details</a>
+                                                <div class="small text-primary"><i class="fas fa-angle-right"></i></div>
+                                            </div>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <center>
+                                <h1>No lenders available at this time.</h1>
+                                <br>
+                            </center>
+                            {% endfor %}
+                        </div>
+
+
+                        <!--<div class="row">
                             {% for lender in lenders %}
                             <div class="col-xl-3 col-md-6 mb-4">
                                 <div class="card border-left-primary shadow h-100 py-2">
@@ -55,7 +107,7 @@
                                 <br>
                             </center>
                             {% endfor %}
-                        </div>
+                        </div>-->
 
 
 
