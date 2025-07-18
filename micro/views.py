@@ -148,17 +148,7 @@ def logout_user(request):
 	#messages.success(request, ('You have been logged out'))
 	return redirect('landing') 
 
-'''def register(request):
-	if request.method == 'POST':
-		form = UserRegistrationForm(request.POST)
-		if form.is_valid():
-			user = form.save()
-			role = form.cleaned_data.get('role')
-			messages.success(request, f"Account created for {user.username} as a {role}!")
-			return redirect('login')  # Redirect to the login page
-	else:
-		form = UserRegistrationForm()
-	return render(request, 'register.html', {'form': form}) '''
+
 
 
 class CustomLoginView(LoginView):
@@ -173,3 +163,6 @@ def role_based_redirect(request):
 	elif request.user.is_borrower():
 		return redirect('borrower_index')  # To borrower dashboard 
 	return redirect('landing')  # Default fallback
+
+
+	
