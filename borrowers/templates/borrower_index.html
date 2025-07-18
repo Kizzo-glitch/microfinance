@@ -320,27 +320,30 @@
 
             </script>
 
-        <style>
-            .card.position-relative {
-                /* Ensures absolute positioning of children works relative to the card */
-                position: relative;
-                overflow: hidden; /* Important to clip content that might go outside */
-            }
+            <style>
+                .card.position-relative {
+                    /* Ensures absolute positioning of children works relative to the card */
+                    position: relative;
+                    overflow: hidden; /* Important to clip content that might go outside */
+                }
 
-            .badge-overlay {
-                position: absolute;
-                top: 10px; /* Adjust as needed for vertical positioning */
-                right: 10px; /* Adjust as needed for horizontal positioning */
-                z-index: 10; /* Ensures the badge is on top of other content */
-            }
+                .badge-overlay {
+                    position: absolute;
+                    top: 10px; /* Adjust as needed for vertical positioning */
+                    right: 10px; /* Adjust as needed for horizontal positioning */
+                    z-index: 10; /* Ensures the badge is on top of other content */
+                }
 
-            /* Optional: Adjust badge size if needed */
-            .badge-overlay .badge {
-                padding: .5em .75em; /* Increase padding for a larger badge */
-                font-size: .85em; /* Adjust font size */
-            }
-        </style>
+                /* Optional: Adjust badge size if needed */
+                .badge-overlay .badge {
+                    padding: .5em .75em; /* Increase padding for a larger badge */
+                    font-size: .85em; /* Adjust font size */
+                }
+            </style>
 
-        
+        <script src="{% static 'borrower/assets/demo/chart-area-demo.js' %}"></script>
+        <script src="{% static 'borrower/assets/demo/chart-bar-demo.js' %}"></script>
+        <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js" crossorigin="anonymous"></script>
+        <script src="{% static 'borrower/js/datatables-simple-demo.js' %}"></script>  
             
 {% endblock %}
