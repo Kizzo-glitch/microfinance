@@ -12,20 +12,12 @@ def topbar_notifications(request):
 		
 		# Filter notifications by type
 		unread_loan_applications = Notification.objects.filter(category="loan_application", is_read=False, user=request.user ).order_by('-date_created')
-		unread_loan_payments = Notification.objects.filter(category="loan_payment", is_read=False).order_by('-date_created')
-		#unread_loan_approved = Notification.objects.filter(category="loan_approved", is_read=False).order_by('-date_created')
+		unread_loan_payments = Notification.objects.filter(category="loan_payment", is_read=False, user=request.user).order_by('-date_created')
 
 		# Read notifications
 		read_loan_applications = Notification.objects.filter(category="loan_application", is_read=True, user=request.user ).order_by('-date_created')
 		read_loan_payments = Notification.objects.filter(category="loan_payment", is_read=True, user=request.user ).order_by('-date_created')
-		#read_loan_approved = Notification.objects.filter(category="loan_approved", is_read=True).order_by('-date_created')
-
-		# Count unread notifications
-		#unread_count = unread_notifications.count()
-
-		# Count read notifications
-		#read_count = read_notifications.count()
-
+	
 		return {
 
 			'unread_loan_applications': unread_loan_applications,
