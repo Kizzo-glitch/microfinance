@@ -49,13 +49,11 @@
                     </div>
                 </li>
 
-
-
                 <!-- Loan Applications Notification -->
                 <li class="nav-item dropdown no-arrow mx-1">
                     <a class="nav-link dropdown-toggle" href="#" id="loanApplicationDropdown" role="button"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <i class="fas fa-thumbs-up fa-fw"></i>
+                        <i class="fas fa-thumbs-up text-success"></i>
                         <span class="badge badge-danger badge-counter">
                             {{ unread_loan_approved_count }}
                         </span>
@@ -97,7 +95,7 @@
                     <li class="nav-item dropdown no-arrow mx-1">
                     <a class="nav-link dropdown-toggle" href="#" id="pendingLoanUpdateDropdown" role="button"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <i class="fas fa-thumbs-down fa-fw"></i>
+                        <i class="fas fa-thumbs-down text-danger"></i>
                         <span class="badge badge-danger badge-counter">
                             {{ unread_loan_rejected_count }}
                         </span>
@@ -140,7 +138,7 @@
                 <li class="nav-item dropdown no-arrow mx-1">
                     <a class="nav-link dropdown-toggle" href="#" id="loanPaymentDropdown" role="button"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <i class="fas fa-hourglass-half fa-fw"></i>
+                        <i class="fas fa-hourglass-half text-warning"></i>
                         <span class="badge badge-danger badge-counter">
                             {{ unread_loan_pending_count }}
                         </span>
@@ -186,7 +184,7 @@
                 <li class="nav-item dropdown no-arrow">
                     <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <span class="mr-2 d-none d-lg-inline text-gray-600 small">{{ user.first_name }} {{ user.last_name }}</span>
+                        <span class="mr-2 d-none d-lg-inline text-gray-600 small">{{ user.borrower.full_name }}</span>
                         <img class="img-profile rounded-circle"
                             src="{% static 'lender/img/undraw_profile.svg' %}">
                     </a>

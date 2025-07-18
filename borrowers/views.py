@@ -47,7 +47,6 @@ from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
 
 
 
-
 @login_required
 def borrower_profile(request):
 	if request.user.is_borrower():
@@ -803,11 +802,99 @@ def delete_loan_application(request, application_id):
 
 
 
-@login_required
-def my_loan_applications(request):
-	loan_applications = LoanApplication.objects.filter(borrower=request.user.borrower).order_by('-date_applied')
-	return render(request, 'my_loan_applications.html', {'loan_applications': loan_applications})
 
+
+def calculate_first_and_next_payment_dates(loan):
+		pay_day = loan.borrower.pay_day or 1  # default to 1st if not set
+		first_payment = loan.date_created.replace(day=pay_day)
+
+		# If first payment date is before loan date, move to next month
+		if first_payment < loan.date_created:
+			first_payment = first_payment + timedelta(days=30)
+
+		next_payment = first_payment + timedelta(days=30 * loan.payments.count())
+		return first_payment, next_payment
+
+
+
+def recalculate_with_interest(loan, months_missed):
+	monthly_rate = loan.interest_rate / 100 / 12  # Convert annual interest to monthly decimal
+	missed_debt = loan.monthly_installment * months_missed
+	# Add compound interest to missed debt
+	total_due = missed_debt * ((1 + monthly_rate) ** months_missed)
+	return round(loan.monthly_installment + total_due, 2)
+
+
+def recalculate_simple(loan, months_missed):
+	return loan.monthly_installment * (1 + months_missed)
+
+
+def calculate_adjusted_payment(loan):
+	months_missed = calculate_missed_months(loan)
+
+	if months_missed == 0:
+		return loan.monthly_installment
+
+	if loan.lender.recalculate_interest_on_missed:  # Assume this is a BooleanField on LenderProfile
+		return recalculate_with_interest(loan, months_missed)
+	else:
+		return recalculate_simple(loan, months_missed)
+
+
+
+# Top-bar notifications
+def mark_loan_approved_read(request):
+	Notification.objects.filter(category="loan_approved", is_read=False).update(is_read=True)
+	return JsonResponse({"success": True})
+
+
+def mark_loan_rejected_read(request):
+	Notification.objects.filter(category="loan_rejected", is_read=False).update(is_read=True)
+	return JsonResponse({"success": True})
+
+
+def mark_loan_pending_read(request):
+	Notification.objects.filter(category="loan_pending", is_read=False).update(is_read=True)
+	return JsonResponse({"success": True})
+
+
+
+# Remember to add this to individual clicks of notification
+def mark_notification_read(request, notification_id):
+	notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+	notification.is_read = True
+	notification.save()
+
+	# Optionally, redirect based on category
+	if notification.category == 'loan_approved':
+		return redirect('loan-detail', notification.loan_application.id)
+	elif notification.category == 'loan_rejected':
+		return redirect('loan-status')
+	elif notification.category == 'loan_pending':
+		return redirect('pending-loans')
+
+	return redirect('notifications')
+
+@require_POST
+@login_required
+def mark_all_notifications_read(request):
+	request.user.notifications.filter(is_read=False).update(is_read=True)
+	return JsonResponse({'status': 'success'})
+
+
+def loan_application_success(request):
+	return render(request, 'loan_application_success.html', {})
+
+
+def my_loan_list(request):
+	lender_id = request.session.get('lender_id')
+
+	if request.user.is_authenticated:
+		loans = Loan.objects.filter(borrower__user=request.user)  # Filter by logged-in borrower
+	else:
+		loans = Loan.objects.none()  # No loans if not logged in
+
+	return render(request, 'my_loan_list.html', {'loans': loans})
 
 
 def my_active_loans(request):
@@ -854,115 +941,10 @@ def my_active_loans(request):
 
 	})
 
-
-def calculate_first_and_next_payment_dates(loan):
-		pay_day = loan.borrower.pay_day or 1  # default to 1st if not set
-		first_payment = loan.date_created.replace(day=pay_day)
-
-		# If first payment date is before loan date, move to next month
-		if first_payment < loan.date_created:
-			first_payment = first_payment + timedelta(days=30)
-
-		next_payment = first_payment + timedelta(days=30 * loan.payments.count())
-		return first_payment, next_payment
-
-
-
-def recalculate_with_interest(loan, months_missed):
-	monthly_rate = loan.interest_rate / 100 / 12  # Convert annual interest to monthly decimal
-	missed_debt = loan.monthly_installment * months_missed
-	# Add compound interest to missed debt
-	total_due = missed_debt * ((1 + monthly_rate) ** months_missed)
-	return round(loan.monthly_installment + total_due, 2)
-
-
-def recalculate_simple(loan, months_missed):
-	return loan.monthly_installment * (1 + months_missed)
-
-
-def calculate_adjusted_payment(loan):
-	months_missed = calculate_missed_months(loan)
-
-	if months_missed == 0:
-		return loan.monthly_installment
-
-	if loan.lender.recalculate_interest_on_missed:  # Assume this is a BooleanField on LenderProfile
-		return recalculate_with_interest(loan, months_missed)
-	else:
-		return recalculate_simple(loan, months_missed)
-
-
-
-#def mark_loan_approved_read(request):
-#	if request.user.is_authenticated and request.user.is_borrower():
-#		Notification.objects.filter(category="loan_approved", is_read=False).update(is_read=True)
-#		return JsonResponse({'success': True})
-#	return JsonResponse({'success': False}, status=400)
-
-
-# Top-bar notifications
-def mark_loan_approved_read(request):
-	Notification.objects.filter(category="loan_approved", is_read=False).update(is_read=True)
-	return JsonResponse({"success": True})
-
-
-def mark_loan_rejected_read(request):
-	Notification.objects.filter(category="loan_rejected", is_read=False).update(is_read=True)
-	return JsonResponse({"success": True})
-
-
-def mark_loan_pending_read(request):
-	Notification.objects.filter(category="loan_pending", is_read=False).update(is_read=True)
-	return JsonResponse({"success": True})
-
-
-
-'''@csrf_exempt
-def mark_loan_approved_read(request):
-	if request.user.is_authenticated and request.method == "POST":
-		Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
-		return JsonResponse({"success": True})
-	return JsonResponse({"success": False}, status=400)'''
-
-# Remember to add this to individual clicks of notification
-def mark_notification_read(request, notification_id):
-	notification = get_object_or_404(Notification, id=notification_id, user=request.user)
-	notification.is_read = True
-	notification.save()
-
-	# Optionally, redirect based on category
-	if notification.category == 'loan_approved':
-		return redirect('loan-detail', notification.loan_application.id)
-	elif notification.category == 'loan_rejected':
-		return redirect('loan-status')
-	elif notification.category == 'loan_pending':
-		return redirect('pending-loans')
-
-	return redirect('notifications')
-
-@require_POST
 @login_required
-def mark_all_notifications_read(request):
-	request.user.notifications.filter(is_read=False).update(is_read=True)
-	return JsonResponse({'status': 'success'})
-
-
-
-
-def loan_application_success(request):
-	return render(request, 'loan_application_success.html', {})
-
-
-def my_loan_list(request):
-	lender_id = request.session.get('lender_id')
-
-	if request.user.is_authenticated:
-		loans = Loan.objects.filter(borrower__user=request.user)  # Filter by logged-in borrower
-	else:
-		loans = Loan.objects.none()  # No loans if not logged in
-
-	return render(request, 'my_loan_list.html', {'loans': loans})
-
+def my_loan_applications(request):
+	loan_applications = LoanApplication.objects.filter(borrower=request.user.borrower).order_by('-date_applied')
+	return render(request, 'my_loan_applications.html', {'loan_applications': loan_applications})
 
 
 class BorrowerNotificationListView(ListView):
@@ -1214,14 +1196,8 @@ def layout_static(request):
 	return render(request, 'layout_static.html', {})
 
 
-#def login(request):
-#	return render(request, 'login.html', {})
-
 def password(request):
 	return render(request, 'password.html', {})
-
-#def register(request):
-#	return render(request, 'borrower_index.html', {})
 
 
 def tables(request):
