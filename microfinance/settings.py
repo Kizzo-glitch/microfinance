@@ -146,9 +146,7 @@ REST_FRAMEWORK = {
 
 LANGUAGE_CODE = 'en-us'
 
-#TIME_ZONE = 'UTC' 
-
-TIME_ZONE = 'GMT'
+TIME_ZONE = 'Africa/Johannesburg'
 
 USE_I18N = True
 
@@ -190,6 +188,7 @@ TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
 SMS_API_URL = "https://rest.smsportal.com/bulkmessages"
 SMS_API_SECRET = os.getenv('SMS_API_SECRET')
 CLIENT_ID = os.getenv('CLIENT_ID')
+
 
 
 # Email settings

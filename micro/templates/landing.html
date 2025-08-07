@@ -6,32 +6,81 @@
 
 
         <!-- Header-->
-        <header class="cta text-white text-center py-5">
+        <header class="bg-success text-white text-center py-5">
             <div class="container">
                 <h1 class="fw-light fw-bold">Welcome to Fedha-Grow</h1>
                 <p class="lead">Connecting Borrowers and Lenders Seamlessly.</p>
                 <div class="d-flex justify-content-center">
                     {% if user.role == 'borrower' %}
-                    <a href="{% url 'borrower_index' %}" class="btn btn-light btn-lg text-primary me-3">Go to DashBoard</a>
+                    <!--<a href="{% url 'borrower_index' %}" class="btn btn-light btn-lg text-primary me-3">Go to DashBoard</a>-->
+                        {% if user.is_authenticated %} 
+                        <button alt="Go to Dashboard" onclick="window.location.href='{% url 'borrower_index' %}?'"> 
+                              <i>g</i>
+                              <i>o</i>
+                              <i>&nbsp;</i>
+                              <i>t</i>
+                              <i>o</i>
+                              <i>&nbsp;</i>
+                              <i>D</i>
+                              <i>a</i>
+                              <i>s</i>
+                              <i>h</i>
+                              <i>b</i>
+                              <i>o</i>
+                              <i>a</i>
+                              <i>r</i>
+                              <i>d</i>
+                            </button>
+                            {% else %}
+                                <button alt="Get Started" onclick="window.location.href='{% url 'register' %}?'"> 
+                                  <i>g</i>
+                                  <i>e</i>                                
+                                  <i>t</i>
+                                  <i>&nbsp;</i>
+                                  <i>s</i>                                
+                                  <i>t</i>
+                                  <i>a</i>
+                                  <i>r</i>
+                                  <i>t</i>
+                                  <i>e</i>
+                                  <i>d</i>
+                                </button>
+                            {% endif %}
                     &nbsp;
                         {% else %}
-                        <button alt="Go to Dashboard" onclick="window.location.href='{% url 'lender_index' %}?'"> 
-                          <i>g</i>
-                          <i>o</i>
-                          <i>&nbsp;</i>
-                          <i>t</i>
-                          <i>o</i>
-                          <i>&nbsp;</i>
-                          <i>D</i>
-                          <i>a</i>
-                          <i>s</i>
-                          <i>h</i>
-                          <i>b</i>
-                          <i>o</i>
-                          <i>a</i>
-                          <i>r</i>
-                          <i>d</i>
-                        </button>
+                            {% if user.is_authenticated %}
+                            <button alt="Go to Dashboard" onclick="window.location.href='{% url 'lender_index' %}?'"> 
+                              <i>g</i>
+                              <i>o</i>
+                              <i>&nbsp;</i>
+                              <i>t</i>
+                              <i>o</i>
+                              <i>&nbsp;</i>
+                              <i>D</i>
+                              <i>a</i>
+                              <i>s</i>
+                              <i>h</i>
+                              <i>b</i>
+                              <i>o</i>
+                              <i>a</i>
+                              <i>r</i>
+                              <i>d</i>
+                            </button>
+                            {% else %}
+                                <button alt="Get Started" onclick="window.location.href='{% url 'register' %}?'"> 
+                                  <i>g</i>
+                                  <i>e</i>                                
+                                  <i>t</i>
+                                  <i>&nbsp;</i>
+                                  <i>s</i>                                
+                                  <i>t</i>
+                                  <i>a</i>
+                                  <i>r</i>
+                                  <i>t</i>
+                                  <i>e</i>
+                                  <i>d</i>
+                                </button>
+                            {% endif %}
                     <!--<a href="{% url 'lender_index' %}?" class="btn btn-outline-light btn-lg">Go to DashBoard</a>-->
                     {% endif %}
                     
@@ -42,25 +91,112 @@
         
 
         <!-- Page Content-->
+        <section id="features">
+    <div class="container px-lg-5">
+        <!-- Page Features -->
+        <div class="row gx-lg-5">
+        
+            <!-- Fast Loan Approval -->
+            <div class="col-lg-6 col-xxl-4 mb-5">
+                <div class="card border-left-primary shadow bg-light border-0 h-100">
+                    <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
+                        <div class="feature bg-success text-white rounded-3 mb-4 mt-n4">
+                            <i class="bi bi-lightning-charge-fill"></i>
+                        </div>
+                        <h2 class="fs-4 fw-bold text-primary">Fast Loan Approval</h2>
+                        <p class="mb-0">Borrowers get matched and approved quickly through automated risk checks and real-time verification.</p>
+                    </div>
+                </div>
+            </div>
 
-        <section class="pt-4">
+            <!-- Competitive Interest Rates -->
+            <div class="col-lg-6 col-xxl-4 mb-5">
+                <div class="card border-left-primary shadow bg-light border-0 h-100">
+                    <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
+                        <div class="feature bg-success text-white rounded-3 mb-4 mt-n4">
+                            <i class="bi bi-percent"></i>
+                        </div>
+                        <h2 class="fs-4 fw-bold text-primary">Competitive Interest Rates</h2>
+                        <p class="mb-0">Lenders set rates, while the platform recommends fair terms based on borrower affordability and risk scores.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Secure Transactions -->
+            <div class="col-lg-6 col-xxl-4 mb-5">
+                <div class="card border-left-primary shadow bg-light border-0 h-100">
+                    <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
+                        <div class="feature bg-success text-white rounded-3 mb-4 mt-n4">
+                            <i class="bi bi-shield-lock-fill"></i>
+                        </div>
+                        <h2 class="fs-4 fw-bold text-primary">Secure Transactions</h2>
+                        <p class="mb-0">Bank-grade encryption, role-based access control, and audit trails ensure safety of data and repayments processes.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Business Model Optimization -->
+            <div class="col-lg-6 col-xxl-4 mb-5">
+                <div class="card border-left-primary shadow bg-light border-0 h-100">
+                    <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
+                        <div class="feature bg-success text-white rounded-3 mb-4 mt-n4">
+                            <i class="bi bi-diagram-3-fill"></i>
+                        </div>
+                        <h2 class="fs-4 fw-bold text-primary">Lender-Borrower Fit</h2>
+                        <p class="mb-0">We assess borrower profiles and lender policies to ensure perfect alignment in loan terms, capacity, and expectations.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- High Risk Analysis -->
+            <div class="col-lg-6 col-xxl-4 mb-5">
+                <div class="card border-left-primary shadow bg-light border-0 h-100">
+                    <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
+                        <div class="feature bg-success text-white rounded-3 mb-4 mt-n4">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                        </div>
+                        <h2 class="fs-4 fw-bold text-primary">Risk Profiling & Alerts</h2>
+                        <p class="mb-0">Our calculations flag risky applications by evaluating affordability, missed payments, and financial behavior trends.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seamless Data Capture -->
+            <div class="col-lg-6 col-xxl-4 mb-5">
+                <div class="card border-left-primary shadow bg-light border-0 h-100">
+                    <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
+                        <div class="feature bg-success text-white rounded-3 mb-4 mt-n4">
+                            <i class="bi bi-journal-check"></i>
+                        </div>
+                        <h2 class="fs-4 fw-bold text-primary">Smart Data Collection</h2>
+                        <p class="mb-0">Data forms adapt to borrower type, ensuring only relevant information is captured accurately and securely.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+
+        <!--<section id="features">
             <div class="container px-lg-5">
-                <!-- Page Features-->
+                
                 <div class="row gx-lg-5">
                     <div class="col-lg-6 col-xxl-4 mb-5">
-                        <div class="card border-left-success shadow bg-faded border-0 h-100">
+                        <div class="card border-left-primary shadow bg-light border-0 h-100">
                             <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
-                                <div class="feature bg-brown bg-gradient text-white rounded-3 mb-4 mt-n4"><i class="bi bi-collection"></i></div>
-                                <h2 class="fs-4 fw-bold text-success">Fast Loan Approval</h2>
+                                <div class="feature bg-success  text-white rounded-3 mb-4 mt-n4"><i class="bi bi-collection"></i></div>
+                                <h2 class="fs-4 fw-bold text-primary">Fast Loan Approval</h2>
                                 <p class="mb-0">Get access to funds quickly with our seamless application process.</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-lg-6 col-xxl-4 mb-5">
-                        <div class="card border-left-info shadow bg-faded border-0 h-100">
+                        <div class="card border-left-primary shadow bg-light border-0 h-100">
                             <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
-                                <div class="feature bg-brown bg-gradient text-white rounded-3 mb-4 mt-n4"><i class="bi bi-cloud-download"></i></div>
-                                <h2 class="fs-4 fw-bold text-info">Competitive Interest Rates</h2>
+                                <div class="feature bg-success text-white rounded-3 mb-4 mt-n4"><i class="bi bi-cloud-download"></i></div>
+                                <h2 class="fs-4 fw-bold text-primary">Competitive Interest Rates</h2>
                                 <p class="mb-0">Flexible rates tailored to meet borrower and lender expectations.</p>
                             </div>
                         </div>
@@ -68,7 +204,7 @@
                     <div class="col-lg-6 col-xxl-4 mb-5">
                         <div class="card border-left-primary shadow bg-light border-0 h-100">
                             <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
-                                <div class="feature bg-brown bg-gradient text-white rounded-3 mb-4 mt-n4"><i class="bi bi-card-heading"></i></div>
+                                <div class="feature bg-success text-white rounded-3 mb-4 mt-n4"><i class="bi bi-card-heading"></i></div>
                                 <h2 class="fs-4 fw-bold text-primary">Secure Transactions</h2>
                                 <p class="mb-0">Your data and transactions are safe with state-of-the-art encryption.</p>
                             </div>
@@ -77,45 +213,119 @@
                     <div class="col-lg-6 col-xxl-4 mb-5">
                         <div class="card border-left-primary shadow bg-light border-0 h-100">
                             <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
-                                <div class="feature bg-brown bg-gradient text-white rounded-3 mb-4 mt-n4"><i class="bi bi-bootstrap"></i></div>
+                                <div class="feature bg-success text-white rounded-3 mb-4 mt-n4"><i class="bi bi-bootstrap"></i></div>
                                 <h2 class="fs-4 fw-bold text-primary">Business Model Optimisation</h2>
                                 <p class="mb-0">We analyse the business models to best suit both the lenders and the borrowers.</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-lg-6 col-xxl-4 mb-5">
-                        <div class="card border-left-warning shadow bg-light border-0 h-100">
+                        <div class="card border-left-primary shadow bg-light border-0 h-100">
                             <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
-                                <div class="feature bg-brown bg-gradient text-white rounded-3 mb-4 mt-n4"><i class="bi bi-code"></i></div>
-                                <h2 class="fs-4 fw-bold text-warning">High Risk Analysis</h2>
+                                <div class="feature bg-success text-white rounded-3 mb-4 mt-n4"><i class="bi bi-code"></i></div>
+                                <h2 class="fs-4 fw-bold text-primary">High Risk Analysis</h2>
                                 <p class="mb-0">We keep your money safe by flagging high risk clients.</p>
                             </div>
                         </div>
                     </div>
                     <div class="col-lg-6 col-xxl-4 mb-5">
-                        <div class="card border-left-warning shadow bg-light border-0 h-100">
+                        <div class="card border-left-primary shadow bg-light border-0 h-100">
                             <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
-                                <div class="feature bg-brown bg-gradient text-white rounded-3 mb-4 mt-n4"><i class="bi bi-patch-check"></i></div>
-                                <h2 class="fs-4 fw-bold text-warning">Seamless Data Capturing</h2>
+                                <div class="feature bg-success text-white rounded-3 mb-4 mt-n4"><i class="bi bi-patch-check"></i></div>
+                                <h2 class="fs-4 fw-bold text-primary">Seamless Data Capturing</h2>
                                 <p class="mb-0">We make sure data is thoroughly and correctly updated.</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </section>-->
+
+        <section id="how-it-works" class="py-5">
+          <div class="container">
+            <div class="card shadow">
+              <div class="card-header bg-success text-white text-center">
+                <h2>How It Works</h2>
+              </div>
+              <div class="card-body">
+
+                <!-- Borrower Flow -->
+                <h4 class="text-success text-center">Borrower Journey</h4>
+                <div class="d-flex flex-wrap justify-content-center align-items-center mb-4">
+                  <div class="text-center mx-3">
+                    <i class="bi bi-person-plus-fill fs-2 text-success"></i><br>Register
+                  </div>
+                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
+                  <div class="text-center mx-3">
+                    <i class="bi bi-person-lines-fill fs-2 text-success"></i><br>Profile Setup
+                  </div>
+                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
+                  <div class="text-center mx-3">
+                    <i class="bi bi-hand-index-thumb fs-2 text-success"></i><br>Select Lender
+                  </div>
+                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
+                  <div class="text-center mx-3">
+                    <i class="bi bi-person-check-fill fs-2 text-success"></i><br>Verification
+                  </div>
+                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
+                  <div class="text-center mx-3">
+                    <i class="bi bi-cloud-upload-fill fs-2 text-success"></i><br>Upload Docs
+                  </div>
+                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
+                  <div class="text-center mx-3">
+                    <i class="bi bi-check-circle-fill fs-2 text-success"></i><br>Apply
+                  </div>
+                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
+                  <div class="text-center mx-3">
+                    <i class="bi bi-wallet-fill fs-2 text-success"></i><br>Receive Funds
+                  </div>
+                </div>
+
+                <!-- Lender Flow -->
+                <h4 class="text-success text-center">Lender Journey</h4>
+                <div class="d-flex flex-wrap justify-content-center align-items-center">
+                  <div class="text-center mx-3">
+                    <i class="bi bi-person-plus-fill fs-2 text-success"></i><br>Create Account
+                  </div>
+                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
+                  <div class="text-center mx-3">
+                    <i class="bi bi-cloud-upload-fill fs-2 text-success"></i><br>Business Docs
+                  </div>
+                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
+                  <div class="text-center mx-3">
+                    <i class="bi bi-gear-fill fs-2 text-success"></i><br>Set Terms
+                  </div>
+                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
+                  <div class="text-center mx-3">
+                    <i class="bi bi-folder-symlink-fill fs-2 text-success"></i><br>Review Applications
+                  </div>
+                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
+                  <div class="text-center mx-3">
+                    <i class="bi bi-person-check-fill fs-2 text-success"></i><br>Approve/Reject
+                  </div>
+                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
+                  <div class="text-center mx-3">
+                    <i class="bi bi-cash-stack fs-2 text-success"></i><br>Earn ROI
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
         </section>
 
-        <section id="how-it-works">
+
+        <!--<section id="how-it-works">
             <div class="container">
                 <div class="card shadow">
-                    <div class="card-header cta text-white">
+                    <div class="card-header bg-success text-white">
                         <h2 class="text-center mb-4">How It Works</h2>
                     </div>
                     <div class="card-body">
                 
                 <div class="row">
                     <div class="col-md-6">
-                        <h4 class="fs-4 fw-bold text-primary">For Borrowers</h4>
+                        <h4 class="fs-4 fw-bold text-success">For Borrowers</h4>
                         <ul>
                             <li>Register and complete your profile.</li>
                             <li>Click and choose the Lender.</li>
@@ -127,7 +337,7 @@
                         </ul>
                     </div>
                     <div class="col-md-6">
-                        <h4 class="fs-4 fw-bold text-primary">For Lenders</h4>
+                        <h4 class="fs-4 fw-bold text-success">For Lenders</h4>
                         <ul>
                             <li>Create an account and set your profile.</li>
                             <li>Upload your business documents for verification status.</li>
@@ -142,33 +352,33 @@
             </div>
             </div>
             </div>
-        </section>
+        </section>-->
 
         <br>
 
-        <section id="testimonials" class="bg-faded py-5">
+        <section id="testimonials" class="bg-success py-5">
             <div class="container">
-                <h2 class="text-center mb-4 text-primary">What Our Users Say</h2>
+                <h2 class="text-center mb-4 text-white">What Our Users Say</h2>
                 <div class="row">
                     <div class="col-md-4">
                         <blockquote class="blockquote">
-                            <p class="mb-0">"This platform made it easy for me to get the funds I needed for my small business."</p>
+                            <p class="mb-0 text-white">"This platform made it easy for me to get the funds I needed for my small business."</p>
                             <br>
-                            <footer class="blockquote-footer">Jane, Borrower</footer>
+                            <footer class="blockquote-footer text-white">Thabo, Borrower</footer>
                         </blockquote>
                     </div>
                     <div class="col-md-4">
                         <blockquote class="blockquote">
-                            <p class="mb-0">"Investing with this platform has been a profitable and secure experience."</p>
+                            <p class="mb-0 text-white">"Investing with this platform has been a profitable and secure experience."</p>
                             <br>
-                            <footer class="blockquote-footer">John, Lender</footer>
+                            <footer class="blockquote-footer text-white">Sello, Lender</footer>
                         </blockquote>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-4 text-white">
                         <blockquote class="blockquote">
-                            <p class="mb-0">"I appreciate how transparent and user-friendly this app is."</p>
+                            <p class="mb-0 text-white">"I appreciate how transparent and user-friendly this app is."</p>
                             <br>
-                            <footer class="blockquote-footer">Emma, Borrower</footer>
+                            <footer class="blockquote-footer text-white">Komane, Borrower</footer>
                         </blockquote>
                     </div>
                 </div>
