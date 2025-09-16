@@ -1,11 +1,16 @@
 from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
-from micro.models import User
+#from micro.models import User
 #from loans.models import LoanApplication
 import datetime
 from django.db.models.signals import post_save
 import os 
 from django.utils.text import slugify
+import uuid
+from django.contrib.auth import get_user_model
+
+
+
 
 
 class BorrowerProfileManager(models.Manager):
@@ -13,6 +18,8 @@ class BorrowerProfileManager(models.Manager):
 		return super().get_queryset().filter(user__role='borrower', user__is_superuser=False)
 
 
+
+User = get_user_model()
 
 class BorrowerProfile(models.Model):
 
@@ -77,17 +84,17 @@ class BorrowerProfile(models.Model):
 		('registered_business', 'Self-Employed (Registered)'),
 	]
 
-	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='borrower')
+	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='borrower', null=True, blank=True)
 	full_name = models.CharField(max_length=100, default='')
 	gender = models.CharField(max_length=100, choices=GENDER_CHOICES, null=True, blank=True)
 	title = models.CharField(max_length=4, choices=TITLE_CHOICES, null=True, blank=True)
 	date_of_birth = models.CharField(max_length=20, null=False, default='')
 	id_number = models.CharField(max_length=30, null=False, default='')
 	marital_status = models.CharField(max_length=20, choices=MARITAL_STATUS_CHOICES, null=True, blank=True)
-	phone_number = models.CharField(max_length=100, null=False, default='')
-	email_address = models.CharField(max_length=100, null=False, default='')
-	employer_name = models.CharField(max_length=100, null=False, default='')
-	employment_position = models.CharField(max_length=100, null=False, default='')
+	phone_number = models.CharField(max_length=100, null=True, default='')
+	email_address = models.CharField(max_length=100, null=True, default='')
+	employer_name = models.CharField(max_length=100, null=True, default='')
+	employment_position = models.CharField(max_length=100, null=True, default='')
 	income = models.DecimalField(default=0, decimal_places=2, max_digits=50)
 	position_level = models.CharField(max_length=50, choices=POSITION_LEVEL_CHOICES, null=True, blank=True)
 	
@@ -109,6 +116,8 @@ class BorrowerProfile(models.Model):
 	#credit_intend = models.CharField(max_length=100, null=False, default='')
 	
 	employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_CHOICES, null=True, blank=True)
+	is_group_admin = models.BooleanField(default=False)
+	is_sub_admins = models.BooleanField(default=False)
 
 	is_over_18 = models.BooleanField(default=False)
 	agrees_to_terms = models.BooleanField(default=False)
@@ -121,15 +130,14 @@ class BorrowerProfile(models.Model):
 		return self.user.username
 	
 # Create a user Profile by default when user signs up
-def create_profile(sender, instance, created, **kwargs):
-	if created:
-		borrower_profile = BorrowerProfile(user=instance)
-		borrower_profile.save()
+#def create_profile(sender, instance, created, **kwargs):
+#	if created:
+#		borrower_profile = BorrowerProfile(user=instance)
+#		borrower_profile.save()
 
 
 # Automate the profile thing
-post_save.connect(create_profile, sender=User)
-
+#post_save.connect(create_profile, sender=User)
 
 
 def upload_to(instance, filename):
@@ -160,6 +168,7 @@ class BorrowerDocs(models.Model):
 
 
 
+
 class ExpenseAnalysis(models.Model):
 	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE)
 	loan_application = models.ForeignKey('loans.LoanApplication', on_delete=models.CASCADE, related_name='expenses', null=True, blank=True)
@@ -168,6 +177,48 @@ class ExpenseAnalysis(models.Model):
 
 	def __str__(self):
 		return f"{self.borrower.user.username} - {self.expense_type}: {self.amount}"
+
+
+
+
+class BorrowerGroup(models.Model):
+	name = models.CharField(max_length=255)
+	description = models.TextField(blank=True, null=True)
+	created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_groups")
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	def __str__(self):
+		return self.name
+
+
+class GroupMembership(models.Model):
+	ROLE_CHOICES = [
+		('admin', 'Admin'),
+		('sub_admin', 'Sub-Admin'),
+		('member', 'Member'),
+	]
+	user = models.ForeignKey(User, on_delete=models.CASCADE)
+	group = models.ForeignKey(BorrowerGroup, on_delete=models.CASCADE)
+	role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='member')
+	joined_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		unique_together = ('user', 'group')
+
+	def __str__(self):
+		return f"{self.user.username} - {self.group.name} ({self.role})"
+
+
+class GroupInvite(models.Model):
+	token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+	group = models.ForeignKey(BorrowerGroup, on_delete=models.CASCADE)
+	email = models.EmailField()
+	invited_by = models.ForeignKey(User, on_delete=models.CASCADE)
+	is_used = models.BooleanField(default=False)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	def __str__(self):
+		return f"Invite to {self.group.name} for {self.email}"
 
 
 

@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import user_passes_test
 
 
 
+
 class User(AbstractUser):
 	ROLE_CHOICES = (
 		('lender', 'Lender'),
@@ -15,10 +16,10 @@ class User(AbstractUser):
 	)
 	role = models.CharField(max_length=10, choices=ROLE_CHOICES,)
 	# Additional fields
-	first_name = models.CharField(max_length=15, null=True, blank=True)
-	last_name = models.CharField(max_length=15, null=True, blank=True)
-	#phone_number = models.CharField(max_length=15, null=True, blank=True)
-	#address = models.TextField(null=True, blank=True)
+	first_name = models.CharField(max_length=150, null=True, blank=True)
+	last_name = models.CharField(max_length=150, null=True, blank=True)
+	phone_number = models.CharField(max_length=15, null=True, blank=True)
+	email = models.EmailField(max_length=254, unique=True, null=True, blank=True)
 
 	#def is_lender(user):
 	#	return user.is_authenticated and user.role == 'lender'
@@ -44,17 +45,19 @@ class User(AbstractUser):
 
 
 class OTP(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    phone_number = models.CharField(max_length=20)
-    otp_code = models.CharField(max_length=6)
-    created_at = models.DateTimeField(auto_now_add=True)
-    is_verified = models.BooleanField(default=False)
+	user = models.ForeignKey(User, on_delete=models.CASCADE)
+	phone_number = models.CharField(max_length=20)
+	otp_code = models.CharField(max_length=6)
+	created_at = models.DateTimeField(auto_now_add=True)
+	is_verified = models.BooleanField(default=False)
 
-    def is_expired(self):
-        return timezone.now() > self.created_at + timedelta(minutes=10)  # OTP valid for 5 minutes
+	def is_expired(self):
+		return timezone.now() > self.created_at + timedelta(minutes=10)  # OTP valid for 5 minutes
 
-    def __str__(self):
-        return f"{self.user.username} - {self.otp_code}"
+	def __str__(self):
+		return f"{self.user.username} - {self.otp_code}"
+
+
 
 
 

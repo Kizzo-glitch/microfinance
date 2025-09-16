@@ -29,7 +29,7 @@
 
     <div class="container">
      
-        <form id="loanApplicationForm" method="POST" action="{% url 'apply-loan' %}">
+        <form id="loanApplicationForm" method="POST" action="{% url 'loan-calculator' %}">
                 {% csrf_token %}
                 
                 <div class="loan-calculator">
@@ -46,22 +46,21 @@
                        data-max="{{ lender.max_loan }}">
                        <small id="loan_error" style="color: red;"></small>
 
-       
 
                     <p class="text-muted">
-                        Lender's: Minimum Loan Amount: {{ lender.min_loan }} | Maximum Loan Amount: R{{ lender.max_loan }}
+                        Lender's: Minimum Loan Amount: R{{ lender.min_loan }} | Maximum Loan Amount: R{{ lender.max_loan }}
                     </p>
                     <br><br><br>
-                    <h3>For how long?</h3>
+                    <h3>Select Loan Term</h3>
+                    
                     <div class="loan-terms">
-                        <button type="button" class="loan-term active" data-term="3">3 months</button>
-                        <button type="button" class="loan-term" data-term="6">6 months</button>
-                        <button type="button" class="loan-term" data-term="9">9 months</button>
-                        <button type="button" class="loan-term" data-term="12">12 months</button>
-                        <button type="button" class="loan-term" data-term="24">24 months</button>
-                        <button type="button" class="loan-term" data-term="36">36 months</button>
+                        {% for term in available_terms %}
+                            <button type="button" class="loan-term {% if forloop.first %}active{% endif %}" data-term="{{ term }}">
+                                {{ term }} months
+                            </button>
+                        {% endfor %}
                     </div>
-                    <input type="hidden" name="loan_term" id="selected_loan_term" value="3">
+                    <input type="hidden" name="loan_term" id="selected_loan_term" value="{{ available_terms.0 }}">
 
             
                     <br><br>
@@ -79,7 +78,14 @@
                         <h3>Total repayment: <span id="total_repayable">R0</span></h3>
                     </div>
 
-                    <button type="submit" id="applyLoanBtn" class="btn btn-primary">Apply for Loan</button>
+                    <button type="submit" name="action" value="save_continue" class="btn btn-primary">
+                        Save & Continue
+                    </button>
+                    <button type="submit" name="action" value="save_exit" class="btn btn-secondary">
+                        Save & Exit
+                    </button>
+
+                    <!--<button type="submit" id="applyLoanBtn" class="btn btn-primary">Apply for Loan</button>-->
                 </div>
             </form>
 

@@ -20,6 +20,10 @@ urlpatterns = [
     path('verify-otp/', views.verify_otp, name='verify_otp'),
     
     path('employment-type/', views.select_employment_type, name='employment_type'),
+    path('resume-application/<int:app_id>/', views.resume_application, name='resume_application'),
+    #path('resume-application/<int:pk>/', views.resume_application, name='resume_application'),
+    path('delete-draft/<int:pk>/', views.delete_draft_application, name='delete_draft_application'),
+ 
    
     path('upload_documents_employed/', views.upload_documents_employed, name='upload_documents_employed'),
     path('upload_documents_self_employed/', views.upload_documents_self_employed, name='upload_documents_self_employed'),
@@ -72,6 +76,21 @@ urlpatterns = [
     path('api/borrower/paid-vs-outstanding/', views.paid_vs_outstanding, name='paid_vs_outstanding'),
 
     
+    # Groups
+    #path("groups/", views.my_groups, name="my_groups"),
+    #path("create/", views.create_group, name="create_group"),
+    #path("<int:group_id>/", views.group_detail, name="group_detail"),
+    #path("<int:group_id>/invite/", views.invite_member, name="invite_member"),
+    #path("join/<uuid:token>/", views.join_group, name="join_group"),
+
+    # member management
+    #path("membership/<int:membership_id>/make-subadmin/", views.make_sub_admin, name="make_sub_admin"),
+    #path("membership/<int:membership_id>/make-member/", views.make_member, name="make_member"),
+    #path("membership/<int:membership_id>/remove/", views.remove_member, name="remove_member"),
+
+    # invites management
+    #path("invite/<int:invite_id>/resend/", views.resend_invite, name="resend_invite"),
+    #path("invite/<int:invite_id>/revoke/", views.revoke_invite, name="revoke_invite"),
 
 ]
 

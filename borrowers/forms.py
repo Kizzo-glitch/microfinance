@@ -38,8 +38,7 @@ class BorrowerProfileForm(forms.ModelForm):
 	email_address = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Email Address'}), required=True)  
 	employer_name = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':"Employer's Name"}), required=True)
 
-
-	employment_position = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Employment Position'}), required=True)
+	#employment_position = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Employment Position'}), required=True)
 	
 	income = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control','placeholder':'Income Amount per Month',}), required=True)
 	
@@ -95,7 +94,7 @@ class BorrowerProfileForm(forms.ModelForm):
 			'email_address', 
 			'employer_name', 
 			
-			'employment_position',
+			#'employment_position',
 			'income',
 			'position_level',
 			'home_address',
@@ -112,6 +111,8 @@ class BorrowerProfileForm(forms.ModelForm):
 			'information_consent',
 			'employment_type'
 			)
+
+
 
 class OTPForm(forms.Form):
 	otp_code = forms.CharField(max_length=6)
@@ -172,7 +173,7 @@ class RegisteredBusinessDocumentsForm(forms.ModelForm):
 
 class LoanApplicationForm(forms.ModelForm):
 	loan_amount = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control','placeholder':'Loan Amount Needed',}), required=True)
-	loan_term = forms.Select(attrs={'class': 'form-control'})
+	loan_term = forms.ChoiceField(choices=[]) #forms.Select(attrs={'class': 'form-control'})
 
 	class Meta:
 		model = LoanApplication
@@ -180,6 +181,21 @@ class LoanApplicationForm(forms.ModelForm):
 			'loan_amount', 
 			'loan_term', 
 			]
+
+
+	def __init__(self, *args, **kwargs):
+		lender = kwargs.pop('lender', None)
+		super().__init__(*args, **kwargs)
+
+		if lender and lender.loan_terms:
+			self.fields['loan_term'].choices = [
+				(term, f"{term} months") for term in lender.loan_terms
+			]
+
+
+
+
+
 
 EMPLOYMENT_EXPENSE_TYPES = {
 	'employed': [
@@ -222,29 +238,7 @@ EMPLOYMENT_EXPENSE_TYPES = {
 }
 
 
-class DynamicExpenseForm2(forms.Form):
-	def __init__(self, employment_type, income=None, *args, **kwargs):
-		super().__init__(*args, **kwargs)
 
-		# Prefilled Income Field
-		self.fields['income'] = forms.DecimalField(
-			label="Monthly Net Income",
-			initial=income,
-			required=False,
-			disabled=True,
-			widget=forms.NumberInput(attrs={'class': 'form-control'})
-		)
-
-		# Dynamic Expense Fields
-		expense_types = EMPLOYMENT_EXPENSE_TYPES.get(employment_type, [])
-		for expense in expense_types:
-			field_name = expense.lower().replace(' ', '_')
-			self.fields[field_name] = forms.DecimalField(
-				label=expense,
-				required=False,
-				min_value=0,
-				widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Amount in R | Write 0 if does not apply'})
-			)
 
 
 class DynamicExpenseForm(forms.Form):
@@ -255,7 +249,7 @@ class DynamicExpenseForm(forms.Form):
 			field_name = expense.lower().replace(' ', '_')
 			self.fields[field_name] = forms.DecimalField(
 				label=expense,
-				required=False,
+				required=True,
 				min_value=0,
 				widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Amount in R | Write 0 if does not apply'})
 			)
@@ -275,3 +269,6 @@ class LoanPaymentForm(forms.ModelForm):
 	class Meta:
 		model = LoanPayment
 		fields = ['amount', 'payment_method']
+
+
+

@@ -68,6 +68,16 @@ class LenderProfile(models.Model):
 		('licensed', 'Licensed'),
 	]
 
+	LOAN_TERM_CHOICES = [
+		(1, "1 month"),
+		(3, "3 months"),
+		(6, "6 months"),
+		(9, "9 months"),
+		(12, "12 months"),
+		(24, "24 months"),
+		(36, "36 months"),
+	]
+
 	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='lender')
 	ceo_first_name = models.CharField(max_length=20, blank=False)
 	ceo_last_name = models.CharField( max_length=20, blank=False)
@@ -112,8 +122,12 @@ class LenderProfile(models.Model):
 		blank=False,
 
 	)
-
 	verification_status = models.CharField(max_length=20, choices=VERIFICATION_CHOICES, default='unverified')
+	loan_terms = models.JSONField(default=list, blank=True)
+
+	def get_loan_terms_display(self):
+		terms_map = dict(self.LOAN_TERM_CHOICES)
+		return [terms_map[int(term)] for term in self.loan_terms]
 
 	objects = LenderProfileManager()
 	

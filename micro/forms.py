@@ -4,15 +4,18 @@ from .models import User
 
 
 
+
 class UserRegistrationForm(UserCreationForm):
 	role = forms.ChoiceField(choices=User.ROLE_CHOICES, widget=forms.RadioSelect)
 	first_name = forms.CharField(max_length=100)
 	last_name = forms.CharField(max_length=100)
+	email = forms.CharField(max_length=100)
+	phone_number = forms.CharField(max_length=100)
 
 	
 	class Meta:
 		model = User
-		fields = ['username', 'first_name', 'last_name', 'password1', 'password2', 'role',]
+		fields = ['username', 'first_name', 'last_name','email','phone_number', 'password1', 'password2', 'role',]
 
 
 

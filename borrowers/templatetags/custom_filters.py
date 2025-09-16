@@ -10,9 +10,9 @@ def range(value):
 	"""
 	return range(1, value + 1)
 
-@register.filter
+'''@register.filter
 def get_item(dictionary, key):
-	return dictionary.get(key)
+	return dictionary.get(key)'''
 
 
 
@@ -22,4 +22,8 @@ def getattribute(obj, attr_name):
 	return getattr(obj, attr_name, None)
 
 
-
+@register.filter
+def get_item(dictionary, key):
+    if dictionary and key in dictionary:
+        return dictionary.get(key)
+    return None

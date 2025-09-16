@@ -1,0 +1,269 @@
+{% load static %}
+
+
+<nav class="navbar navbar-expand navbar-light bg-primary topbar mb-4 static-top shadow">
+
+            <!-- Sidebar Toggle (Topbar) -->
+            <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+                <i class="fa fa-bars"></i>
+            </button>
+
+            <!-- Topbar Search -->
+            <form
+                class="d-none d-sm-inline-block form-inline mr-auto ml-md-3 my-2 my-md-0 mw-100 navbar-search">
+                <div class="input-group">
+                    <input type="text" class="form-control bg-light border-0 small" placeholder="Search for..."
+                        aria-label="Search" aria-describedby="basic-addon2">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="button">
+                            <i class="fas fa-search fa-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- Topbar Navbar -->
+            <ul class="navbar-nav ml-auto">
+
+                <!-- Nav Item - Search Dropdown (Visible Only XS) -->
+                <li class="nav-item dropdown no-arrow d-sm-none">
+                    <a class="nav-link dropdown-toggle" href="#" id="searchDropdown" role="button"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-search fa-fw"></i>
+                    </a>
+                    <!-- Dropdown - Messages -->
+                    <div class="dropdown-menu dropdown-menu-right p-3 shadow animated--grow-in"
+                        aria-labelledby="searchDropdown">
+                        <form class="form-inline mr-auto w-100 navbar-search">
+                            <div class="input-group">
+                                <input type="text" class="form-control bg-light border-0 small"
+                                    placeholder="Search for..." aria-label="Search"
+                                    aria-describedby="basic-addon2">
+                                <div class="input-group-append">
+                                    <button class="btn btn-primary" type="button">
+                                        <i class="fas fa-search fa-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </li>
+
+                <!-- Loan Applications Notification -->
+                <li class="nav-item dropdown no-arrow mx-1">
+                    <a class="nav-link dropdown-toggle" href="#" id="loanApplicationDropdown" role="button"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-thumbs-up text-success"></i>
+                        <span class="badge badge-danger badge-counter">
+                            {{ unread_loan_approved_count }}
+                        </span>
+                    </a>
+                    <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                        aria-labelledby="loanApplicationDropdown">
+                        <h6 class="dropdown-header">Approved Loan Notifications</h6>
+
+                        {% if unread_loan_approved %}
+                            {% for notification in unread_loan_approved %}
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        <span class="font-weight-bold">{{ notification.message }}</span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No new notifications</a>
+                        {% endif %}
+                        
+                        <h6 class="dropdown-header">Read Notifications</h6>
+                        {% if read_loan_approved %}
+                            {% for notification in read_loan_approved %}
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        {{ notification.message }}
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No read notifications</a>
+                        {% endif %}
+                    </div>
+                </li>
+
+
+                    <li class="nav-item dropdown no-arrow mx-1">
+                    <a class="nav-link dropdown-toggle" href="#" id="pendingLoanUpdateDropdown" role="button"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-thumbs-down text-danger"></i>
+                        <span class="badge badge-danger badge-counter">
+                            {{ unread_loan_rejected_count }}
+                        </span>
+                    </a>
+                    <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                        aria-labelledby="pendingLoanUpdateDropdown">
+                        <h6 class="dropdown-header">Rejected Loan Notifications</h6>
+
+                        {% if unread_loan_rejected %}
+                            {% for notification in unread_loan_rejected %}
+                                <a class="dropdown-item d-flex align-items-center" href="!#">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        <span class="font-weight-bold">{{ notification.message }}</span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No new notifications</a>
+                        {% endif %}
+                        
+                        <h6 class="dropdown-header">Read Notifications</h6>
+                        {% if read_loan_rejected %}
+                            {% for notification in read_loan_rejected %}
+                                <a class="dropdown-item d-flex align-items-center" href="!#">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        {{ notification.message }}
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No read notifications</a>
+                        {% endif %}
+                  </div>
+                </li>
+
+
+                <!-- Loan Payments Notification -->
+                <li class="nav-item dropdown no-arrow mx-1">
+                    <a class="nav-link dropdown-toggle" href="#" id="loanPaymentDropdown" role="button"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-hourglass-half text-warning"></i>
+                        <span class="badge badge-danger badge-counter">
+                            {{ unread_loan_pending_count }}
+                        </span>
+                    </a>
+                    <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                        aria-labelledby="loanPaymentDropdown">
+                        <h6 class="dropdown-header">Pending Loan Notifications</h6>
+
+                        {% if unread_loan_pending %}
+                            {% for notification in unread_loan_pending %}
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        <span class="font-weight-bold">{{ notification.message }}</span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No new notifications</a>
+                        {% endif %}
+                        
+                        <h6 class="dropdown-header">Read Notifications</h6>
+                        {% if read_loan_pending %}
+                            {% for notification in read_loan_pending %}
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        {{ notification.message }}
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No read notifications</a>
+                        {% endif %}
+                    </div>
+                </li>
+
+                
+
+                <div class="topbar-divider d-none d-sm-block"></div>
+
+                <!-- Nav Item - User Information -->
+                <li class="nav-item dropdown no-arrow">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <span class="mr-2 d-none d-lg-inline text-gray-600 small">{{ user.borrower.full_name }}</span>
+                        <img class="img-profile rounded-circle"
+                            src="{% static 'lender/img/undraw_profile.svg' %}">
+                    </a>
+                    <!-- Dropdown - User Information -->
+                    <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                        aria-labelledby="userDropdown">
+                        <a class="dropdown-item" href="{% url 'landing' %}">
+                            <i class="fas fa-home fa-sm fa-fw mr-2 text-gray-400"></i>
+                            Home
+                        </a>
+                        <a class="dropdown-item" href="{% url 'borrower_profile' %}">
+                            <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
+                            Profile
+                        </a>
+                        <!--<a class="dropdown-item" href="#">
+                            <i class="fas fa-cogs fa-sm fa-fw mr-2 text-gray-400"></i>
+                            Settings
+                        </a>
+                        <a class="dropdown-item" href="#">
+                            <i class="fas fa-list fa-sm fa-fw mr-2 text-gray-400"></i>
+                            Activity Log
+                        </a>-->
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="#" data-toggle="modal" data-target="#logoutModal">
+                            <i class="fas fa-sign-out-alt fa-sm fa-fw mr-2 text-gray-400"></i>
+                            Logout
+                        </a>
+                    </div>
+                </li>
+
+            </ul>
+
+        </nav>
+
+
+<script>
+    document.getElementById('loanApplicationDropdown').addEventListener('click', function () {
+        fetch("{% url 'mark_loan_approved_read' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            }
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log("Loan application notifications marked as read");
+            }
+        });
+    });
+
+    document.getElementById('loanPaymentDropdown').addEventListener('click', function () {
+        fetch("{% url 'mark_loan_rejected_read' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            }
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log("Loan payment notifications marked as read");
+            }
+        });
+    });
+
+    document.getElementById('pendingLoanUpdateDropdown').addEventListener('click', function () {
+        fetch("{% url 'mark_loan_pending_read' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            }
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log("Pending loan update notifications marked as read");
+            }
+        });
+    });
+</script>
+
+
+
+    

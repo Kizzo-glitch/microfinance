@@ -24,6 +24,7 @@ LOAN_TERM_CHOICES = [
 		#('24 Months', '24 Months'),
 		#('36 Months', '36 Months'),
 
+		(1, '1 Month'),
 		(3, '3 Months'),
 		(6, '6 Months'),
 		(9, '9 Months'),
@@ -56,16 +57,31 @@ PENDING_REASONS = [
 ]
 
 
+
+
 # Loan Application Model
 class LoanApplication(models.Model):
 	LOAN_STATUS_CHOICES = [
+		("draft", "Draft (Incomplete)"),
 		('pending', 'Pending'),
 		('rejected', 'Reject'),
-		('approved', 'Approve'),		
+		('approved', 'Approve'),
+		("review", "Submitted For Review"),		
 	]
-	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE)
-	lender = models.ForeignKey(LenderProfile, on_delete=models.CASCADE)
-	loan_amount = models.DecimalField(max_digits=12, decimal_places=2)
+	
+	LOAN_STAGE_CHOICES = [
+		("employment_type", "Employment Type"),
+		("documents", "Upload Documents"),
+		("update_expenses", "Update Expenses"),
+		
+		("loan_calculator", "Loan Calculator"),
+		("apply_loan", "Apply Loan"),
+		("submitted", "Final Review"),
+				
+	]
+	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE, null=True, blank=True)
+	lender = models.ForeignKey(LenderProfile, on_delete=models.CASCADE, null=True, blank=True)
+	loan_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 	
 	#collateral = models.CharField(max_length=500, null=False, default='')
 	#payment_plan = models.CharField(max_length=500, null=False, default='')
@@ -76,7 +92,7 @@ class LoanApplication(models.Model):
 
 	loan_term = models.PositiveIntegerField(choices=LOAN_TERM_CHOICES, default=3)
 
-	status = models.CharField(max_length=50, choices=LOAN_STATUS_CHOICES, default='pending')
+	status = models.CharField(max_length=50, choices=LOAN_STATUS_CHOICES, default='draft')
 	status_reason = models.TextField(blank=True, null=True) 
 	date_applied = models.DateTimeField(default=timezone.now)
 
@@ -91,7 +107,17 @@ class LoanApplication(models.Model):
 		on_delete=models.SET_NULL,
 		related_name='application_source'
 	)
+
 	is_deleted = models.BooleanField(default=False)
+
+	current_stage = models.CharField(
+		max_length=50,
+		choices=LOAN_STAGE_CHOICES,
+		default="employment_type"
+	)
+
+	def is_draft(self):
+		return self.status == "draft"
 
 	def __str__(self):
 		return f"Application {self.id} - {self.borrower.user.username} - {self.lender.user.username} - {self.status}"

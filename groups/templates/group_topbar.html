@@ -1,0 +1,67 @@
+{% load static %}
+<!-- Responsive navbar-->
+
+<nav class="navbar navbar-expand navbar-light bg-primary topbar mb-4 static-top shadow">
+
+            <div class="container px-lg-5">
+                <a class="navbar-brand" href="{% url 'landing' %}">Fedha-Grow Groups</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav ms-auto">
+
+                        <!--<li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#how-it-works">How It Works</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#testimonials">Testimonials</a></li>-->
+                    </ul>
+                </div>
+
+                <ul class="navbar-nav ms-auto">
+                    {% if user.is_authenticated %}                        
+                    <li class="nav-item"><a class="nav-link btn ms-2" href="{% url 'admin_logout' %}">Logout</a></li>
+                    {% else %}
+                        
+                    <li class="nav-item"><a class="nav-link btn ms-2" href="{% url 'register_group_admin' %}">Register as Admin</a></li>   
+                    
+                    <li class="nav-item"><a class="nav-link btn ms-2" href="{% url 'group_admin_login' %}">Login to Admin Dash</a></li>
+                        
+                    {% endif %}
+                </ul>
+                
+            </div>
+
+            
+
+        </nav>
+        
+        <!--<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container px-lg-5">
+                <a class="navbar-brand" href="{% url 'landing' %}">Fedha-Grow</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav ms-auto">-->
+
+                        <!--<li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#how-it-works">How It Works</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#testimonials">Testimonials</a></li>-->
+                        
+                        
+                        <!--<li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="#!">Register as Borrower</a></li>-->
+                        <!--<li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="#!">Register as Lender</a></li>-->
+                        
+                        <!--{% if user.is_authenticated %}                        
+                        <li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="{% url 'logout' %}">Logout</a></li>
+                        {% else %}
+                            
+                        <li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="{% url 'register' %}">Register</a></li>
+                              
+                        {% if user.role == 'borrower' %}
+                        <li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="{% url 'login' %}?next=/borrowers/borrower_index/">Login</a></li>
+                            {% else %}
+                        <li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="{% url 'login' %}?next=/lenders/lender_index/">Login</a></li>
+                                {% endif %}
+                            
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </nav> -->

@@ -1,0 +1,206 @@
+{% extends 'group_dash_base.html' %}
+{% load static %}
+
+{% block content %}
+
+
+<div class="container-fluid">
+
+                        <h1 class="mt-4">Goup Dashboard</h1>
+                        <ol class="breadcrumb mb-4">
+                            <li class="breadcrumb-item active">Click on any of the Lenders below to see who best suit your needs</li>
+                        </ol>
+
+                     
+
+                        
+
+
+                        <div class="row">
+                            <div class="col-xl-6">
+                                <div class="card mb-4">
+                                    <div class="card-header bg-secondary text-white">
+                                        <i class="fas fa-chart-bar me-1"></i>
+                                        average monthly repayments
+                                    </div>
+                                    
+                                    <div class="card-body"><canvas id="repaymentsBarChart"></canvas></div>
+                                </div>
+                            </div>
+                            <div class="col-xl-6">
+                                <div class="card mb-4">
+                                    <div class="card-header bg-secondary text-white">
+                                        <i class="fas fa-chart-area me-1"></i>
+                                        outstanding balance over time
+                                    </div>
+                                   
+                                    <div class="card-body"><canvas id="balanceLineChart"></canvas></div>
+                                </div>
+                            </div>
+                            <div class="col-xl-6">
+                                <div class="card mb-4">
+                                    <div class="card-header bg-secondary text-white">
+                                        <i class="fas fa-chart-pie me-1"></i>
+                                        Summary of paid vs owed
+                                    </div>
+                                    <div class="card-body"><canvas id="paidVsOutstandingPieChart"></canvas></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-4">
+                        <div class="card-header bg-secondary text-white">
+                                <i class="fas fa-table me-1"></i>
+                                Summary of all Lenders
+                            </div>
+                        <table class="table table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>Company Name</th>
+                                    <th>Registration No.</th>
+                                    <th>Office</th>
+                                    <th>Interest rate</th>
+                                    <th>Min Loan</th>
+                                    <th>Max Loan</th>
+                                    <th>More Details</th>
+
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for lender in lenders %}
+                                    <tr>
+                                        <td>{{ lender.company_name }}</td>
+                                        <td>{{ lender.registration_no }}</td>
+                                        <td>{{ lender.office_address }}</td>
+                                        <td>{{ lender.interest_rate }}%</td>
+                                        <td>R{{ lender.min_loan }} </td>
+                                        <td>R{{ lender.max_loan }}</td>
+                                        <td><a href="{% url 'lender_details' lender.id %}" class="btn btn-sm btn-outline-primary">View</a></td>
+                                        
+                                       
+                                    </tr>
+                               {% endfor %}
+                            </tbody>
+                        </table>
+                        </div>
+
+
+                    
+</div>
+
+           <script>
+            function fetchChartData(url, callback) {
+              fetch(url)
+                .then(res => res.json())
+                .then(data => callback(data))
+                .catch(err => console.error('Chart fetch error:', err));
+            }
+
+            function renderBarChart(id, labels, data) {
+              new Chart(document.getElementById(id), {
+                type: 'bar',
+                data: {
+                  labels: labels,
+                  datasets: [{
+                    label: 'Monthly Repayments (ZAR)',
+                    backgroundColor: '#007bff',
+                    borderColor: '#007bff',
+                    data: data
+                  }]
+                },
+                options: {
+                  scales: {
+                    y: {
+                      beginAtZero: true
+                    }
+                  }
+                }
+              });
+            }
+
+            function renderLineChart(id, labels, data) {
+              new Chart(document.getElementById(id), {
+                type: 'line',
+                data: {
+                  labels: labels,
+                  datasets: [{
+                    label: 'Outstanding Balance (ZAR)',
+                    data: data,
+                    fill: false,
+                    borderColor: 'rgba(255,99,132,1)',
+                    tension: 0.3
+                  }]
+                },
+                options: {
+                  scales: {
+                    y: {
+                      beginAtZero: true
+                    }
+                  }
+                }
+              });
+            }
+
+            function renderPieChart(id, labels, data) {
+              new Chart(document.getElementById(id), {
+                type: 'pie',
+                data: {
+                  labels: labels,
+                  datasets: [{
+                    data: data,
+                    backgroundColor: ['#28a745', '#ffc107']
+                  }]
+                }
+              });
+            }
+
+            // Fetch and render all charts
+            fetchChartData('/borrowers/api/borrower/monthly-repayments/', data =>
+              renderBarChart('repaymentsBarChart', data.labels, data.data)
+            );
+            fetchChartData('/borrowers/api/borrower/balance-over-time/', data =>
+              renderLineChart('balanceLineChart', data.labels, data.data)
+            );
+            fetchChartData('/borrowers/api/borrower/paid-vs-outstanding/', data =>
+              renderPieChart('paidVsOutstandingPieChart', data.labels, data.data)
+            );
+
+            window.addEventListener('DOMContentLoaded', event => {
+                // Simple-DataTables
+                // https://github.com/fiduswriter/Simple-DataTables/wiki
+
+                const datatablesSimple = document.getElementById('datatablesSimple');
+                if (datatablesSimple) {
+                    new simpleDatatables.DataTable(datatablesSimple);
+                }
+            });
+
+            </script>
+
+            <style>
+                .card.position-relative {
+                    /* Ensures absolute positioning of children works relative to the card */
+                    position: relative;
+                    overflow: hidden; /* Important to clip content that might go outside */
+                }
+
+                .badge-overlay {
+                    position: absolute;
+                    top: 10px; /* Adjust as needed for vertical positioning */
+                    right: 10px; /* Adjust as needed for horizontal positioning */
+                    z-index: 10; /* Ensures the badge is on top of other content */
+                }
+
+                /* Optional: Adjust badge size if needed */
+                .badge-overlay .badge {
+                    padding: .5em .75em; /* Increase padding for a larger badge */
+                    font-size: .85em; /* Adjust font size */
+                }
+            </style>
+
+        <script src="{% static 'borrower/assets/demo/chart-area-demo.js' %}"></script>
+        <script src="{% static 'borrower/assets/demo/chart-bar-demo.js' %}"></script>
+        <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js" crossorigin="anonymous"></script>
+        <script src="{% static 'borrower/js/datatables-simple-demo.js' %}"></script>  
+            
+{% endblock %}

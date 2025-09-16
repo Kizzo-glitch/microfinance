@@ -12,6 +12,13 @@
 
         <form method="POST" action="{% url 'lender_profile' %}">
             {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    <strong>Error:</strong> {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
             <div class="border">
                 <center>
             <h4>Business Information</h4>
@@ -65,24 +72,81 @@
 
             <div class="row mb-3" style="padding: 0 20px;">
                 <div class="col-md-4">
-                    <label for="min_loan">Minimun Loan Amount</label>
-                    <!--<label for="nameLast" class="form-label">Minimum Loan</label>
-                    <input type="text" class="form-control" id="nameLast">-->
+                    <label for="{{ form.min_loan.id_for_label }}">Minimun Loan Amount</label>
                     {{ form.min_loan }}
+                    {% for error in form.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
                 </div>
                 <div class="col-md-4">
-                    <label for="max_loan">Maximum Loan Amount</label>
-                    <!--<label for="nameFirst" class="form-label">Maximum Loan</label>
-                    <input type="text" class="form-control" id="nameFirst">-->
+                    <label for="{{ form.max_loan.id_for_label }}">Maximum Loan Amount</label>
                     {{ form.max_loan }}
+                    {% for error in form.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
                 </div>
                 <div class="col-md-4">
                     <label for="interest_rate">Interest Rate</label>
-                    <!--<label for="nameMiddle" class="form-label">Interest Rate</label>
-                    <input type="text" class="form-control" id="nameMiddle">-->
+                    
                     {{ form.interest_rate }}
                 </div>
             </div>
+
+            <div class="row mb-3" style="padding: 0 20px;">
+                <label class="form-label">My Loan Terms</label>
+                <div class="d-flex flex-wrap">
+                  {% with selected=form.loan_terms.value %}
+                    {% for value,label in form.fields.loan_terms.choices %}
+                      <input type="checkbox"
+                             class="btn-check"
+                             id="term_{{ forloop.counter }}"
+                             name="{{ form.loan_terms.html_name }}"
+                             value="{{ value }}"
+                             {% if selected and value|stringformat:"s" in selected %}checked{% endif %}
+                             autocomplete="off">
+                      <label class="btn btn-outline-primary m-1" for="term_{{ forloop.counter }}">
+                        {{ label }} months
+                      </label>
+                    {% endfor %}
+                  {% endwith %}
+                </div>
+            </div>
+
+
+            <!--<div class="col-md-12 mb-3">
+                <label class="form-label">My Loan Terms</label>
+                <div class="d-flex flex-wrap loan-term-buttons">
+                  {% for cb in form.loan_terms %}
+                    <input type="checkbox"
+                           id="{{ cb.id_for_label }}"
+                           name="{{ cb.name }}"
+                           value="{{ cb.choice_value }}"
+                           {% if cb.data.selected %}checked{% endif %}
+                           class="d-none term-input">
+                    <label for="{{ cb.id_for_label }}"
+                           class="btn btn-outline-primary m-1 loan-term-label">
+                      {{ cb.choice_label }} months
+                      {% for error in form.errors %}
+                        <small class="text-danger">{{ error }}</small>
+                    {% endfor %}
+                    </label>
+                  {% endfor %}
+                </div>
+            </div>-->
+
+            <!--<div class="col-md-4">
+                <label class="form-label">My Loan Terms</label>
+                <div class="d-flex flex-wrap">
+                    {% for checkbox in form.loan_terms %}
+                        <div class="form-check me-3">
+                            {{ checkbox.tag }}
+                            <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                {{ checkbox.choice_label }} months
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>-->
 
             
 
@@ -343,17 +407,37 @@
             <br><br>
             <br>
 
+                <div class="form-check mb-2">
+                    {{ form.agrees_to_terms|add_class:"form-check-input" }}
+                    <label for="{{ form.agrees_to_terms.id_for_label }}" class="form-check-label">
+                        I hereby certify that the information contained herein is complete and accurate.
+                    </label>
+                    {% for error in form.agrees_to_terms.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
 
-            <div class="form-check">
+                <div class="form-check mb-3">
+                    {{ form.agrees_to_credit_conditions|add_class:"form-check-input" }}
+                    <label for="{{ form.agrees_to_credit_conditions.id_for_label }}" class="form-check-label">
+                        This information has been furnished with the understanding that it is to be used to fairly disburse loans to borrowers.
+                    </label>
+                    {% for error in form.agrees_to_credit_conditions.errors %}
+                        <div class="text-danger small">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+
+                <!--<div class="form-check">
                     {{ form.agrees_to_terms }}
-                    <label for="id_is_over_18" class="form-check-label">I hereby certify that the information contained herein is complete and accurate.</label>
+                    <label for="agrees_to_terms" class="form-check-label">I hereby certify that the information contained herein is complete and accurate.</label>
                 </div>
 
 
                 <div class="form-check">
                     {{ form.agrees_to_credit_conditions }}
-                    <label for="id_is_over_18" class="form-check-label">This information has been furnished with the understanding that it is to be used to fairly disburse loans to borrowers.</label>
-                </div>
+                    <label for="agrees_to_credit_conditions" class="form-check-label">This information has been furnished with the understanding that it is to be used to fairly disburse loans to borrowers.</label>
+                </div>-->
 
             
             <!--<div class="mb-3">
@@ -370,12 +454,46 @@
             </div>-->
 
             
-            
-
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>
          <br><br>
     </div>
+
+
+
+    <!--<script>
+        
+
+        document.addEventListener("DOMContentLoaded", function () {
+          document.querySelectorAll(".term-input").forEach(input => {
+            const label = document.querySelector(`label[for="${input.id}"]`);
+            const sync = () => label.classList.toggle("active", input.checked);
+            sync();                     // initial state
+            input.addEventListener("change", sync); // update on toggle
+          });
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll(".loan-term-label").forEach(label => {
+                let checkbox = document.getElementById(label.getAttribute("for"));
+                
+                // Initialize active state if checked
+                if (checkbox.checked) {
+                    label.classList.add("active");
+                }
+
+                // Toggle on click
+                label.addEventListener("click", function () {
+                    checkbox.checked = !checkbox.checked;
+                    label.classList.toggle("active", checkbox.checked);
+                });
+            });
+        });
+</script>-- .
+
+
 
     <style>
         .form-control::placeholder {
@@ -388,6 +506,19 @@
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
+        }
+
+       
+
+        .loan-term-label {
+            cursor: pointer;
+            border-radius: 20px;
+            padding: 0.5rem 1rem;
+        }
+
+        .loan-term-label.active {
+            background-color: #0d6efd;
+            color: white;
         }
     </style>
 

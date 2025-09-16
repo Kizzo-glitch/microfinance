@@ -1,0 +1,65 @@
+{% extends "group_base.html" %}
+{% load static %}
+{% block content %}
+
+<section class="bg-light py-5">
+  <div class="card shadow bg-light border-0 h-100">
+    <h1 class="text-center text-success mb-4">Borrower Groups</h1>
+    <p class="text-center lead">
+      <strong>Unlock the power of collective trust.</strong>
+    </p>
+    <p class="text-center lead">
+      Groups like Societies, Stokvels, and Unions 
+      give lenders confidence and borrowers easier access to credit.
+    </p>
+  </div>
+</section>
+
+<section class="container py-5">
+  <div class="row text-center">
+    <div class="col-md-4">
+      <img src="{% static 'landing/assets/social_proof.png' %}" class="d-block w-100" alt="Image 1">
+      <i class="bi bi-people-fill text-success fs-1"></i>
+      <h4 class="fw-bold mt-3">Social Proof</h4>
+      <p>Group membership reduces identity fraud and provides credibility to lenders.</p>
+    </div>
+    <div class="col-md-4">
+      <img src="{% static 'landing/assets/low_risk.jpeg' %}" class="d-block w-100" alt="Image 1">
+      <i class="bi bi-shield-lock-fill text-success fs-1"></i>
+      <h4 class="fw-bold mt-3">Reduced Risk</h4>
+      <p>Lenders feel safer when borrowers are backed by a trusted organization.</p>
+    </div>
+    <div class="col-md-4">
+      <img src="{% static 'landing/assets/access.jpeg' %}" class="d-block w-100" alt="Image 1">
+      <i class="bi bi-graph-up text-success fs-1"></i>
+      <h4 class="fw-bold mt-3">Better Access</h4>
+      <p>Borrowers in groups often enjoy faster approvals and better terms.</p>
+    </div>
+  </div>
+</section>
+
+
+<section class="bg-success text-white py-5">
+  <div class="container text-center">
+    <h2>How it Works</h2>
+    <ol class="list-unstyled fs-5 mt-4">
+      <li>📌 Register as Group Admin.</li>
+      <li>📌 Admin creates a group (society, stokvel, union, etc.).</li>
+      <li>📌 The group admin invites members to join.</li>
+      <li>📌 Members activate their profiles and link to the group.</li>
+      <li>📌 Lenders can subscribe to and finance groups directly.</li>
+    </ol>
+  </div>
+</section>
+
+<section class="container text-center py-5">
+  <h2 class="fw-bold">Ready to Get Started?</h2>
+  <p class="mb-4">Create your borrower group today or explore partnerships as a lender.</p>
+  
+  <a href="{% url 'create_group' %}" class="btn btn-primary btn-lg mx-2">Create a Group</a>
+  <a href="{% url 'group_admin_dashboard' %}" class="btn btn-primary btn-lg mx-2">Go to dash</a>
+  <a href="#" class="btn btn-outline-success btn-lg mx-2">For Lenders</a> 
+</section>
+
+
+{% endblock %}

@@ -6,6 +6,61 @@
 
 <div class="container-fluid">
 
+    
+
+            {% if draft_app %}
+            <h3>Saved Draft Applications</h3>
+                <div class="alert alert-info">
+                You have a saved application ({{ draft_app.current_stage }} stage).
+                <a href="{% url 'resume_application' draft_app.id %}" class="btn btn-sm btn-primary">Resume</a>
+                <a href="{% url 'delete_draft_application' draft_app.id %}" 
+                                       class="btn btn-danger btn-sm"
+                                       onclick="return confirm('Are you sure you want to delete this draft?');">
+                                        Delete
+                                    </a>
+            </div>
+
+            {% endif %}
+
+    <!--{% if drafts %}
+        <ul class="list-group">
+            {% for app in drafts %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>
+                        Draft for {{ app.lender }} - Stage: {{ app.current_stage }}
+                    </span>
+                    <span>
+                        <a href="{% url 'resume_application' app.id %}" class="btn btn-primary btn-sm">
+                            Resume
+                        </a>
+                        <a href="{% url 'delete_draft_application' app.id %}" 
+                           class="btn btn-danger btn-sm"
+                           onclick="return confirm('Are you sure you want to delete this draft?');">
+                            Delete
+                        </a>
+                    </span>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>You have no saved draft applications.</p>
+    {% endif %}-->
+
+
+                        <!--{% for application in applications %}
+                          <div>
+                            <p>Loan Application #{{ application.id }}</p>
+                            <p>Status: {{ application.get_status_display }}</p>
+
+                            {% if application.status == "draft" %}
+                              <a href="{% url 'resume_application' application.pk %}" class="btn btn-primary">
+                                Resume Application
+                              </a>
+                            {% endif %}
+                          </div>
+                        {% endfor %}-->
+
+
                         <h1 class="mt-4">My Dashboard</h1>
                         <ol class="breadcrumb mb-4">
                             <li class="breadcrumb-item active">Click on any of the Lenders below to see who best suit your needs</li>
@@ -14,7 +69,7 @@
                         <div class="row">
                             {% for lender in lenders %}                      
                             
-                            <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="col-xl-6 col-md-6 mb-4">
                                 <div class="card border-left-primary shadow h-100 py-2">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
@@ -37,6 +92,26 @@
                                                 <!--</p>-->
                                             </div>
 
+                                            <div class="col mr-2">
+                                                <br>
+                                                <div class="h8 font-weight-bold text-primary mb-1">
+                                                    <strong>Interest Rate: {{ lender.interest_rate }}%</strong>
+                                                </div>
+                                                <div class="h8 font-weight-bold text-primary mb-1">
+                                                    <strong>Min Loan: R{{ lender.min_loan }}</strong>
+                                                </div>
+                                                <div class="h8 font-weight-bold text-primary mb-1">
+                                                    <strong>Max Loan: R{{ lender.max_loan }}</strong>
+                                                </div>
+                                                <div class="h8 font-weight-bold text-primary mb-1">
+                                                    <strong>Loan Terms: {{ lender.loan_terms|join:", " }}</strong>
+                                                </div>
+                                                <div class="h8 font-weight-bold text-primary mb-1">
+                                                    <strong>Missed payment recalculations: {{lender.missed_payment_policy}}</strong>
+                                                </div>
+                                                
+                                            </div>
+
                                             <div class="badge-overlay text-white"> 
                                                 {% if lender.verification_status == 'licensed' %}
                                                     <span class="badge bg-success"><i class="fas fa-check-circle"></i> Licensed</span>
@@ -51,7 +126,7 @@
 
                                     </div>
                                     <div class="card-footer d-flex align-items-center justify-content-between">
-                                                <a class="small text-primary stretched-link" href="{% url 'lender_details' lender.id %}">View Details</a>
+                                                <a class="small text-primary stretched-link" href="{% url 'lender_details' lender.id %}">View More Details</a>
                                                 <div class="small text-primary"><i class="fas fa-angle-right"></i></div>
                                             </div>
                                 </div>

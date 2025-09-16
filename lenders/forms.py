@@ -48,6 +48,20 @@ class LenderInfoForm(forms.ModelForm):
 	reporting = forms.Select(attrs={'class': 'form-control'})
 
 	missed_payment_policy = forms.Select(attrs={'class': 'form-control'})
+	loan_terms = forms.MultipleChoiceField(
+		choices=[
+			(1, "1 month"),
+			(3, "3 months"),
+			(6, "6 months"),
+			(9, "9 months"),
+			(12, "12 months"),
+			(24, "24 months"),
+			(36, "36 months"),
+		],
+		widget=forms.CheckboxSelectMultiple,
+		required=True,
+		label="Available Loan Terms"
+	)
 
 	agrees_to_terms = forms.BooleanField(widget=forms.CheckboxInput(
 		attrs={'class': 'form-check-input'}), required=True,)
@@ -55,37 +69,49 @@ class LenderInfoForm(forms.ModelForm):
 		attrs={'class': 'form-check-input'}), required=True,)
 
 
-
 	class Meta:
 		model = LenderProfile
-		fields = ('ceo_first_name', 
-			'ceo_last_name', 
-			'company_name', 
-			'registration_no', 
-			'office_address', 
-			'min_loan', 
-			'max_loan', 
-			'interest_rate', 
-			'phone_number', 
-			
-			'date_of_stablishment',
-			'business_email_ddress',
-			'ownership',
-			'licence_no',
-			'regulatory_body_name',
-			'regulatory_body_no',
-			'kyc_policy_implementation',
-			'aml_policy_implementation',
-			'data_protection_policy_implementation',
-			'tax_number',
-			'code_of_ethics',
-			'association_name',
-			'membership_no',
-			'benchmarking',
-			'reporting',
-			'missed_payment_policy'
-			)
+		fields = (
 
+				'ceo_first_name', 
+				'ceo_last_name', 
+				'company_name', 
+				'registration_no', 
+				'office_address', 
+				'min_loan', 
+				'max_loan', 
+				'interest_rate', 
+				'phone_number', 
+				
+				'date_of_stablishment',
+				'business_email_ddress',
+				'ownership',
+				'licence_no',
+				'regulatory_body_name',
+				'regulatory_body_no',
+				'kyc_policy_implementation',
+				'aml_policy_implementation',
+				'data_protection_policy_implementation',
+				'tax_number',
+				'code_of_ethics',
+				'association_name',
+				'membership_no',
+				'benchmarking',
+				'reporting',
+				'missed_payment_policy',
+				'loan_terms'
+			)
+		widgets = {
+			'loan_terms': forms.CheckboxSelectMultiple(  # ✅ render as checkboxes
+				attrs={'class': 'form-check-input'}
+			),
+		}
+
+
+	
+
+
+		
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 		
@@ -93,6 +119,24 @@ class LenderInfoForm(forms.ModelForm):
 		for field_name, field in self.fields.items():
 			existing_classes = field.widget.attrs.get('class', '')
 			field.widget.attrs['class'] = f'{existing_classes} form-control'.strip()
+
+
+	def clean(self):
+		cleaned_data = super().clean()
+		min_loan = cleaned_data.get("min_loan")
+		max_loan = cleaned_data.get("max_loan")
+
+		# Check if both fields have values before comparing
+		if min_loan is not None and max_loan is not None:
+			if min_loan > max_loan:
+				# Raise a ValidationError to prevent form submission
+				raise forms.ValidationError(
+					"The minimum loan amount cannot be greater than the maximum loan amount."
+				)
+
+		# Always return the cleaned_data dictionary
+		return cleaned_data
+
 
 
 class VerificationStatusForm(forms.ModelForm):

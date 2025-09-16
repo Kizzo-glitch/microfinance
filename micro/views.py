@@ -7,6 +7,7 @@ from .forms import UserRegistrationForm
 
 from .models import User
 from borrowers.models import BorrowerProfile
+from lenders.models import LenderProfile
 
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
@@ -15,7 +16,6 @@ from django.contrib.auth.decorators import login_required
 
 def landing(request):	
 	return render(request, 'landing.html', {})
-
 
 
 def register(request):
@@ -47,6 +47,7 @@ def register(request):
 		form = UserRegistrationForm()
 	return render(request, 'register.html', {'form': form})
 	
+
 
 def borrower_registration(request):
 	borrower_form = BorrowerRegistrationForm()

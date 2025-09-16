@@ -44,38 +44,64 @@ from micro.utils import generate_otp
 from loans.utils import send_sms_smsportal
 from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
 
+from .utils import handle_stage_navigation
 
 
 
-@login_required
+
 def borrower_profile(request):
-	if request.user.is_borrower():
-		current_user = BorrowerProfile.objects.get(user__id=request.user.id)
+	user = request.user
+	if not request.user.is_authenticated or not request.user.role == 'borrower':
+		messages.error(request, "You Must Be a logged in Borrower To Access That Page!!")
+		return redirect('landing')
 
-		# Get original User Form
-		form = BorrowerProfileForm(request.POST or None, instance=current_user)
+	# Get or create the BorrowerProfile instance for the current user
+	try:
+		current_user = BorrowerProfile.objects.get(user=request.user)
+		# Pre-fill initial data from the User model for existing profiles
+		initial_data = {
+			'phone_number': user.phone_number,
+			'email_address': user.email,
+			'full_name': f"{user.first_name} {user.last_name}" if user.first_name and user.last_name else "",
+		}
+	except BorrowerProfile.DoesNotExist:
+		# If no profile exists, create a new one and pre-fill fields
+		current_user = None
+		initial_data = {
+			'phone_number': user.phone_number,
+			'email_address': user.email,
+			'full_name': f"{user.first_name} {user.last_name}" if user.first_name and user.last_name else "",
+		}
 
-		# Get borrower's outstanding and overdue loans
-		outstanding_loans = Loan.objects.filter(borrower=current_user, outstanding_balance__gt=0).count()
-		overdue_loans = Loan.objects.filter(borrower=current_user, due_date__lt=date.today(), outstanding_balance__gt=0).count()
-		total_debt = Loan.objects.filter(borrower=current_user).aggregate(total=models.Sum('outstanding_balance'))['total'] or 0
+	# Get borrower's outstanding and overdue loans
+	outstanding_loans = Loan.objects.filter(borrower=request.user.borrower, outstanding_balance__gt=0).count()
+	overdue_loans = Loan.objects.filter(borrower=request.user.borrower, due_date__lt=date.today(), outstanding_balance__gt=0).count()
+	total_debt = Loan.objects.filter(borrower=request.user.borrower).aggregate(total=Sum('outstanding_balance'))['total'] or 0
 
+	if request.method == 'POST':
+		# Pass the instance to update an existing profile or create a new one
+		form = BorrowerProfileForm(request.POST, instance=current_user)
 		if form.is_valid():
-			form.save()
+			profile = form.save(commit=False)
+			profile.user = request.user
+			profile.save()
 			messages.success(request, "Your Info Has Been Updated!!")
 			return redirect('borrower_index')
 		else:
 			print(form.errors)
+	else:
+		# For a GET request, instantiate the form with initial data
+		# and the instance (if it exists)
+		form = BorrowerProfileForm(instance=current_user, initial=initial_data)
 
-		return render(request, "borrower_profile.html", {
-			'form': form,
-			'outstanding_loans': outstanding_loans,
-			'overdue_loans': overdue_loans,
-			'total_debt': total_debt,
-		})
+	return render(request, "borrower_profile.html", {
+		'form': form,
+		'outstanding_loans': outstanding_loans,
+		'overdue_loans': overdue_loans,
+		'total_debt': total_debt,
+	})
 
-	messages.error(request, "You Must Be Logged In To Access That Page!!")
-	return redirect('landing')
+
 
 
 @login_required
@@ -83,10 +109,15 @@ def borrower_index(request):
 	lenders = (LenderProfile.objects.filter(user__is_superuser=False, user__role='lender')
 		.annotate(average_rating=Avg('ratings__rating')))
 
+	draft_app = LoanApplication.objects.filter(borrower=request.user.borrower, status="draft").last()
+
 	for lender in lenders:
 		lender.bg_color = generate_random_color()
 
-	return render(request, 'borrower_index.html', {'lenders': lenders})
+	return render(request, 'borrower_index.html', {
+		'lenders': lenders, 
+		"draft_app": draft_app
+		})
 
 
 # List of predefined vibrant colors for dashboard
@@ -253,31 +284,225 @@ def verify_otp(request):
 	return render(request, 'verify_otp.html')
 
 
-@login_required
-def select_employment_type(request):
+
+
+
+'''@login_required
+def select_employment_type22(request):
 	profile = request.user.borrower
 	lender_id = request.session.get('lender_id')
+
+	REQUIRED_DOCS = {
+		"employed": [
+			"Payslip (last 3 months)",
+			"Bank statement (last 3 months)",
+			"ID document",
+			"Chief's Letter"
+		],
+		"self_employed": [
+			"Proof of income (invoices/receipts)",
+			"Bank statement (last 6 months)",
+			"ID document",
+			"Business Address",
+			"Chief Letter",
+			"Customer Invoice",
+			"Supplier Invoice",
+			"Tax Clearance Certificate"
+		],
+		"registered_business": [
+			"Company registration certificate",
+			"Tax clearance certificate",
+			"Business Bank statement (last 6 months)",
+			"Director’s ID document",
+			"Business Address",
+			"Chief Letter",
+			"Customer Invoice",
+			"Supplier Invoice",
+		],
+	}
+
+	# fetch draft or create new
+	loan_app, created = LoanApplication.objects.get_or_create(
+		borrower=profile,
+		status="draft"
+	)
+
 	if request.method == 'POST':
 		form = EmploymentTypeForm(request.POST, instance=profile)
+
 		if form.is_valid():
 			form.save()
+			loan_app.employment_type = form.cleaned_data['employment_type']
 
-			employment_type = form.cleaned_data['employment_type']
+			if "save" in request.POST:  # borrower clicked "Save & Exit"
+				loan_app.current_stage = "employment_type"  # stay here
+				loan_app.save()
+				return redirect("borrower_index")
 
-			if employment_type == 'employed':
+			# borrower clicked Save & Continue
+			loan_app.current_stage = "documents"
+			loan_app.save()
+
+			if loan_app.employment_type == 'employed':
 				return redirect('upload_documents_employed')
-			elif employment_type == 'self_employed':
+			elif loan_app.employment_type == 'self_employed':
 				return redirect('upload_documents_self_employed')
-			elif employment_type == 'registered_business':
+			elif loan_app.employment_type == 'registered_business':
 				return redirect('upload_documents_registered_business')
 			else:
-				# fallback if somehow employment_type is missing
-				return redirect('upload_documents')
+				return redirect('employment_type')
 
 	else:
 		form = EmploymentTypeForm(instance=profile)
 
-	return render(request, 'employment_type.html', {'form': form})
+	return render(
+		request,
+		"employment_type.html",
+		{
+			"form": form,
+			"required_docs": REQUIRED_DOCS,
+			"loan_app": loan_app
+		}
+	)'''
+
+
+
+
+@login_required
+def select_employment_type(request):
+	profile = request.user.borrower
+	lender_id = request.session.get('lender_id')
+
+	REQUIRED_DOCS = {
+		"employed": [
+			"Payslip (last 3 months)",
+			"Bank statement (last 3 months)",
+			"ID document",
+			"Chief's Letter"
+		],
+		"self_employed": [
+			"Proof of income (invoices/receipts)",
+			"Bank statement (last 6 months)",
+			"ID document",
+			"Business Address",
+			"Chief Letter",
+			"Customer Invoice",
+			"Supplier Invoice",
+			"Tax Clearance Certificate"
+		],
+		"registered_business": [
+			"Company registration certificate",
+			"Tax clearance certificate",
+			"Business Bank statement (last 6 months)",
+			"Director’s ID document",
+			"Business Address",
+			"Chief Letter",
+			"Customer Invoice",
+			"Supplier Invoice",
+		],
+	}
+
+	loan_app, _ = LoanApplication.objects.get_or_create(
+		borrower=request.user.borrower,
+		status="draft",
+		defaults={"current_stage": "employment"}
+	)
+
+	if request.method == "POST":
+		#form = EmploymentTypeForm(request.POST, instance=loan_app)
+		form = EmploymentTypeForm(request.POST, instance=profile)
+		if form.is_valid():
+			form.save()
+			loan_app.employment_type = form.cleaned_data['employment_type']
+
+		def next_stage(loan_app):
+			# decide redirect dynamically
+			if loan_app.employment_type == "employed":
+				loan_app.current_stage = "documents"
+				return "upload_documents_employed"
+			elif loan_app.employment_type == "self_employed":
+				loan_app.current_stage = "documents"
+				return "upload_documents_self_employed"
+			elif loan_app.employment_type == "registered_business":
+				loan_app.current_stage = "documents"
+				return "upload_documents_registered_business"
+			return "borrower_index"
+
+		response = handle_stage_navigation(request, form, loan_app, next_stage)
+		if response:
+			return response
+	else:
+		form = EmploymentTypeForm(instance=profile)
+
+	return render(request, "employment_type.html", {
+		"form": form,
+		"required_docs": REQUIRED_DOCS,})
+
+
+
+@login_required
+def resume_application(request, app_id):
+	loan_app = LoanApplication.objects.get(id=app_id, borrower=request.user.borrower)
+
+	if loan_app.current_stage == "employment":
+		return redirect("employment_type")
+
+	elif loan_app.current_stage == "documents":
+		if loan_app.borrower.employment_type == "employed":
+			return redirect("upload_documents_employed")
+		elif loan_app.employment_type == "self_employed":
+			return redirect("upload_documents_self_employed")
+		elif loan_app.employment_type == "registered_business":
+			return redirect("upload_documents_registered_business")
+		else:
+			# fallback if employment_type is missing/corrupt
+			return redirect("select_employment_type")
+
+	elif loan_app.current_stage == "affordability":
+		return redirect("update_expenses")
+
+	elif loan_app.current_stage == "loan_calculator":
+		return redirect("loan-calculator")
+
+	elif loan_app.current_stage == "apply_loan":
+		return redirect("apply-loan")
+
+	else:
+		# unknown stage → fallback to dashboard
+		return redirect("borrower_index")
+
+
+
+
+@login_required
+def resume_application22(request, app_id):
+	loan_app = LoanApplication.objects.get(id=app_id, borrower=request.user.borrower)
+
+	if loan_app.current_stage == "employment":
+		return redirect("select_employment_type")
+	elif loan_app.current_stage == "documents":
+		return redirect("upload_documents_employed")
+	elif loan_app.current_stage == "affordability":
+		return redirect("update_expenses")
+	elif loan_app.current_stage == "loan_calculator":
+		return redirect("loan-calculator")
+	else:
+		return redirect("borrower_index")
+
+
+
+
+@login_required
+def delete_draft_application(request, pk):
+	loan_app = get_object_or_404(LoanApplication, pk=pk, borrower=request.user.borrower)
+
+	if loan_app.is_draft():  # ✅ Only drafts can be deleted
+		loan_app.delete()
+		messages.success(request, "Your draft loan application has been deleted successfully.")
+	else:
+		messages.error(request, "Only draft applications can be deleted.")
+
+	return redirect('borrower_index')
 
 
 
@@ -285,10 +510,220 @@ def select_employment_type(request):
 def upload_documents_employed(request):
 	borrower = request.user.borrower
 	lender_id = request.session.get('lender_id')
+	loan_app = LoanApplication.objects.filter(borrower=borrower, status="draft").last()
 
-	if not lender_id:
-		messages.error(request, "Lender not selected.")
-		return redirect('borrower_index')
+	if request.method == 'POST':
+		action = request.POST.get('action')  # "save_exit" or "save_continue"
+		form = EmployedDocumentsForm(request.POST, request.FILES)
+
+		if form.is_valid():
+			for field_name in form.fields:
+				file = form.cleaned_data.get(field_name)
+
+				if file:
+					BorrowerDocs.objects.update_or_create(
+						borrower=borrower,
+						loan_application=loan_app,
+						document_type=field_name,
+						defaults={'file': file}
+					)
+
+			# ✅ Handle Save & Exit
+			if action == "save_exit":
+				loan_app.current_stage = "documents"
+				loan_app.save(update_fields=["current_stage"])
+				messages.success(request, "Progress saved. You can resume later.")
+				#return redirect("borrower_index")
+				return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/borrower_index/'})
+
+
+
+
+			# ✅ Handle Save & Continue
+			missing_docs = []
+			for field_name in form.fields:
+				has_uploaded = BorrowerDocs.objects.filter(
+					borrower=borrower, 
+					loan_application=loan_app, 
+					document_type=field_name
+				).exists()
+
+				if not has_uploaded:
+					missing_docs.append(field_name)
+
+			if missing_docs:
+				messages.error(request, f"Please upload required documents: {', '.join(missing_docs)}")
+			else:
+				loan_app.current_stage = "affordability"
+				loan_app.save(update_fields=["current_stage"])
+				#return redirect("update_expenses")
+				return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/update-expenses/'})
+
+		else:
+			messages.error(request, "Form error. Please check your uploads.")
+	else:
+		form = EmployedDocumentsForm()
+
+	# Preload already uploaded docs
+	#existing_docs = BorrowerDocs.objects.filter(borrower=borrower, loan_application=loan_app)
+	#uploaded_map = {doc.document_type: doc for doc in existing_docs}
+
+	docs_qs = BorrowerDocs.objects.filter(
+		borrower=borrower,
+		loan_application=loan_app
+	)
+	existing_docs = {doc.document_type: doc for doc in docs_qs}
+
+	return render(request, 'upload_documents_employed.html', {
+		'form': form,
+		'existing_docs': existing_docs
+
+	})
+
+
+
+
+'''@login_required
+def upload_documents_employed223(request, app_id=None):
+	borrower = request.user.borrower
+
+	# Fetch draft application
+	if app_id:
+		loan_app = get_object_or_404(LoanApplication, id=app_id, borrower=borrower)
+	else:
+		# If no app_id in URL/session, create one
+		loan_app, created = LoanApplication.objects.get_or_create(
+			borrower=borrower,
+			#is_submitted=False,
+			status="draft",
+			defaults={'current_stage': 'documents'}
+		)
+
+	if request.method == 'POST':
+		form = EmployedDocumentsForm(request.POST, request.FILES)
+		action = request.POST.get("action")  # either save_exit or save_continue
+
+		if form.is_valid():
+			doc_map = {
+				'id_proof': 'ID Proof',
+				'bank_statement': 'Bank Statement',
+				'payslip': 'Payslip',
+				'chief_letter': 'Chief Letter',
+			}
+
+			for field_name, file in form.cleaned_data.items():
+				if file:
+					# Update or create each doc
+					BorrowerDocs.objects.update_or_create(
+						borrower=borrower,
+						loan_application=loan_app,
+						document_type=field_name,
+						defaults={"file": file}
+					)
+
+			# Save progress
+			loan_app.current_stage = "documents"
+			loan_app.save()
+
+			if action == "save_exit":
+				messages.success(request, "Documents saved. You can resume later.")
+				#return redirect("borrower_index")
+				return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/borrower_index/'})
+				
+			elif action == "save_continue":
+				loan_app.current_stage = "affordability"
+				loan_app.save()
+				#return redirect("update_expenses", app_id=loan_app.id)
+				return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/update-expenses/'})
+				
+		else:
+			messages.error(request, "Please fix the errors below.")
+	else:
+		form = EmployedDocumentsForm()
+
+	# Fetch existing documents for display (to avoid redundant uploads)
+	docs_qs = BorrowerDocs.objects.filter(
+		borrower=borrower,
+		loan_application=loan_app
+	)
+	existing_docs = {doc.document_type: doc for doc in docs_qs}
+	
+
+	#existing_docs = BorrowerDocs.objects.filter(
+	#	borrower=borrower,
+	#	loan_application=loan_app
+	#)
+
+	return render(request, 'upload_documents_employed.html', {
+		'form': form,
+		'loan_app': loan_app,
+		'existing_docs': existing_docs
+	})
+
+
+@login_required
+def upload_documents_employed222(request):
+	borrower = request.user.borrower
+	lender_id = request.session.get('lender_id')
+
+	if request.method == 'POST':
+		form = EmployedDocumentsForm(request.POST, request.FILES)
+		if form.is_valid():
+
+			doc_map = {
+				'id_proof': 'ID Proof',
+				'bank_statement': 'Bank Statement',
+				'payslip': 'Payslip',
+				'chief_letter': 'Chief Letter',
+			}
+
+			# save uploaded docs
+			for field_name, file in form.cleaned_data.items():
+				if file:
+					BorrowerDocs.objects.create(
+						borrower=borrower,
+						loan_application=None,  # still draft
+						document_type=field_name,
+						file=file
+					)
+
+			# get which button was clicked
+			action = request.POST.get("action")
+
+			# update loan application stage
+			loan_app, created = LoanApplication.objects.get_or_create(
+				borrower=borrower,
+				status="draft",
+				defaults={"current_stage": "documents"}
+			)
+			loan_app.current_stage = "documents"
+			loan_app.save()
+
+			if action == "continue":
+				# go to affordability step
+				#return redirect("update-expenses")
+				return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/update-expenses/'})
+			else:
+				# stay on dashboard (exit workflow)
+				messages.success(request, "Documents saved. You can resume later.")
+				#return redirect("borrower_index")
+				return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/borrower_index/'})
+		else:
+			return JsonResponse({'error': form.errors})
+	else:
+		form = EmployedDocumentsForm()
+
+	return render(request, 'upload_documents_employed.html', {'form': form})
+
+
+@login_required
+def upload_documents_employed2222(request):
+	borrower = request.user.borrower
+	lender_id = request.session.get('lender_id')
+
+	#if not lender_id:
+	#	messages.error(request, "Lender not selected.")
+	#	return redirect('borrower_index')
 
 	if request.method == 'POST':
 		form = EmployedDocumentsForm(request.POST, request.FILES)
@@ -316,11 +751,82 @@ def upload_documents_employed(request):
 	else:
 		form = EmployedDocumentsForm()
 
-	return render(request, 'upload_documents_employed.html', {'form': form})
+	return render(request, 'upload_documents_employed.html', {'form': form})'''
+
 
 
 @login_required
 def upload_documents_self_employed(request):
+	borrower = request.user.borrower
+	lender_id = request.session.get('lender_id')
+	loan_app = LoanApplication.objects.filter(borrower=borrower, status="draft").last()
+
+	if request.method == 'POST':
+		action = request.POST.get('action')  # "save_exit" or "save_continue"
+		form = SelfEmployedDocumentsForm(request.POST, request.FILES)
+
+		if form.is_valid():
+			for field_name in form.fields:
+				file = form.cleaned_data.get(field_name)
+
+				if file:
+					BorrowerDocs.objects.update_or_create(
+						borrower=borrower,
+						loan_application=loan_app,
+						document_type=field_name,
+						defaults={'file': file}
+					)
+
+			# ✅ Handle Save & Exit
+			if action == "save_exit":
+				loan_app.current_stage = "documents"
+				loan_app.save(update_fields=["current_stage"])
+				messages.success(request, "Progress saved. You can resume later.")
+				#return redirect("borrower_index")
+				return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/borrower_index/'})
+
+
+			# ✅ Handle Save & Continue
+			missing_docs = []
+			for field_name in form.fields:
+				has_uploaded = BorrowerDocs.objects.filter(
+					borrower=borrower, 
+					loan_application=loan_app, 
+					document_type=field_name
+				).exists()
+
+				if not has_uploaded:
+					missing_docs.append(field_name)
+
+			if missing_docs:
+				messages.error(request, f"Please upload required documents: {', '.join(missing_docs)}")
+			else:
+				loan_app.current_stage = "affordability"
+				loan_app.save(update_fields=["current_stage"])
+				#return redirect("update_expenses")
+				return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/update-expenses/'})
+
+		else:
+			messages.error(request, "Form error. Please check your uploads.")
+	else:
+		form = SelfEmployedDocumentsForm()
+
+	docs_qs = BorrowerDocs.objects.filter(
+		borrower=borrower,
+		loan_application=loan_app
+	)
+	existing_docs = {doc.document_type: doc for doc in docs_qs}
+
+	return render(request, 'upload_documents_self_employed.html', {
+		'form': form,
+		'existing_docs': existing_docs
+
+	})
+
+
+
+'''@login_required
+def upload_documents_self_employed2(request):
 	borrower = request.user.borrower
 	lender_id = request.session.get('lender_id')
 
@@ -357,12 +863,79 @@ def upload_documents_self_employed(request):
 	else:
 		form = SelfEmployedDocumentsForm()
 
-	return render(request, 'upload_documents_self_employed.html', {'form': form})
-
-
+	return render(request, 'upload_documents_self_employed.html', {'form': form})'''
 
 @login_required
 def upload_documents_registered_business(request):
+	borrower = request.user.borrower
+	lender_id = request.session.get('lender_id')
+	loan_app = LoanApplication.objects.filter(borrower=borrower, status="draft").last()
+
+	if request.method == 'POST':
+		action = request.POST.get('action')  # "save_exit" or "save_continue"
+		form = RegisteredBusinessDocumentsForm(request.POST, request.FILES)
+
+		if form.is_valid():
+			for field_name in form.fields:
+				file = form.cleaned_data.get(field_name)
+
+				if file:
+					BorrowerDocs.objects.update_or_create(
+						borrower=borrower,
+						loan_application=loan_app,
+						document_type=field_name,
+						defaults={'file': file}
+					)
+
+			# ✅ Handle Save & Exit
+			if action == "save_exit":
+				loan_app.current_stage = "documents"
+				loan_app.save(update_fields=["current_stage"])
+				messages.success(request, "Progress saved. You can resume later.")
+				#return redirect("borrower_index")
+				return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/borrower_index/'})
+
+
+			# ✅ Handle Save & Continue
+			missing_docs = []
+			for field_name in form.fields:
+				has_uploaded = BorrowerDocs.objects.filter(
+					borrower=borrower, 
+					loan_application=loan_app, 
+					document_type=field_name
+				).exists()
+
+				if not has_uploaded:
+					missing_docs.append(field_name)
+
+			if missing_docs:
+				messages.error(request, f"Please upload required documents: {', '.join(missing_docs)}")
+			else:
+				loan_app.current_stage = "affordability"
+				loan_app.save(update_fields=["current_stage"])
+				#return redirect("update_expenses")
+				return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/update-expenses/'})
+
+		else:
+			messages.error(request, "Form error. Please check your uploads.")
+	else:
+		form = RegisteredBusinessDocumentsForm()
+
+	docs_qs = BorrowerDocs.objects.filter(
+		borrower=borrower,
+		loan_application=loan_app
+	)
+	existing_docs = {doc.document_type: doc for doc in docs_qs}
+
+	return render(request, 'upload_documents_registered_business.html', {
+		'form': form,
+		'existing_docs': existing_docs
+
+	})
+
+
+'''@login_required
+def upload_documents_registered_business2(request):
 	borrower = request.user.borrower
 	lender_id = request.session.get('lender_id')
 
@@ -400,11 +973,63 @@ def upload_documents_registered_business(request):
 	else:
 		form = RegisteredBusinessDocumentsForm()
 
-	return render(request, 'upload_documents_registered_business.html', {'form': form})
+	return render(request, 'upload_documents_registered_business.html', {'form': form})'''
 
 
 @login_required
 def update_expenses(request):
+	borrower = request.user.borrower
+	employment_type = borrower.employment_type
+	income = borrower.income
+	loan_app = LoanApplication.objects.filter(borrower=borrower, status="draft").last()
+
+	if request.method == 'POST':
+		form = DynamicExpenseForm(employment_type, data=request.POST or None)
+		action = request.POST.get("action")
+
+		if form.is_valid():
+			for field_name, value in form.cleaned_data.items():
+				if value:
+					expense_type_label = field_name.replace('_', ' ').title()
+					ExpenseAnalysis.objects.update_or_create(
+						borrower=borrower,
+						loan_application=loan_app,
+						expense_type=expense_type_label,
+						defaults={'amount': value}
+					)
+
+			# ✅ Handle Save & Exit
+			if action == "save_exit":
+				loan_app.current_stage = "affordability"
+				loan_app.save(update_fields=["current_stage"])
+				
+				messages.success(request, "Expenses saved successfully.")
+				return redirect('borrower_index')
+
+			# ✅ Handle Save & Continue
+			elif action == "save_continue":
+				loan_app.current_stage = "loan_calculator"
+				loan_app.save(update_fields=["current_stage"])
+				messages.success(request, "Expenses saved successfully.")
+				return redirect('loan-calculator')
+
+		else:
+			messages.error(request, "Please fill all required fields correctly.")
+
+	else:
+		form = DynamicExpenseForm(employment_type)
+
+	return render(request, 'update_expenses.html', {
+		'form': form,
+		'employment_type': employment_type,
+		'income': income
+	})
+
+
+
+
+@login_required
+def update_expenses2(request):
 	borrower = request.user.borrower
 	employment_type = borrower.employment_type
 	income = borrower.income
@@ -434,36 +1059,6 @@ def update_expenses(request):
 	})
 
 
-@login_required
-def view_documents(request):
-	borrower = request.user.borrower
-	documents = BorrowerDocs.objects.filter(borrower=borrower)
-	
-	# Group documents by type for template rendering
-	docs_by_type = {doc.document_type: doc for doc in documents}
-
-	return render(request, 'view_documents.html', {'documents': docs_by_type})
-
-
-@login_required
-def download_document(request, document_type):
-	try:
-		documents = BorrowerDocs.objects.filter(borrower=request.user.borrower)
-	except BorrowerDocs.DoesNotExist:
-		raise Http404("No documents found.")
-
-	document_file = getattr(documents, document_type, None)
-	if not document_file:
-		raise Http404("Requested document does not exist.")
-
-	file_path = document_file.path
-	if not os.path.exists(file_path):
-		raise Http404("File not found.")
-
-	with open(file_path, 'rb') as f:
-		response = HttpResponse(f.read(), content_type="application/octet-stream")
-		response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
-		return response
 
 
 @login_required
@@ -524,20 +1119,134 @@ def loan_application(request):
 		return redirect('borrower_profile')
 
 
-
-def loan_calculator(request):
+@login_required
+def loan_calculator2(request):
+	borrower = request.user.borrower
 	lender_id = request.session.get('lender_id')
 	lender = LenderProfile.objects.get(id=lender_id)
-	return render(request, 'loan_calculator.html', {'lender': lender})
+
+	# Get borrower's latest pending loan draft
+	loan_app, created = LoanApplication.objects.get_or_create(
+		borrower=borrower,
+		lender=lender,
+		status="draft",   # keep drafts separate from "pending"
+		defaults={"current_stage": "loan_calculator"}
+	)
+
+	if request.method == "POST":
+		action = request.POST.get("action")
+
+		if action == "save_exit":
+			loan_app.current_stage = "loan_calculator"
+			loan_app.save(update_fields=["current_stage"])
+			return redirect('borrower_index')
+			
+
+		elif action == "save_continue":
+			# Move forward to apply_loan page (review & confirm)
+			loan_app.current_stage = "apply_loan"
+			loan_app.save(update_fields=["current_stage"])
+			return redirect('apply-loan')
+			
+
+	return render(request, "loan_calculator.html", {
+		"lender": lender,
+		"available_terms": lender.loan_terms or [],
+		"loan_app": loan_app
+	})
+
+
+
+def loan_calculator3(request):
+	lender_id = request.session.get('lender_id')
+	lender = LenderProfile.objects.get(id=lender_id)
+	return render(request, 'loan_calculator.html', {
+			'lender': lender,
+			'available_terms': lender.loan_terms or []
+		})
+
+
+
+@login_required
+def loan_calculator(request):
+	borrower = request.user.borrower
+	lender_id = request.session.get('lender_id')
+	lender = get_object_or_404(LenderProfile, id=lender_id)
+
+	# Get or create draft for this borrower/lender
+	loan_app, created = LoanApplication.objects.get_or_create(
+		borrower=borrower,
+		lender=lender,
+		status="draft",   # keep as draft until final submission
+		defaults={"current_stage": "loan_calculator"}
+	)
+
+	BorrowerDocs.objects.filter(
+		borrower=borrower, loan_application=None
+	).update(loan_application=loan_app)
+
+	ExpenseAnalysis.objects.filter(
+		borrower=borrower, loan_application=None
+	).update(loan_application=loan_app)
+
+	if request.method == "POST":
+		action = request.POST.get("action")
+
+		# Always save loan values if provided
+		loan_amount = request.POST.get("loan_amount")
+		loan_term = request.POST.get("loan_term")
+
+		if loan_amount and loan_term:
+			loan_amount = Decimal(loan_amount)
+			loan_term = int(loan_term)
+			interest_rate = lender.interest_rate
+
+			total_repayable = loan_amount * Decimal(1 + (interest_rate / 100))
+			monthly_installment = total_repayable / loan_term
+			first_payment = monthly_installment
+
+			# ✅ Update draft with loan values
+			loan_app.loan_amount = loan_amount
+			loan_app.loan_term = loan_term
+			loan_app.total_repayable = total_repayable
+			loan_app.monthly_installment = monthly_installment
+			loan_app.first_payment = first_payment
+			loan_app.save()
+
+		# Handle Save & Exit
+		if action == "save_exit":
+			loan_app.current_stage = "loan_calculator"
+			loan_app.save(update_fields=["current_stage"])
+			messages.success(request, "Loan calculator draft saved. You can resume later.")
+			return redirect("borrower_index")
+
+		# Handle Save & Continue → move to apply_loan step
+		elif action == "save_continue":
+			loan_app.current_stage = "apply_loan"
+			loan_app.save(update_fields=["current_stage"])
+			return redirect("apply-loan")
+
+	return render(request, "loan_calculator.html", {
+		"lender": lender,
+		"available_terms": lender.loan_terms or [],
+		"loan_app": loan_app
+	})
+
 
 
 def calculate_loan(request):
 	try:
-		amount = Decimal(request.GET.get('amount', 0))
-		term = int(request.GET.get('term', 3))  # Default to 3 months
-		
 		lender_id = request.session.get('lender_id')
 		lender = LenderProfile.objects.get(id=lender_id)
+
+		amount = Decimal(request.GET.get('amount', 0))
+		term = int(request.GET.get('term', 1))  
+
+		# ✅ Ensure the term is one of the lender's terms
+		if str(term) not in lender.loan_terms:
+			return JsonResponse({"error": f"Invalid loan term. Allowed terms: {lender.loan_terms}"}, status=400)
+		
+		
 		interest_rate = lender.interest_rate  
 
 		# Ensure valid calculations
@@ -562,32 +1271,230 @@ def calculate_loan(request):
 				
 	except Exception as e:
 		return JsonResponse({"error": str(e)}, status=400)
+
+
+@login_required
+def apply_loan(request):
+	borrower = request.user.borrower
+	lender_id = request.session.get('lender_id')
+	lender = get_object_or_404(LenderProfile, id=lender_id)
+
+	# Get the borrower’s active draft in apply_loan stage
+	loan_app = LoanApplication.objects.filter(
+		borrower=borrower,
+		lender=lender,
+		status="draft",
+		current_stage="apply_loan"
+	).last()
+
+	if not loan_app:
+		messages.error(request, "No draft loan application found.")
+		return redirect("borrower_index")
+
+	if request.method == "POST":
+		# Before submission, check if borrower has any pending loan
+		existing_loans = LoanApplication.objects.filter(
+			borrower=borrower,
+			status="pending"
+		)
+		if existing_loans.exists():
+			messages.error(request, "You cannot apply for a new loan while you have a pending loan.")
+			return redirect("pending_loan")
+
+		# ✅ Move draft to submitted
+		loan_app.status = "pending"
+		loan_app.date_applied = now()
+		loan_app.current_stage = "submitted"
+		loan_app.save(update_fields=["status", "date_applied", "current_stage"])
+
+		# ✅ Notify the lender
+		Notification.objects.create(
+			user=loan_app.lender.user,
+			message=f"New loan application submitted by {loan_app.borrower.full_name} for R{loan_app.loan_amount}.",
+			category="loan_application",
+			loan_application=loan_app
+		)
+
+		# ✅ Send borrower confirmation
+		message = (
+			f"Hello {borrower.full_name}, your Loan Application for R{loan_app.loan_amount} "
+			f"was successfully submitted to {loan_app.lender.company_name}."
+			f"{loan_app.lender.company_name} will review your application and let you know of it's status."
+		)
+		send_sms_smsportal(borrower.phone_number, message)
+
+		# Render the email content
+		subject = f"Application Submitted successfully"
+		from_email = settings.EMAIL_HOST_USER
+		to_email = [borrower.email_address]
+
+		send_mail(subject, message, from_email, to_email, fail_silently=False,)
+
+		messages.success(request, f"Loan application submitted successfully to {lender.company_name}")
+		return redirect("borrower_index")
+
+
+	BorrowerDocs.objects.filter(
+		borrower=borrower,
+		loan_application=None
+	).update(loan_application=loan_app)
+
+	ExpenseAnalysis.objects.filter(
+		borrower=borrower,
+		loan_application=None
+	).update(loan_application=loan_app)
+
+	# Always build affordability context for GET
+	expenses = ExpenseAnalysis.objects.filter(loan_application=loan_app)
+	total_expenses = sum(e.amount for e in expenses)
+	monthly_income = borrower.income or 0
+	installment = loan_app.monthly_installment or 0
+	surplus_before = monthly_income - total_expenses
+	surplus_after = surplus_before - installment
+
+	affordability_index_before = (surplus_before / monthly_income * 100) if monthly_income else 0
+	affordability_index_after = (surplus_after / monthly_income * 100) if monthly_income else 0
+
+	context = {
+		"loan_app": loan_app,
+		"expenses": expenses,
+		"total_expenses": total_expenses,
+		"monthly_income": monthly_income,
+		"installment": installment,
+		"surplus_before": surplus_before,
+		"surplus_after": surplus_after,
+		"affordability_index_before": affordability_index_before,
+		"affordability_index_after": affordability_index_after,
+	}
+
+	return render(request, "apply_loan.html", context)
 	
 
+@login_required
+def apply_loan22(request):
+	borrower = request.user.borrower
+	lender_id = request.session.get('lender_id')
+	lender = get_object_or_404(LenderProfile, id=lender_id)
 
-def apply_loan(request):
+	# Get the borrower’s active draft in apply_loan stage
+	loan_app = LoanApplication.objects.filter(
+		borrower=borrower,
+		lender=lender,
+		status="draft",
+		current_stage="apply_loan"
+	).last()
+
+	if not loan_app:
+		messages.error(request, "No draft loan application found.")
+		return redirect("borrower_index")
+
+	if request.method == "POST":
+		# Before submission, check if borrower has any pending loan
+		existing_loans = LoanApplication.objects.filter(
+			borrower=borrower,
+			status="pending"
+		)
+		if existing_loans.exists():
+			messages.error(request, "You cannot apply for a new loan while you have a pending loan.")
+			return redirect("pending_loan")
+
+		# ✅ Move draft to submitted
+		loan_app.status = "pending"
+		loan_app.date_applied = now()
+		loan_app.current_stage = "submitted"
+		loan_app.save(update_fields=["status", "date_applied", "current_stage"])
+
+		
+
+		# ✅ Link any uploaded docs & expenses (still unlinked)
+		BorrowerDocs.objects.filter(
+			borrower=borrower,
+			loan_application=loan_app
+		)
+
+		ExpenseAnalysis.objects.filter(
+			borrower=borrower,
+			loan_application=loan_app
+		)
+
+		# ✅ Delete any other drafts (safety cleanup)
+		'''LoanApplication.objects.filter(
+			borrower=borrower,
+			status="draft"
+		).exclude(id=loan_app.id).delete()'''
+
+
+		# ✅ Notify the lender
+		Notification.objects.create(
+			user=loan_app.lender.user,
+			message=f"New loan application submitted by {loan_app.borrower.full_name} for R{loan_app.loan_amount}.",
+			category="loan_application",
+			loan_application=loan_app
+		)
+
+		# ✅ Send borrower confirmation
+		message = (
+			f"Hello {borrower.full_name}, your Loan Application for R{loan_app.loan_amount} "
+			f"was successfully submitted to {loan_app.lender.company_name}."
+		)
+		# send_sms_smsportal(borrower.phone_number, message)
+
+		# subject = "Application Submitted successfully"
+		# send_mail(subject, message, settings.EMAIL_HOST_USER, [borrower.email_address], fail_silently=False)
+
+		# GET → render confirmation page with expense analysis
+		expenses = ExpenseAnalysis.objects.filter(loan_application=loan_app)
+
+		# Aggregate totals
+		total_expenses = sum(e.amount for e in expenses)
+		monthly_income = borrower.monthly_income or 0
+		installment = loan_app.proposed_installment or 0
+		surplus_before = monthly_income - total_expenses
+		surplus_after = surplus_before - installment
+
+		affordability_index_before = (surplus_before / monthly_income * 100) if monthly_income else 0
+		affordability_index_after = (surplus_after / monthly_income * 100) if monthly_income else 0
+
+		context = {
+			"loan_app": loan_app,
+			"expenses": expenses,
+			"total_expenses": total_expenses,
+			"monthly_income": monthly_income,
+			"installment": installment,
+			"surplus_before": surplus_before,
+			"surplus_after": surplus_after,
+			"affordability_index_before": affordability_index_before,
+			"affordability_index_after": affordability_index_after,
+			}
+
+		messages.success(request, f"Loan application submitted successfully to {lender.company_name}")
+		return redirect("borrower_index")
+
+	# GET → render confirmation page
+	return render(request, "apply_loan.html", context)
+
+
+
+
+def apply_loan2(request):
 	if request.method == "POST":
 		borrower = BorrowerProfile.objects.get(user=request.user)
+		phone_number = borrower.phone_number
 		#loan_application = get_object_or_404(LoanApplication, id=loan_id, borrower__user=request.user)  
 
 		lender_id = request.session.get('lender_id')
-		try:
-			lender = LenderProfile.objects.get(id=lender_id)
-		except LenderProfile.DoesNotExist:
-			messages.error(request, "Invalid lender selection.")
-			return redirect('loan-calculator')
+		lender = get_object_or_404(LenderProfile, id=lender_id)
 
 		loan_amount = Decimal(request.POST.get('loan_amount'))
 		loan_term = int(request.POST.get('loan_term'))
-		#collateral = request.POST.get('collateral')
-		#payment_plan = request.POST.get('payment_plan')
 
-		# Get lender's interest rate
-		#interest_rate = float(lender.interest_rate) / 100
+		# ✅ Ensure the loan term matches the lender’s allowed terms
+		#if loan_term not in lender.loan_terms:
+		#	messages.error(request, "Invalid loan term selected for this lender.")
+		#	return redirect('loan-calculator')
+		
 		interest_rate = lender.interest_rate 
 
-		# Calculate total repayable amount
-		#total_repayable = loan_amount * (1 + (interest_rate * (loan_term / 12)))
 		total_repayable = loan_amount * Decimal(1 + (interest_rate) / 100)
 
 		# Calculate monthly installment
@@ -604,10 +1511,10 @@ def apply_loan(request):
 
 		if existing_loans.exists():
 			messages.error(request, "You cannot apply for a new loan while you have a pending loan.")
-			return redirect('apply-loan')
+			return redirect('pending_loan')
 
 		# Save loan application
-		loan_application = LoanApplication.objects.create(
+		'''loan_application = LoanApplication.objects.create(
 			borrower=borrower,
 			lender=lender,
 			loan_amount=loan_amount,
@@ -617,7 +1524,28 @@ def apply_loan(request):
 			monthly_installment=monthly_installment,
 			status='pending',
 			date_applied=now(),
-		)
+		)'''
+
+		loan_application, created = LoanApplication.objects.update_or_create(
+			borrower=borrower,
+			lender=lender,
+			status="draft",   # find draft if exists
+			defaults={
+				"loan_amount": loan_amount,
+				"loan_term": loan_term,
+				"total_repayable": total_repayable,
+				"monthly_installment": monthly_installment,
+				"first_payment": first_payment,
+				"status": "pending",  # mark final
+				"date_applied": now(),
+				"current_stage": "submitted"
+			})
+
+		# ✅ Delete any old drafts for this borrower
+		'''LoanApplication.objects.filter(
+			borrower=borrower,
+			status="draft"
+		).delete()'''
 
 		# ✅ Link previously uploaded documents (with loan_application=None) to this new loan
 		BorrowerDocs.objects.filter(
@@ -635,11 +1563,55 @@ def apply_loan(request):
 			category="loan_application",
 			loan_application=loan_application
 		)
+
+		# Email and SMS message
+		message = f"Hello {borrower.full_name}, your Loan Application was for R{loan_amount} was successfully submitted to {loan_application.lender.company_name} "
+		# Send SMS
+		#send_sms_smsportal(phone_number, message)
+		
+		# Render the email content
+		subject = f"Application Submitted successfully"
+		from_email = settings.EMAIL_HOST_USER
+		to_email = [borrower.email_address]
+
+		#send_mail(subject, message, from_email, to_email, fail_silently=False,)
 		
 		messages.success(request, f"Loan application submitted successfully to {lender.company_name}")
 		return redirect('borrower_index')
 
 	return redirect('loan-calculator')
+
+
+@login_required
+def view_documents(request):
+	borrower = request.user.borrower
+	documents = BorrowerDocs.objects.filter(borrower=borrower)
+	
+	# Group documents by type for template rendering
+	docs_by_type = {doc.document_type: doc for doc in documents}
+
+	return render(request, 'view_documents.html', {'documents': docs_by_type})
+
+
+@login_required
+def download_document(request, document_type):
+	try:
+		documents = BorrowerDocs.objects.filter(borrower=request.user.borrower)
+	except BorrowerDocs.DoesNotExist:
+		raise Http404("No documents found.")
+
+	document_file = getattr(documents, document_type, None)
+	if not document_file:
+		raise Http404("Requested document does not exist.")
+
+	file_path = document_file.path
+	if not os.path.exists(file_path):
+		raise Http404("File not found.")
+
+	with open(file_path, 'rb') as f:
+		response = HttpResponse(f.read(), content_type="application/octet-stream")
+		response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+		return response
 
 
 @login_required
@@ -650,6 +1622,8 @@ def pending_loan_application(request):
 	return render(request, 'pending_loan.html', {
 		'pending_loan': pending_loan
 	})
+
+
 
 
 
@@ -1185,6 +2159,72 @@ def paid_vs_outstanding(request):
 		'labels': ['Paid', 'Outstanding'],
 		'data': [float(total_paid), float(total_outstanding)]
 	})
+
+
+
+'''def create_group(request):
+	if request.method == "POST":
+		form = BorrowerGroupForm(request.POST)
+		if form.is_valid():
+			group = form.save(commit=False)
+			group.created_by = request.user
+			group.save()
+			# Make creator the admin
+			GroupMembership.objects.create(user=request.user, group=group, role='admin')
+			messages.success(request, "Group created successfully!")
+			return redirect('group_detail', group_id=group.id)
+	else:
+		form = BorrowerGroupForm()
+	return render(request, 'groups/create_group.html', {'form': form})
+
+
+def invite_member(request, group_id):
+	group = BorrowerGroup.objects.get(id=group_id)
+	# Check role permissions
+	membership = GroupMembership.objects.filter(user=request.user, group=group).first()
+	if not membership or membership.role not in ['admin', 'sub_admin']:
+		messages.error(request, "You don't have permission to invite members.")
+		return redirect('group_detail', group_id=group_id)
+
+	if request.method == "POST":
+		form = GroupInviteForm(request.POST)
+		if form.is_valid():
+			invite = form.save(commit=False)
+			invite.group = group
+			invite.invited_by = request.user
+			invite.save()
+
+			invite_link = request.build_absolute_uri(f"/groups/join/{invite.token}/")
+			send_mail(
+				subject="You're invited to join a Borrower Group",
+				message=f"You have been invited to join '{group.name}'. Click the link to register: {invite_link}",
+				from_email="noreply@fedhagrow.com",
+				recipient_list=[invite.email]
+			)
+
+			messages.success(request, "Invitation sent successfully.")
+			return redirect('group_detail', group_id=group_id)
+	else:
+		form = GroupInviteForm()
+	return render(request, 'groups/invite_member.html', {'form': form, 'group': group})
+
+
+def join_group(request, token):
+	invite = get_object_or_404(GroupInvite, token=token, is_used=False)
+	if request.method == "POST":
+		form = UserCreationForm(request.POST)
+		if form.is_valid():
+			user = form.save()
+			GroupMembership.objects.create(user=user, group=invite.group, role='member')
+			invite.is_used = True
+			invite.save()
+			messages.success(request, "Welcome to the group!")
+			return redirect('login')
+	else:
+		form = UserCreationForm()
+
+	return render(request, 'groups/join_group.html', {'form': form, 'group': invite.group})'''
+
 
 
 

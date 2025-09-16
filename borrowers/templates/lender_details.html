@@ -25,6 +25,9 @@
                                 <strong>Maximum Loan:</strong> M{{ lender.max_loan }}
                             </p>
                             <p class="card-text">
+                                <strong>Lender Loan Terms:</strong> {{ lender.get_loan_terms_display|join:", " }}
+                            </p>
+                            <p class="card-text">
                                 <strong>Contact:</strong> {{ lender.phone_number }}
                             </p>
                             <p class="card-text">
@@ -99,6 +102,7 @@
                             {% endif %}
                             <br><br>
                             <center>
+                                
                             <!-- From Uiverse.io by Madflows --> 
                             <!--<button alt="Apply for Loan" class="button" onclick="window.location.href='{% url 'loan_application' %}?'">
                               <span class="button-content">
@@ -132,6 +136,7 @@
                     </div>
                     </div>
                 </div>
+
 
                 <style>
                     /* From Uiverse.io by Madflows */ 

@@ -1,5 +1,6 @@
 {% extends 'borrower_base.html' %}
 {% load static %}
+{% load custom_filters %}
 
 {% block content %}
 
@@ -25,83 +26,89 @@
                 <form id="uploadForm" method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     
-                    <!-- ID Proof -->
-                    <div class="border p-3 mb-4">
+                    {% for field in form %}
+                      <div class="mb-4">
+                        <label>{{ field.label }}</label><br>
+                        {% with doc=existing_docs|get_item:field.name %}
+                          {% if doc %}
+                            <a href="{{ doc.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                              View Uploaded
+                            </a>
+                            <small class="text-muted">You may upload a new file to replace it.</small><br>
+                          {% endif %}
+                        {% endwith %}
+                        {{ field }}
+                      </div>
+                    {% endfor %}
+                   
+                    <!--<div class="border p-3 mb-4">
                         <div class="form-group">
                             <label for="idProof" class="form-label">Director's ID Proof:</label>
                             {{ form.id_proof }}
-                            
-                            <!--<input type="file" name="id_proof" class="form-control" id="idProof" required>-->
+      
                         </div>
                     </div>
-                    <!-- Busness Address -->
+                    
                     <div class="border p-3 mb-4">
                         <div class="form-group">
                             <label for="business_address" class="form-label">Proof of Business Address:</label>
                             {{ form.business_address }}
-                            
-                            <!--<input type="file" name="id_proof" class="form-control" id="idProof" required>-->
+                           
                         </div>
                     </div>
 
-                    <!-- Personal Bank Statement -->
+                   
                     <div class="border p-3 mb-4">
                         <div class="form-group">
                             <label for="bank_statement" class="form-label">Personal Bank Statement:</label>
                             {{ form.bank_statement }}
                             
-                            <!--<input type="file" name="bank_statement" class="form-control" id="bankStatement" required>-->
                         </div>
                     </div>
 
-                    <!-- Business Bank Statement -->
+                    
                     <div class="border p-3 mb-4">
                         <div class="form-group">
                             <label for="business_statements" class="form-label">Business Bank Statement:</label>
                             {{ form.business_statements }}
                             
-                            <!--<input type="file" name="bank_statement" class="form-control" id="bankStatement" required>-->
                         </div>
                     </div>
-                    <!-- Business Registration -->
+                    
                     <div class="border p-3 mb-4">
                         <div class="form-group">
                             <label for="business_registration" class="form-label">Business Registration Certificate:</label>
                             {{ form.business_registration }}
                             
-                            <!--<input type="file" name="bank_statement" class="form-control" id="bankStatement" required>-->
                         </div>
                     </div>
 
-                    <!-- Customer Invoices -->
+                  
                     <div class="border p-3 mb-4">
                         <div class="form-group">
                             <label for="customer_invoice" class="form-label">Customer Invoices:</label>
                             {{ form.customer_invoice }}
                             
-                            <!--<input type="file" name="bank_statement" class="form-control" id="bankStatement" required>-->
                         </div>
                     </div>
 
-                    <!-- Supplier Invoices -->
+                   
                     <div class="border p-3 mb-4">
                         <div class="form-group">
                             <label for="supplier_invoice" class="form-label">Supplier Invoices:</label>
                             {{ form.supplier_invoice }}
                             
-                            <!--<input type="file" name="bank_statement" class="form-control" id="bankStatement" required>-->
                         </div>
                     </div>
 
-                    <!-- Tax Clearance -->
+                   
                     <div class="border p-3 mb-4">
                         <div class="form-group">
                             <label for="tax_clearance" class="form-label">Tax Clearance Certificate:</label>
                             {{ form.tax_clearance }}
                             
-                            <!--<input type="file" name="payslip" class="form-control" id="payslip" required>-->
                         </div>
-                    </div>
+                    </div>-->
 
 
                     <!-- Progress Bar -->
@@ -111,7 +118,16 @@
 
                     <!-- Submit Button -->
                     <center>
-                    <button type="submit" class="btn btn-primary">Upload Documents</button>
+                        <div class="form-actions">
+                            <button type="submit" name="action" value="save_continue" class="btn btn-primary">
+                              Save & Continue
+                            </button>
+
+                            <button type="submit" name="action" value="save_exit" class="btn btn-secondary">
+                              Save & Exit
+                            </button>
+                      </div>
+                    <!--<button type="submit" class="btn btn-primary">Upload Documents</button>-->
                     </center>
                 </form>
 
