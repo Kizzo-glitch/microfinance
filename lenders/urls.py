@@ -43,14 +43,14 @@ urlpatterns = [
     path('loan/<int:pk>/update-status/', LoanStatusUpdateView.as_view(), name='loan-status-update'),
     path('loan/update-pending-loans/', views.update_pending_loans, name='update-pending-loans'),
     
-    path('loans/', LoanListView.as_view(), name='loan-list'),
 
-    
     path('approved-loans/', ApprovedLoansView.as_view(), name='approved-loans'),
     path('pending-loans/', PendingLoansView.as_view(), name='pending-loans'), 
     path('rejected-loans/', RejectedLoansView.as_view(), name='rejected-loans'),
     path('overdue-loans/', OverdueLoansView.as_view(), name='overdue-loans'), 
     path('fully-paid-loans/', FullyPaidLoansView.as_view(), name='fully-paid-loans'),
+
+    path('loans/', LoanListView.as_view(), name='loan-list'),
 
 
     path('loan/<int:loan_id>/borrower-payment-history/', views.my_borrower_payment_history, name='my-borrower-payment-history'),

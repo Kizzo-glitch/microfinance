@@ -875,14 +875,14 @@ class LoanListView(ListView):
 		return Loan.objects.filter(lender=self.request.user.lender).order_by('-date_created') 
 
 # List all loans  rejected for a specific lender
-class RejectedLoanListView(ListView):
+'''class RejectedLoanListView(ListView):
 	model = LoanApplication
 	template_name = 'rejected_loan_list.html'
 	context_object_name = 'rejected_loans'
 
 	def get_queryset(self):
 		# Filter loans by the current lender
-		return LoanApplication.objects.filter(lender=self.request.user.lender, status='rejected')
+		return LoanApplication.objects.filter(lender=self.request.user.lender, status='rejected')'''
 
 
 @login_required
