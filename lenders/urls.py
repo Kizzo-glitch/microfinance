@@ -60,7 +60,7 @@ urlpatterns = [
 
     path('lender/dashboard/repayments-data/', views.lender_repayment_data, name='lender_repayment_data'),
     path('lender/dashboard/loan-statuses-data/', views.lender_loan_status_data, name='lender_loan_status_data'),
-    path("dashboard/risk-customers/<str:category>/", views.risk_customer_list, name="risk_customer_list"),
+    #path("dashboard/risk-customers/<str:category>/", views.risk_customer_list, name="risk_customer_list"),
 
     path('my-clients/', views.my_clients, name='my_clients'),
     path('loan/<int:loan_id>/documents/', views.view_borrower_documents, name='view_borrower_documents'),

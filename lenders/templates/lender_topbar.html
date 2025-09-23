@@ -65,7 +65,7 @@
 
                         {% if unread_loan_applications %}
                             {% for notification in unread_loan_applications %}
-                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                <a class="dropdown-item d-flex align-items-center" href="{% url 'loan-application-list' %}">
                                     <div>
                                         <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
                                         <span class="font-weight-bold">{{ notification.message }}</span>
@@ -79,7 +79,7 @@
                         <h6 class="dropdown-header">Read Notifications</h6>
                         {% if read_loan_applications %}
                             {% for notification in read_loan_applications %}
-                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                <a class="dropdown-item d-flex align-items-center" href="{% url 'loan-application-list' %}">
                                     <div>
                                         <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
                                         {{ notification.message }}
@@ -107,7 +107,7 @@
 
                         {% if unread_loan_pending %}
                             {% for notification in unread_loan_pending %}
-                                <a class="dropdown-item d-flex align-items-center" href="!#">
+                                <a class="dropdown-item d-flex align-items-center" href="{% url 'pending-loans' %}">
                                     <div>
                                         <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
                                         <span class="font-weight-bold">{{ notification.message }}</span>
@@ -121,9 +121,9 @@
                         <h6 class="dropdown-header">Read Notifications</h6>
                         {% if read_loan_pending %}
                             {% for notification in read_loan_pending %}
-                                <a class="dropdown-item d-flex align-items-center" href="!#">
+                                <a class="dropdown-item d-flex align-items-center" href="{% url 'pending-loans' %}">
                                     <div>
-                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div> 
                                         {{ notification.message }}
                                     </div>
                                 </a>

@@ -47,8 +47,6 @@ from django.http import HttpResponse
 
 
 
-
-
 def lender_index(request):
 	if request.user.is_authenticated and request.user.is_lender():
 		lender = request.user.lender

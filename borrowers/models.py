@@ -140,6 +140,8 @@ class BorrowerProfile(models.Model):
 #post_save.connect(create_profile, sender=User)
 
 
+
+
 def upload_to(instance, filename):
 	return f'documents/{instance.borrower.user.username}/{instance.document_type}/{filename}'
 
