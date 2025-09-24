@@ -3,8 +3,7 @@ from . import views
 from .views import (
     LoanApplicationListView, 
     LoanApplicationUpdateView, 
-    LoanListView, RejectedLoanListView, 
-    FullyPaidLoanListView, LoanStatusUpdateView, 
+    LoanListView, FullyPaidLoanListView, LoanStatusUpdateView, 
     ApprovedLoansView, PendingLoansView, RejectedLoansView, 
     OverdueLoansView, FullyPaidLoansView, LenderVerificationListView, 
     LenderVerificationDetailView, LenderNotificationListView,
