@@ -1,13 +1,13 @@
 {% load static %}
 
-<ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+<ul class="navbar-nav bg-gradient-success sidebar sidebar-dark accordion" id="accordionSidebar">
 
             <!-- Sidebar - Brand -->
             <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{% url 'landing' %}">
                 <div class="sidebar-brand-icon rotate-n-15">
                     <i class="fas fa-laugh-wink"></i>
                 </div>
-                <div class="sidebar-brand-text mx-3">Fedha Borrower</div>
+                <div class="sidebar-brand-text mx-3">Fedha Group Admin</div>
             </a>
 
             <!-- Divider -->
@@ -16,7 +16,7 @@
             <li class="nav-item active">
                 <a class="nav-link" href="{% url 'borrower_index' %}">
                     <i class="fas fa-fw fa-tachometer-alt"></i>
-                    <span>Go to Dashboard</span></a>
+                    <span>Dashboard</span></a>
             </li>
 
 
@@ -25,7 +25,7 @@
 
             <!-- Heading -->
             <div class="sidebar-heading">
-                My Book
+                My Group
             </div>
 
             <!-- Nav Item - Pages Collapse Menu -->
@@ -33,18 +33,17 @@
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseTwo"
                     aria-expanded="true" aria-controls="collapseTwo">
                     💰
-                    <span>Loans</span>
+                    <span>Group Loans</span>
                 </a>
                 <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Loan Analysis:</h6>
-                        <a class="collapse-item" href="{% url 'apply-for-loan-list' %}">Apply For a Loan</a>
-                        <a class="collapse-item" href="{% url 'pending_loan' %}">Pending Loan</a>
+                        <a class="collapse-item" href="#">All group Loans</a>
+                        <a class="collapse-item" href="#">Pending Group Loan</a>
                                         
-                        <a class="collapse-item" href="{% url 'my_loan_list' %}">Approved Loans</a>
-                        <a class="collapse-item" href="{% url 'my_active_loans' %}">Active Loans Details</a>
-                        <a class="collapse-item" href="{% url 'my_loan_applications' %}">All Loans</a>
-                        <a class="collapse-item" href="{% url 'view_documents' %}">View Documents</a>                                                                  
+                        <a class="collapse-item" href="#">Approved Group Loans</a>
+                        <a class="collapse-item" href="#">Active Group Loans Details</a>
+                                                                                        
                     </div>
                 </div>
             </li>
@@ -61,10 +60,10 @@
                     data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Analysis</h6>
-                        <a class="collapse-item" href="#">Monthly Payments</a>
-                        <a class="collapse-item" href="#">Yearly Payments</a> 
+                        <a class="collapse-item" href="#">Monthly Performance</a>
+                        <a class="collapse-item" href="#">Yearly Performance</a> 
                         
-                        <a class="collapse-item" href="#">Defaults</a>                 
+                                        
                     </div> 
                 </div>
             </li>
@@ -74,15 +73,15 @@
                 <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseUtilities"
                     aria-expanded="true" aria-controls="collapseUtilities">
                     📇
-                    <span>Monitoring</span>
+                    <span>Members</span>
                 </a>
                 <div id="collapseUtilities" class="collapse" aria-labelledby="headingUtilities"
                     data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">My Risk analysis</h6>
-                        <a class="collapse-item" href="#!">Due to Skipped payments</a>
-                        <a class="collapse-item" href="#!">Due to Defaulted Loans</a>
-                        <a class="collapse-item" href="#!">Due to Credit Score</a>
+                        <h6 class="collapse-header">Group Risk analysis</h6>
+                        <a class="collapse-item" href="#!">Skipped payments</a>
+                        <a class="collapse-item" href="#!">Defaulted Loans</a>
+                        <a class="collapse-item" href="#!">redit Score</a>
                         
                     </div>
                 </div>
@@ -96,28 +95,6 @@
                 General
             </div>
 
-            <!-- Nav Item - Pages Collapse Menu -->
-            <!--<li class="nav-item">
-                <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapsePages"
-                    aria-expanded="true" aria-controls="collapsePages">
-                    <i class="fas fa-fw fa-folder"></i>
-                    <span>Compliance & Documents</span>
-                </a>
-                <div id="collapsePages" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
-                    <div class="bg-white py-2 collapse-inner rounded">
-                        <h6 class="collapse-header">My Documents</h6>
-                        <a class="collapse-item" href="{% url 'upload_lender_docs' %}">Upload Documents</a>
-                        <a class="collapse-item" href="{% url 'view_lender_documents' %}">View Documents</a>
-                        <a class="collapse-item" href="{% url 'update_lender_documents' %}">Update Documents</a>
-
-                        <div class="collapse-divider"></div>
-                        <h6 class="collapse-header">Business Compliance:</h6>
-                        <a class="collapse-item" href="#!">Transperancy</a>                     
-                        <a class="collapse-item" href="#!">Employees</a>
-                        <a class="collapse-item" href="#!">Inclusivicity</a> 
-                    </div>
-                </div>
-            </li>-->
 
              <li class="nav-item">
                 <a class="nav-link" href="{% url 'borrower-notifications' %}"> 

@@ -87,7 +87,7 @@ def group_borrower_profile(request):
 				profile.user = request.user
 				profile.save()
 				messages.success(request, "Your Info Has Been Updated!!")
-				return redirect('borrower_index')
+				return redirect('group_admin_dashboard')
 			else:
 				print(form.errors)
 		else:
@@ -104,6 +104,7 @@ def group_borrower_profile(request):
 
 	messages.error(request, "You Must Be Logged In To Access That Page!!")
 	return redirect('group_landing')
+
 
 
 

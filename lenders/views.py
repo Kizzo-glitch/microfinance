@@ -264,7 +264,6 @@ def update_lender_documents(request):
 	})
 
 
-
 @login_required
 def lender_list(request):
 	lenders = (LenderProfile.objects.filter(user__is_superuser=False, user__role='lender')

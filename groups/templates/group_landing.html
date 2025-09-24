@@ -55,11 +55,13 @@
 <section class="container text-center py-5">
   <h2 class="fw-bold">Ready to Get Started?</h2>
   <p class="mb-4">Create your borrower group today or explore partnerships as a lender.</p>
-  
-  <a href="{% url 'create_group' %}" class="btn btn-primary btn-lg mx-2">Create a Group</a>
+  {% if user.is_admin and user.is_authenticated %}
   <a href="{% url 'group_admin_dashboard' %}" class="btn btn-primary btn-lg mx-2">Go to dash</a>
+  {% else %}
+  <a href="{% url 'register_group_admin' %}" class="btn btn-primary btn-lg mx-2">Get Started</a>
+  {% endif %}
+
   <a href="#" class="btn btn-outline-success btn-lg mx-2">For Lenders</a> 
 </section>
-
 
 {% endblock %}
