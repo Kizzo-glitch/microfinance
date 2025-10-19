@@ -1,0 +1,69 @@
+{% extends 'group_dash_base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm rounded-3">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Configure {{ group.get_group_type_display }} Settings for "{{ group.name }}"</h4>
+        </div>
+
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+                {{ form.group }}
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} mt-2">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+
+                <div class="mb-4">
+                    {% if group.group_type == "stokvel" %}
+                        <h5>💰 Stokvel Settings</h5>
+                        {{ form.stokvel_contribution_amount|as_crispy_field }}
+                        {{ form.stokvel_contribution_frequency|as_crispy_field }}
+                        {{ form.stokvel_payout_type|as_crispy_field }}
+                        {{ form.stokvel_rotation_order|as_crispy_field }}
+
+                    {% elif group.group_type == "employer_union" %}
+                        <h5>🏢 Employer Union Settings</h5>
+                        {{ form.employer_name|as_crispy_field }}
+                        {{ form.employer_contact_person|as_crispy_field }}
+                        {{ form.employer_contact_email|as_crispy_field }}
+                        {{ form.employer_contact_phone|as_crispy_field }}
+                        {{ form.employer_verified|as_crispy_field }}
+                        {{ form.employer_verification_date|as_crispy_field }}
+                        {{ form.payroll_deduction_enabled|as_crispy_field }}
+                        {{ form.payroll_deduction_day|as_crispy_field }}
+
+                    {% elif group.group_type == "burial_society" %}
+                        <h5>⚰️ Burial Society Settings</h5>
+                        {{ form.society_registration_number|as_crispy_field }}
+                        {{ form.society_monthly_contribution|as_crispy_field }}
+                        {{ form.society_payout_per_funeral|as_crispy_field }}
+                        {{ form.society_elder_council|as_crispy_field }}
+
+                    {% elif group.group_type == "savings_group" %}
+                        <h5>🏦 Savings Group Settings</h5>
+                        {{ form.savings_group_cycle_months|as_crispy_field }}
+                        {{ form.savings_group_share_value|as_crispy_field }}
+                        {{ form.savings_group_max_shares_per_person|as_crispy_field }}
+                        {{ form.savings_group_internal_lending_rate|as_crispy_field }}
+                        {{ form.savings_group_shareout_date|as_crispy_field }}
+
+                    {% else %}
+                        <p class="text-muted">No specific settings required for this group type.</p>
+                    {% endif %}
+                </div>
+
+                <div class="text-end">
+                    <button type="submit" class="btn btn-success px-4">💾 Save Settings</button>
+                    <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

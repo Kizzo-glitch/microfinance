@@ -10,8 +10,178 @@
 
         <section class="bg-light py-5">
 
+            <!-- Summary cards -->
+            <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card shadow-sm">
+                <div class="card-body">
+                    <small class="text-muted">Active Groups</small>
+                    <h4 class="mt-2">{{ total_groups }}</h4>
+                    <a href="{% url 'groups:group_list' %}" class="stretched-link small">Manage Groups →</a>
+                </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm">
+                <div class="card-body">
+                    <small class="text-muted">Total Members</small>
+                    <h4 class="mt-2">{{ total_members }}</h4>
+                    <a href="{% url 'groups:group_list' %}#members" class="stretched-link small">View Members →</a>
+                </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm">
+                <div class="card-body">
+                    <small class="text-muted">Pending Requests</small>
+                    <h4 class="mt-2">{{ pending_count }}</h4>
+                    <a href="#pending-requests" class="stretched-link small">Review Requests →</a>
+                </div>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <div class="card shadow-sm">
+                <div class="card-body">
+                    <small class="text-muted">Total Savings</small>
+                    <h4 class="mt-2">R{{ total_savings|floatformat:2 }}</h4>
+                    <a href="#" class="stretched-link small">View Ledger →</a>
+                </div>
+                </div>
+            </div>
+            </div>
+
+            <!-- Action row -->
+            <div class="d-flex gap-2 mb-4">
+                <a href="{% url 'groups:group_create' %}" class="btn btn-primary">Create New Group</a>
+                &nbsp;&nbsp;&nbsp;
+                <a href="{% url 'groups:group_list' %}" class="btn btn-outline-primary">Manage Groups</a>
+                &nbsp;&nbsp;&nbsp;
+                <a href="#pending-requests" class="btn btn-outline-warning">Pending Approvals ({{ pending_count }})</a>
+            </div>
+
+            <div class="row">
+            <!-- Left column: recent activity + pending -->
+            <div class="col-lg-8">
+                <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>Recent Activity</strong>
+                    <small class="text-muted">Latest join requests & invitations</small>
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                        <th>Type</th>
+                        <th>Group</th>
+                        <th>Person</th>
+                        <th>Details</th>
+                        <th>When</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in recent_join_requests %}
+                        <tr>
+                        <td><span class="badge bg-warning">Join Request</span></td>
+                        <td>{{ req.group.name }}</td>
+                        <td>{{ req.requester.full_name }}</td>
+                        <td>{{ req.reason_for_joining|truncatechars:50 }}</td>
+                        <td>{{ req.requested_at|timesince }} ago</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-muted">No recent join requests</td></tr>
+                        {% endfor %}
+
+                        {% for inv in recent_invitations %}
+                        <tr>
+                        <td><span class="badge bg-info">Invitation</span></td>
+                        <td>{{ inv.group.name }}</td>
+                        <td>{{ inv.invitee_name|default:inv.invitee_phone }}</td>
+                        <td>{{ inv.personal_message|truncatechars:50 }}</td>
+                        <td>{{ inv.sent_at|timesince }} ago</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    </table>
+                </div>
+                </div>
+
+                <!-- Pending Requests panel -->
+                <div class="card mb-3" id="pending-requests">
+                <div class="card-header">
+                    <strong>Pending Join Requests ({{ pending_count }})</strong>
+                </div>
+                <div class="card-body">
+                    {% if recent_join_requests %}
+                    <ul class="list-group">
+                        {% for r in recent_join_requests %}
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                        <div>
+                            <div><strong>{{ r.requester.full_name }}</strong> — <small class="text-muted">{{ r.group.name }}</small></div>
+                            <div class="small text-muted">{{ r.reason_for_joining|truncatechars:80 }}</div>
+                        </div>
+                        <div class="text-end">
+                            <a href="{% url 'groups:review_join_request' r.id %}" class="btn btn-sm btn-primary mb-1">Review</a>
+                            <form method="post" action="{% url 'groups:review_join_request' r.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="status" value="approved">
+                            <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                            </form>
+                        </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">No pending requests at the moment.</p>
+                    {% endif %}
+                </div>
+                </div>
+            </div>
+
+            <!-- Right column: groups list + quick stats -->
+            <div class="col-lg-4">
+                <div class="card mb-3">
+                <div class="card-header">
+                    <strong>Your Groups</strong>
+                </div>
+                <div class="card-body">
+                    {% if administered_groups %}
+                    <div class="list-group">
+                        {% for g in administered_groups %}
+                        <a href="{% url 'groups:group_detail' g.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>{{ g.name }}</strong>
+                            <div class="small text-muted">{{ g.get_group_type_display }}</div>
+                        </div>
+                        <div class="text-end">
+                            <div class="small">{{ g.member_count }} members</div>
+                            <div class="small text-muted">{{ g.get_status_display }}</div>
+                        </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">You haven't created any groups yet.</p>
+                    {% endif %}
+                </div>
+                </div>
+
+                <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title">Quick Stats</h6>
+                    <p class="mb-1"><small class="text-muted">Active Loans</small><br><strong>{{ active_group_loans }}</strong></p>
+                    <p class="mb-1"><small class="text-muted">Pending Invitations</small><br><strong>{{ pending_invitations_count }}</strong></p>
+                    <a href="{% url 'groups:group_create' %}" class="btn btn-outline-success btn-sm mt-2">Create Group</a>
+                </div>
+                </div>
+
+            </div>
+
+
         
-            <div class="col-xl-3 col-md-6 mb-4">
+            <!--<div class="col-xl-3 col-md-6 mb-4">
                 <a href="#" class="text-decoration-none">
                     <div class="card border-left-success shadow h-100 py-2">
                         <div class="card-body">
@@ -28,7 +198,7 @@
                         </div>
                     </div>
                 </a>
-            </div>
+            </div>-->
 
         </section>
 

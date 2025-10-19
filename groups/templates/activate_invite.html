@@ -1,0 +1,15 @@
+{% extends 'group_base.html' %}
+{% block content %}
+<div class="container mt-5">
+  <div class="card shadow-sm p-4">
+    <h4 class="mb-3">You’ve been invited to join {{ invite.group.name }}</h4>
+    <p>{{ invite.personal_message }}</p>
+    <p><strong>Invited by:</strong> {{ invite.invited_by.full_name }}</p>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="btn btn-success rounded-pill">Accept & Create Account</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

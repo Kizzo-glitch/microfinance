@@ -17,12 +17,12 @@
 
                 <ul class="navbar-nav ms-auto">
                     {% if user.is_authenticated %}                        
-                    <li class="nav-item"><a class="nav-link btn ms-2" href="{% url 'admin_logout' %}">Logout</a></li>
+                    <li class="nav-item"><a class="nav-link btn ms-2" href="{% url 'groups:admin_logout' %}">Logout</a></li>
                     {% else %}
                         
-                    <li class="nav-item"><a class="nav-link btn ms-2" href="{% url 'register_group_admin' %}">Register as Admin</a></li>   
+                    <li class="nav-item"><a class="nav-link btn ms-2" href="{% url 'groups:register_group_admin' %}">Register as Admin</a></li>   
                     
-                    <li class="nav-item"><a class="nav-link btn ms-2" href="{% url 'group_admin_login' %}">Login to Admin Dash</a></li>
+                    <li class="nav-item"><a class="nav-link btn ms-2" href="{% url 'groups:group_admin_login' %}">Login to Admin Dash</a></li>
                         
                     {% endif %}
                 </ul>

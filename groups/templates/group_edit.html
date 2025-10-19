@@ -1,0 +1,80 @@
+{% extends 'group_dash_base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-primary mb-0">
+            <i class="bi bi-pencil-square me-2"></i>Edit Group – {{ group.name }}
+        </h2>
+        <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Go to Group Details
+        </a>
+    </div>
+
+    <!-- Group Info Card -->
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm border-0">
+                {% if group.image %}
+                    <img src="{{ group.image.url }}" class="card-img-top" alt="{{ group.name }}">
+                {% else %}
+                    <div class="text-center py-5 bg-light">
+                        <i class="bi bi-people display-4 text-muted"></i>
+                        <p class="text-muted mb-0">No Group Image</p>
+                    </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ group.name }}</h5>
+                    <p class="text-muted mb-1">
+                        <i class="bi bi-tag"></i> {{ group.group_type|default:"Unspecified" }}
+                    </p>
+                    <p class="mb-0">
+                        <i class="bi bi-calendar-check"></i> Created: {{ group.created_at|date:"M d, Y" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Form -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">Update Group Information</h5>
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        {{ form.non_field_errors }}
+
+                        {% for field in form %}
+                            <div class="mb-3">
+                                <label for="{{ field.id_for_label }}" class="form-label fw-semibold">
+                                    {{ field.label }}
+                                </label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                    <div class="form-text text-muted">{{ field.help_text }}</div>
+                                {% endif %}
+                                {% for error in field.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
+
+                        <div class="d-flex justify-content-end mt-4">
+                            <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary me-2">
+                                Cancel
+                            </a>
+                            &nbsp;&nbsp;
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-1"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

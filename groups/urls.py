@@ -1,6 +1,9 @@
 # groups/urls.py
 from django.urls import path
 from . import views
+from .views import GroupTypeSpecificSettingsView
+
+app_name = 'groups'
 
 urlpatterns = [
 
@@ -11,15 +14,30 @@ urlpatterns = [
     path('group-admin-login/', views.group_admin_login, name='group_admin_login'),
     
     path('admin-logout/', views.admin_logout, name='admin_logout'),
-
-    path('create/', views.create_group, name='create_group'), 
               
-    path('my-group/', views.my_group_dashboard, name='my_group_dashboard'), 
+    path('group-member-dashboard/', views.my_group_dashboard, name='my_group_dashboard'), 
             
-    path('admin/', views.group_admin_dashboard, name='group_admin_dashboard'), 
-    path('invite/<str:code>/', views.join_group_by_code, name='join_group'),   # /groups/invite/ABC123
-    path('explore/', views.explore_groups, name='explore_groups'),   # /groups/explore (for lenders)
-    path('<int:group_id>/', views.group_detail, name='group_detail'), # /groups/12
+    path('admin-dashboard/', views.group_admin_dashboard, name='group_admin_dashboard'),
+
+    path('group_list', views.group_list, name='group_list'),
+    path('create/', views.group_create, name='group_create'),
+    path('<int:pk>/group-detail', views.group_detail, name='group_detail'),
+    path('<int:group_id>/members/', views.group_members, name='group_members'), 
+    path('<int:pk>/edit/', views.group_edit, name='group_edit'),
+    path('<int:group_id>/constitution/', views.group_constitution, name='group_constitution'),
+    #path('<int:group_id>/settings/', views.group_type_settings, name='group_type_settings'),
+    path('<int:group_id>/settings/', GroupTypeSpecificSettingsView.as_view(), name='group_type_settings'),
+
+    path('<int:group_id>/join/', views.join_group, name='join_group'),
+    #path('<int:group_id>/invite/', views.group_invite, name='group_invite'),
+    
+    path("<int:group_id>/invite/", views.send_group_invite, name="group_invite"),
+    path("invite/<str:code>/activate/", views.activate_invite, name="activate_invite"),
+
+
+    #path('invite/<str:code>/', views.join_group_by_code, name='join_group'),   # /groups/invite/ABC123
+    #path('explore/', views.explore_groups, name='explore_groups'),   # /groups/explore (for lenders)
+    #path('<int:group_id>/', views.group_detail, name='group_detail'), # /groups/12
 
     # Groups
     #path("groups/", views.my_groups, name="my_groups"),

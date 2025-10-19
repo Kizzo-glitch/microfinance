@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'whitenoise.runserver_nostatic',
     'groups',
+    'crispy_forms',
+    'crispy_bootstrap4',
     #'drf-yasg', 
 ]
 
@@ -190,7 +192,7 @@ SMS_API_URL = "https://rest.smsportal.com/bulkmessages"
 SMS_API_SECRET = os.getenv('SMS_API_SECRET')
 CLIENT_ID = os.getenv('CLIENT_ID')
 
-
+CRISPY_TEMPLATE_PACK = 'bootstrap4'
 
 # Email settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'

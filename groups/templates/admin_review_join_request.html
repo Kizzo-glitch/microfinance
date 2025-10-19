@@ -1,0 +1,15 @@
+{% extends 'group_base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h3>Review Join Request</h3>
+  <p><strong>Applicant:</strong> {{ join_request.requester.full_name }}</p>
+  <p><strong>Group:</strong> {{ join_request.group.name }}</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-success">Save Review</button>
+    <a href="{% url 'group_admin_dashboard' group.id %}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends 'group_dash_base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">{{ group.name }}</h2>
+            <p class="text-muted mb-0">{{ group.get_group_type_display }} | Created on {{ group.created_at|date:"M d, Y" }}</p>
+        </div>
+        <a href="{% url 'groups:group_edit' group.id %}" class="btn btn-outline-primary">
+            <i class="bi bi-pencil-square"></i> Edit Group
+        </a>
+    </div>
+
+    <!-- Group Overview -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-people display-5 text-primary"></i>
+                    <h5 class="fw-semibold mt-2">Members</h5>
+                    <p class="mb-0 fs-4">{{ group.memberships.count }}</p>
+                    <a href="{% url 'groups:group_members' group.id %}" class="text-decoration-none small text-primary">View Members</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-person-check display-5 text-success"></i>
+                    <h5 class="fw-semibold mt-2">Join Requests</h5>
+                    <p class="mb-0 fs-4">{{ pending_requests_count }}</p>
+                    <a href="{% url 'groups:join_group' group.id %}" class="text-decoration-none small text-success">Review Requests</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-file-earmark-text display-5 text-warning"></i>
+                    <h5 class="fw-semibold mt-2">Constitution</h5>
+                    <p class="mb-0 small text-muted">Manage group rules & policies</p>
+                    <a href="{% url 'groups:group_constitution' group.id %}" class="text-decoration-none small text-warning">Edit Constitution</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-gear display-5 text-info"></i>
+                    <h5 class="fw-semibold mt-2">Group Settings</h5>
+                    <p class="mb-0 small text-muted">View and edit type-specific options</p>
+                    <a href="{% url 'groups:group_type_settings' group.id %}" class="text-decoration-none small text-info">Configure</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Group Info Details -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-light fw-semibold">
+            <i class="bi bi-info-circle"></i> Group Details
+        </div>
+        <div class="card-body">
+            <p><strong>Admin:</strong> {{ group.admin.full_name }}</p>
+            <p><strong>Description:</strong> {{ group.description|default:"No description provided." }}</p>
+            <p><strong>Region:</strong> {{ group.region|default:"Not specified" }}</p>
+            <p><strong>Verification Status:</strong> 
+                {% if group.verified %}
+                    <span class="badge bg-success">Verified</span>
+                {% else %}
+                    <span class="badge bg-secondary">Pending Verification</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mt-4 d-flex justify-content-end">
+        <a href="{% url 'groups:group_invite' group.id %}" class="btn btn-success me-2">
+            <i class="bi bi-person-plus"></i> Invite Members
+        </a>
+        &nbsp;&nbsp;&nbsp;
+        <a href="{% url 'groups:group_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to My Groups
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+<!--<div class="container py-4">
+    <h2 class="mb-3">{{ group.name }}</h2>
+    <p><strong>Type:</strong> {{ group.get_group_type_display }}</p>
+    <p><strong>Description:</strong> {{ group.description }}</p>
+    <p><strong>Group Editor</strong> {{ group.can_edit }}</p>
+    <p><strong>Members:</strong> {{ group.members.count }}</p>
+
+    <hr>
+
+    <h4>Type-Specific Settings</h4>
+    {% if can_edit %}
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary mt-3">Save Settings</button>
+        </form>
+    {% elif type_settings %}
+        <table class="table table-sm table-bordered mt-3">
+            {% for field in form %}
+                {% if field.value %}
+                <tr>
+                    <th>{{ field.label }}</th>
+                    <td>{{ field.value }}</td>
+                </tr>
+                {% endif %}
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>No specific settings configured yet.</p>
+    {% endif %}
+
+    <hr>
+
+    <h4>Join Requests</h4>
+    {% if join_requests %}
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Requester</th>
+                    <th>Reason</th>
+                    <th>Status</th>
+                    <th>Requested At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in join_requests %}
+                <tr>
+                    <td>{{ req.requester.full_name }}</td>
+                    <td>{{ req.reason_for_joining|truncatechars:50 }}</td>
+                    <td>{{ req.get_status_display }}</td>
+                    <td>{{ req.requested_at|date:"Y-m-d" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No join requests yet.</p>
+    {% endif %}
+</div>-->
+

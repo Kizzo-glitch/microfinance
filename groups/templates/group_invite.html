@@ -1,0 +1,39 @@
+{% extends 'group_dash_base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="card shadow-sm border-0 rounded-3">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Invite New Member to {{ group.name }}</h5>
+      <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-light btn-sm">← Back to Group</a>
+    </div>
+
+    <div class="card-body">
+      <form method="POST">
+        {% csrf_token %}
+        <div class="row">
+          {% for field in form %}
+          <div class="col-md-6 mb-3">
+            <label for="{{ field.id_for_label }}" class="form-label fw-semibold">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}
+              <div class="form-text">{{ field.help_text }}</div>
+            {% endif %}
+            {% for error in field.errors %}
+              <div class="text-danger small">{{ error }}</div>
+            {% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="d-flex justify-content-end mt-3">
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-send"></i> Send Invitation
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
