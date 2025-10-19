@@ -43,7 +43,7 @@ def register_group_admin(request):
 			user = form.save()
 			login(request, user)
 			messages.success(request, "Account created. Please complete your profile before creating a group.")
-			return redirect('group_borrower_profile') 
+			return redirect('groups:group_borrower_profile') 
 	else:
 		form = BorrowerGroupRegistrationForm()
 	return render(request, 'register_group_admin.html', {'form': form})
@@ -57,7 +57,7 @@ def group_borrower_profile(request):
 			current_user = BorrowerProfile.objects.get(user=request.user)
 		except BorrowerProfile.DoesNotExist:
 			messages.error(request, "Borrower profile not found.")
-			return redirect('group_landing')
+			return redirect('groups:group_landing')
 
 		# Force borrower to be a group admin
 		current_user.is_group_admin = True
@@ -311,6 +311,7 @@ def group_members(request, group_id):
 		'members': members,
 	}
 	return render(request, 'group_members.html', context)
+
 
 
 @login_required

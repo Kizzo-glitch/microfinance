@@ -287,6 +287,7 @@ class GroupConstitution(models.Model):
         return f"Constitution for {self.group.name}"
 
 
+
 class GroupMembership(models.Model):
     """
     Tracks individual membership in groups

@@ -7,7 +7,7 @@
         <h1>My Profile</h1>
        
 
-        <form method="POST" action="{% url 'borrower_profile' %}">
+        <form method="POST" action="{% url 'groups:group_borrower_profile' %}">
             {% csrf_token %}
             <div class="border">
                 <center>

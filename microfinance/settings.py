@@ -40,7 +40,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'whitenoise.runserver_nostatic',
     'groups',
-    #'crispy_forms',
+    'crispy_forms',
     'crispy_bootstrap4',
     #'drf-yasg', 
 ]
