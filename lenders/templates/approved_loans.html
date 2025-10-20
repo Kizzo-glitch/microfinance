@@ -30,7 +30,7 @@
 						<td>R{{ loan.total_repayable }}</td>
 						<td><span class="badge bg-success">Approved</span></td> 
 						
-						<td><a href="{% url 'my-borrower-payment-history' loan.id %}" class="btn btn-sm btn-outline-primary">View</a></td>
+						<td><a href="{% url 'lenders:my-borrower-payment-history' loan.id %}" class="btn btn-sm btn-outline-primary">View</a></td>
 					</tr>
 				{% endfor %}
 			</tbody>

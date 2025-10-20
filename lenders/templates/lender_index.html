@@ -23,7 +23,7 @@
 
                         <!-- New Loan Applications -->
                         <div class="col-xl-3 col-md-6 mb-4">
-                            <a href="{% url 'loan-application-list' %}" class="text-decoration-none">
+                            <a href="{% url 'lenders:loan-application-list' %}" class="text-decoration-none">
                                 <div class="card border-left-success shadow h-100 py-2">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
@@ -43,7 +43,7 @@
 
                         <!-- Approved Loan Applications -->
                         <div class="col-xl-3 col-md-6 mb-4">
-                            <a href="{% url 'approved-loans' %}" class="text-decoration-none">
+                            <a href="{% url 'lenders:approved-loans' %}" class="text-decoration-none">
                                 <div class="card border-left-success shadow h-100 py-2">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
@@ -76,7 +76,7 @@
 
                         <!-- Pending Loan Applications -->
                         <div class="col-xl-3 col-md-6 mb-4">
-                            <a href="{% url 'pending-loans' %}" class="text-decoration-none">
+                            <a href="{% url 'lenders:pending-loans' %}" class="text-decoration-none">
                                 <div class="card border-left-warning shadow h-100 py-2">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
@@ -109,7 +109,7 @@
 
                         <!-- Rejected Loan Applications -->
                         <div class="col-xl-3 col-md-6 mb-4">
-                            <a href="{% url 'rejected-loans' %}" class="text-decoration-none">
+                            <a href="{% url 'lenders:rejected-loans' %}" class="text-decoration-none">
                                 <div class="card border-left-danger shadow h-100 py-2">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
@@ -142,7 +142,7 @@
 
                         <!-- Total number of Loans -->
                         <div class="col-xl-3 col-md-6 mb-4">
-                            <a href="{% url 'loan-list' %}" class="text-decoration-none">
+                            <a href="{% url 'lenders:loan-list' %}" class="text-decoration-none">
                                 <div class="card border-left-primary shadow h-100 py-2">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
@@ -162,7 +162,7 @@
 
                         <!-- Overdue Requests Card Example -->
                         <div class="col-xl-3 col-md-6 mb-4">
-                            <a href="{% url 'overdue-loans' %}" class="text-decoration-none">
+                            <a href="{% url 'lenders:overdue-loans' %}" class="text-decoration-none">
                                 <div class="card border-left-danger shadow h-100 py-2">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
@@ -195,7 +195,7 @@
                     
                         <!-- Fully Paid Loans -->
                         <div class="col-xl-3 col-md-6 mb-4">
-                            <a href="{% url 'overdue-loans' %}" class="text-decoration-none">
+                            <a href="{% url 'lenders:overdue-loans' %}" class="text-decoration-none">
                                 <div class="card border-left-success shadow h-100 py-2">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
@@ -292,6 +292,7 @@
                                 <div class="card-body">
                                     <div class="chart-area">
                                         <canvas id="theAreaChart"></canvas>
+                                        <br>
                                         <div class="text-success">High Income Month: <strong id="highMonth"></strong></div>
                                         <div class="text-danger">Low Income Month: <strong id="lowMonth"></strong></div>
                                     </div>
@@ -356,7 +357,7 @@
                     <div class="row">
                         <!-- High Risk Customers -->
                         <div class="col-xl-4 col-md-6 mb-4">
-                            <a href="{% url 'risk_customers' 'high' %}" class="text-decoration-none">
+                            <a href="{% url 'lenders:risk_customers' 'high' %}" class="text-decoration-none">
                                 <div class="card border-left-danger shadow h-100 py-2">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
@@ -376,7 +377,7 @@
 
                         <!-- Mid Risk Customers -->
                         <div class="col-xl-4 col-md-6 mb-4">
-                            <a href="{% url 'risk_customers' 'mid' %}" class="text-decoration-none">
+                            <a href="{% url 'lenders:risk_customers' 'mid' %}" class="text-decoration-none">
                                 <div class="card border-left-warning shadow h-100 py-2">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
@@ -396,7 +397,7 @@
 
                         <!-- Late Payers -->
                         <div class="col-xl-4 col-md-6 mb-4">
-                            <a href="{% url 'risk_customers' 'late' %}" class="text-decoration-none">
+                            <a href="{% url 'lenders:risk_customers' 'late' %}" class="text-decoration-none">
                                 <div class="card border-left-info shadow h-100 py-2">
                                     <div class="card-body">
                                         <div class="row no-gutters align-items-center">
@@ -424,7 +425,7 @@
                 <script>
                 document.addEventListener('DOMContentLoaded', function () {
                     // Area Chart - Monthly Repayments
-                    fetch("{% url 'lender_repayment_data' %}")
+                    fetch("{% url 'lenders:lender_repayment_data' %}")
                         .then(response => response.json())                       
                         .then(data => {
                             const ctx = document.getElementById("theAreaChart").getContext("2d");
@@ -486,7 +487,7 @@
                 <script>
                     
                     // Pie Chart - Loan Status
-                    fetch("{% url 'lender_loan_status_data' %}")
+                    fetch("{% url 'lenders:lender_loan_status_data' %}")
                         .then(response => response.json())
                         .then(data => {
                             const ctx = document.getElementById("loanStatusPieChart").getContext("2d");

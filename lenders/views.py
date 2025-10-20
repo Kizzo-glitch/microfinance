@@ -1,3 +1,4 @@
+import os
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from .forms import LenderInfoForm, LoanApplicationStatusForm, LoanStatusForm, LenderDocumentsForm
@@ -7,9 +8,9 @@ from loans.models import Notification, LoanApplication, Loan, LoanPayment
 from django.http import JsonResponse
 from borrowers.models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
 
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, Http404
 from django.http import HttpResponseRedirect
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 
 from django.views.generic import ListView, UpdateView, DetailView
 from decimal import Decimal
@@ -156,7 +157,7 @@ def lender_profile(request):
 			
 
 			messages.success(request, "Your Info Has Been Updated!!")
-			return redirect('lender_index')
+			return redirect('lenders:lender_index')
 		return render(request, "lender_profile.html", {'form':form})
 	else:
 		messages.success(request, "You Must Be Logged In To Access That Page!!")
@@ -252,7 +253,7 @@ def update_lender_documents(request):
 		)
 
 		messages.success(request, "Your documents were updated successfully.")
-		return redirect('lender_dashboard')
+		return redirect('lenders:lender_index')
 
 	# Get existing documents for display
 	existing_documents_qs = LenderDocs.objects.filter(lender=lender)
@@ -686,7 +687,7 @@ class LoanApplicationUpdateView(UpdateView):
 		return context
 
 	def get_success_url(self):
-		return reverse('loan-application-list')
+		return reverse('lenders:loan-application-list')
 
 
 def view_borrower_documents(request, loan_id):
@@ -804,7 +805,7 @@ def update_pending_loans(request):
 	except LoanApplication.DoesNotExist:
 		messages.error(request, "Application not found.")
 
-	return redirect('pending-loans')
+	return redirect('lenders:pending-loans')
 
 
 
@@ -860,7 +861,7 @@ class LoanStatusUpdateView(UpdateView):
 		return super().form_valid(form)
 
 	def get_success_url(self):
-		return reverse_lazy('lender-index')
+		return reverse_lazy('lenders:lender_index')
 
 
 # List all loans (approved or rejected) for a specific lender
@@ -913,7 +914,7 @@ def applied_loans(request):
 
 	except LenderProfile.DoesNotExist:
 		messages.error(request, "You do not have a Lender Profile. Please complete your profile first.")
-		return redirect('lender_index')
+		return redirect('lenders:lender_index')
 
 
 def borrower_payment_history(request, borrower_id):
@@ -957,8 +958,7 @@ class FullyPaidLoanListView(ListView):
 	template_name = 'fully_paid_loan_list.html'
 	context_object_name = 'fully_paid_loans'
 
-	def get_queryset(self):
-		
+	def get_queryset(self):	
 		return Loan.objects.filter(lender=self.request.user.lender, status='repaid')
 
 
@@ -1024,7 +1024,7 @@ def credit_reports(request):
 
 	for borrower in borrowers:
 		loans = Loan.objects.filter(borrower=borrower, lender=lender)
-		payments = Payment.objects.filter(loan__in=loans)
+		payments = LoanPayment.objects.filter(loan__in=loans)
 
 		total_loans = loans.count()
 		total_borrowed = loans.aggregate(Sum('amount'))['amount__sum'] or 0

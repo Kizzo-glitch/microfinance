@@ -20,7 +20,7 @@
                 <td>${{ client.total_amount|floatformat:2 }}</td>
                 <td>${{ client.outstanding_balance|floatformat:2 }}</td>
                 <td>
-                    <a href="{% url 'my-borrower-payment-history' client.loan_id %}" class="btn btn-sm btn-info">View</a>
+                    <a href="{% url 'lenders:my-borrower-payment-history' client.loan_id %}" class="btn btn-sm btn-info">View</a>
                 </td>
             </tr>
             {% empty %}

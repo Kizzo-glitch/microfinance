@@ -225,7 +225,7 @@
 
 <script>
     document.getElementById('loanApplicationDropdown').addEventListener('click', function () {
-        fetch("{% url 'mark_loan_approved_read' %}", {
+        fetch("#!", {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}',
@@ -239,7 +239,7 @@
     });
 
     document.getElementById('loanPaymentDropdown').addEventListener('click', function () {
-        fetch("{% url 'mark_loan_rejected_read' %}", {
+        fetch("#!", {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}',
@@ -253,7 +253,7 @@
     });
 
     document.getElementById('pendingLoanUpdateDropdown').addEventListener('click', function () {
-        fetch("{% url 'mark_loan_pending_read' %}", {
+        fetch("#!", {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}',

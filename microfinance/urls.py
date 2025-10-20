@@ -25,7 +25,7 @@ schema_view = get_schema_view(
 urlpatterns = [
 	path('admin/', admin.site.urls),
 	path('', include('micro.urls')),
-	path('lenders/', include('lenders.urls')),
+	path('lenders/', include('lenders.urls', namespace='lenders')),
 	path('borrowers/', include('borrowers.urls', namespace='borrowers')),
 	path('groups/', include('groups.urls', namespace='groups')),
 

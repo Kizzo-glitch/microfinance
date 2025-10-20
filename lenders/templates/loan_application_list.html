@@ -37,7 +37,7 @@
                     <td>{{ application.date_applied }}</td>
                     <td>{{ application.status }}</td>
                     <td>
-                        <a href="{% url 'loan-application-update' application.pk %}">Review</a>
+                        <a href="{% url 'lenders:loan-application-update' application.pk %}">Review</a>
                     </td>
                 </tr>
                 {% empty %}

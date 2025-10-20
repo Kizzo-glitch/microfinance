@@ -176,13 +176,6 @@ def borrower_groups_dashboard(request):
 	# Pending join requests
 	pending_requests = borrower.group_requests.filter(status='pending')
 
-	# Available groups (exclude ones borrower already belongs to or has pending requests)
-	joined_groups = BorrowerGroup.objects.filter(memberships__borrower=borrower)
-	requested_groups = BorrowerGroup.objects.filter(join_requests__requester=borrower)
-	available_groups = BorrowerGroup.objects.exclude(
-		Q(id__in=joined_groups.values_list('id', flat=True)) |
-		Q(id__in=requested_groups.values_list('id', flat=True))
-	)
 	# ✅ Pending Invitations
 	pending_invitations = GroupInvitation.objects.filter(
 		invitee_phone=borrower.phone_number,  # assuming borrowerprofile has phone_number

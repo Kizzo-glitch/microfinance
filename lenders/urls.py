@@ -9,6 +9,7 @@ from .views import (
     LenderVerificationDetailView, LenderNotificationListView,
     )
 
+app_name = 'lenders'
 
 urlpatterns = [
     path('lender_index/', views.lender_index, name='lender_index'),

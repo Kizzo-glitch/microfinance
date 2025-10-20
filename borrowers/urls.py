@@ -77,7 +77,7 @@ urlpatterns = [
     path('api/borrower/paid-vs-outstanding/', views.paid_vs_outstanding, name='paid_vs_outstanding'),
 
     path('dashboard/groups/', views.borrower_groups_dashboard, name='borrower_groups_dashboard'),
-    path('join-groups/<int:group_id>/', views.borrower_join_group, name='borrower_join_group'),
+    path('join-group/<int:group_id>/', views.borrower_join_group, name='borrower_join_group'),
     
 
 

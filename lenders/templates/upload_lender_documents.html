@@ -94,7 +94,7 @@
                     progressBar.style.width = '0%';
                     progressBar.textContent = '0%';
 
-                    fetch("{% url 'upload_lender_docs' %}", {
+                    fetch("{% url 'lenders:upload_lender_docs' %}", {
                         method: 'POST',
                         headers: {
                             'X-CSRFToken': '{{ csrf_token }}'

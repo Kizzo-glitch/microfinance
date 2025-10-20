@@ -36,11 +36,11 @@ def register(request):
 			if role == 'lender':
 				login(request, user)
 				messages.success(request, f"Account created for {user.username} as a {role}!")
-				return redirect('lender_profile')  # Redirect to lender info page
+				return redirect('lenders:lender_profile')  # Redirect to lender info page
 			elif role == 'borrower':
 				login(request, user)
 				messages.success(request, f"Account created for {user.username} as a {role}!")
-				return redirect('borrower_profile') 
+				return redirect('borrowers:borrower_profile') 
 			
 			#return redirect('landing')  # Redirect to the login page
 	else:
@@ -49,7 +49,7 @@ def register(request):
 	
 
 
-def borrower_registration(request):
+"""def borrower_registration(request):
 	borrower_form = BorrowerRegistrationForm()
 	if request.method == 'POST':
 		borrower_form = BorrowerRegistrationForm(request.POST)
@@ -67,11 +67,11 @@ def borrower_registration(request):
 			messages.success(request, ('Whhops, there was a problem registering'))
 			return redirect('borrower_registration')
 	else:
-		return render(request, 'borrower_registration.html', {'borrower_form':borrower_form})
+		return render(request, 'borrower_registration.html', {'borrower_form':borrower_form})"""
 
 
 
-def lender_registration(request):
+"""def lender_registration(request):
 	lender_form = LenderRegistrationForm()
 	if request.method == 'POST':
 		lender_form = LenderRegistrationForm(request.POST)
@@ -89,11 +89,11 @@ def lender_registration(request):
 			messages.success(request, ('Whhops, there was a problem registering'))
 			return redirect('lender_registration')
 	else:
-		return render(request, 'lender_registration.html', {'lender_form':lender_form})
+		return render(request, 'lender_registration.html', {'lender_form':lender_form})"""
 
 
 
-def borrower_login(request):
+"""def borrower_login(request):
 	if request.method == "POST":
 		username = request.POST['username']
 		password = request.POST['password']
@@ -106,7 +106,7 @@ def borrower_login(request):
 
 
 			messages.success(request, ('You have been logged in'))
-			return redirect('borrower_index')
+			return redirect('borrowers:borrower_index')
 		else:
 			messages.success(request, ('There was an Error, please try again'))
 			return redirect('login')
@@ -137,7 +137,7 @@ def lender_login(request):
 
 	else:
 		messages.success(request, ('There was an Error, please try again'))
-		return render(request, 'login.html', {})
+		return render(request, 'login.html', {})"""
 
 
 
@@ -159,9 +159,9 @@ class CustomLoginView(LoginView):
 @login_required
 def role_based_redirect(request):
 	if request.user.is_lender():
-		return redirect('lender_index')  # To lender dashboard 
+		return redirect('lenders:llender_index')  # To lender dashboard 
 	elif request.user.is_borrower():
-		return redirect('borrower_index')  # To borrower dashboard 
+		return redirect('borrowers:borrower_index')  # To borrower dashboard 
 	return redirect('landing')  # Default fallback
 
 

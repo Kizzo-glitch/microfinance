@@ -21,7 +21,7 @@
                 <td>R{{ loan.loan_amount }}</td>
                 <td>{{ loan.rejection_reasons }}</td>
                 <td>{{ loan.date_applied }}</td>
-                <td><a href="{% url 'loan-status-update' loan.id %}" class="btn btn-sm btn-warning">Edit</a></td>
+                <td><a href="{% url 'lenders:loan-status-update' loan.id %}" class="btn btn-sm btn-warning">Edit</a></td>
             </tr>
             {% empty %}
             <tr><td colspan="5" class="text-center">No rejected loans.</td></tr>

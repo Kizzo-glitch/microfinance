@@ -14,7 +14,7 @@
             <hr class="sidebar-divider my-0">
 
             <li class="nav-item active">
-                <a class="nav-link" href="{% url 'lender_index' %}">
+                <a class="nav-link" href="{% url 'lenders:lender_index' %}">
                     <i class="fas fa-fw fa-tachometer-alt"></i>
                     <span>Go to Dashboard</span></a>
             </li>
@@ -38,18 +38,17 @@
                 <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Loan Analysis:</h6>
-                        <a class="collapse-item" href="{% url 'loan-application-list' %}">Applied Loans</a>
-                        <a class="collapse-item" href="{% url 'approved-loans' %}">Approved Loans</a>
+                        <a class="collapse-item" href="{% url 'lenders:loan-application-list' %}">Applied Loans</a>
+                        <a class="collapse-item" href="{% url 'lenders:approved-loans' %}">Approved Loans</a>
                         
-                        <a class="collapse-item" href="{% url 'pending-loans' %}">Pending Loans</a>
-                        <a class="collapse-item" href="{% url 'rejected-loans' %}">Rejected Loans</a>
-                        <a class="collapse-item" href="{% url 'overdue-loans' %}">Overdue Loans</a>
-                        <a class="collapse-item" href="{% url 'fully-paid-loans' %}">Fully Paid Loans</a>                                                
+                        <a class="collapse-item" href="{% url 'lenders:pending-loans' %}">Pending Loans</a>
+                        <a class="collapse-item" href="{% url 'lenders:rejected-loans' %}">Rejected Loans</a>
+                        <a class="collapse-item" href="{% url 'lenders:overdue-loans' %}">Overdue Loans</a>
+                        <a class="collapse-item" href="{% url 'lenders:fully-paid-loans' %}">Fully Paid Loans</a>                                                
                        
                     </div>
                 </div>
             </li>
-
 
             <!-- Nav Item - Utilities Collapse Menu -->
             <li class="nav-item">
@@ -62,10 +61,10 @@
                     data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Analysis</h6>
-                        <a class="collapse-item" href="{% url 'my_clients' %}">My Clients</a>
-                        <a class="collapse-item" href="{% url 'view_documents' %}">Client Documents</a>
+                        <a class="collapse-item" href="{% url 'lenders:my_clients' %}">My Clients</a>
+                        <a class="collapse-item" href="#">Client Documents</a>
                         
-                        <a class="collapse-item" href="{% url 'credit_reports' %}">Credit Reports</a>                 
+                        <a class="collapse-item" href="{% url 'lenders:credit_reports' %}">Credit Reports</a>                 
                     </div> 
                 </div>
             </li>
@@ -107,9 +106,9 @@
                 <div id="collapsePages" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">My Documents</h6>
-                        <a class="collapse-item" href="{% url 'upload_lender_docs' %}">Upload Documents</a>
-                        <a class="collapse-item" href="{% url 'view_lender_documents' %}">View Documents</a>
-                        <a class="collapse-item" href="{% url 'update_lender_documents' %}">Update Documents</a>
+                        <a class="collapse-item" href="{% url 'lenders:upload_lender_docs' %}">Upload Documents</a>
+                        <a class="collapse-item" href="{% url 'lenders:view_lender_documents' %}">View Documents</a>
+                        <a class="collapse-item" href="{% url 'lenders:update_lender_documents' %}">Update Documents</a>
 
                         <div class="collapse-divider"></div>
                         <h6 class="collapse-header">Business Compliance:</h6>
@@ -121,17 +120,11 @@
             </li>
 
              <li class="nav-item">
-                <a class="nav-link" href="{% url 'lender_notifications' %}"> 
+                <a class="nav-link" href="{% url 'lenders:lender_notifications' %}"> 
                     <i class="fas fa-fw fa-bell"></i>
                     <span>All my Notifications</span></a>
             </li>
 
-           
-            <!--<li class="nav-item">
-                <a class="nav-link" href="{% url 'update_lender_documents' %}"> 
-                    <i class="fas fa-fw fa-chart-area"></i>
-                    <span>My Documents</span></a>
-            </li>-->
 
             <!-- Nav Item - Tables -->
             <li class="nav-item">

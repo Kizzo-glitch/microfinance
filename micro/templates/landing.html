@@ -12,9 +12,9 @@
                 <p class="lead">Connecting Borrowers and Lenders Seamlessly.</p>
                 <div class="d-flex justify-content-center">
                     {% if user.role == 'borrower' %}
-                    <!--<a href="{% url 'borrower_index' %}" class="btn btn-light btn-lg text-primary me-3">Go to DashBoard</a>-->
+                   
                         {% if user.is_authenticated %} 
-                        <button alt="Go to Dashboard" onclick="window.location.href='{% url 'borrower_index' %}?'"> 
+                        <button alt="Go to Dashboard" onclick="window.location.href='{% url 'borrowers:borrower_index' %}?'"> 
                               <i>g</i>
                               <i>o</i>
                               <i>&nbsp;</i>
@@ -49,7 +49,7 @@
                     &nbsp;
                         {% else %}
                             {% if user.is_authenticated %}
-                            <button alt="Go to Dashboard" onclick="window.location.href='{% url 'lender_index' %}?'"> 
+                            <button alt="Go to Dashboard" onclick="window.location.href='{% url 'lenders:lender_index' %}?'"> 
                               <i>g</i>
                               <i>o</i>
                               <i>&nbsp;</i>
@@ -81,7 +81,7 @@
                                   <i>d</i>
                                 </button>
                             {% endif %}
-                    <!--<a href="{% url 'lender_index' %}?" class="btn btn-outline-light btn-lg">Go to DashBoard</a>-->
+                    
                     {% endif %}
                     
                 </div>

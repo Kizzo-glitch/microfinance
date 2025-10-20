@@ -8,7 +8,7 @@
         {% for lender in lenders %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
                 {{ lender.company_name }} - {{ lender.user.get_full_name }}
-                <a href="{% url 'lender_verification_detail' lender.pk %}" class="btn btn-primary btn-sm">Review</a>
+                <a href="{% url 'lenders:lender_verification_detail' lender.pk %}" class="btn btn-primary btn-sm">Review</a>
             </li>
         {% empty %}
             <li class="list-group-item">No pending verifications.</li>
