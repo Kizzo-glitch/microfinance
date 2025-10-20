@@ -530,35 +530,57 @@ def group_invite2(request, group_id):
 		'form': form
 	})
 
+
+
 # -------------------------------------------------------
-# 1️⃣ Borrower applies to join a group
+# 1️⃣ Borrower join requests
 # -------------------------------------------------------
 @login_required
-def apply_to_join_group(request, group_id):
-	group = get_object_or_404(BorrowerGroup, id=group_id)
-	borrower = request.user.borrower
+def pending_join_requests(request):
+    """
+    Shows a list of all pending join requests for the admin's groups.
+    """
+    borrower_profile = request.user.borrower
 
-	# Check if they already applied
-	existing_request = GroupJoinRequest.objects.filter(group=group, requester=borrower, status__in=['pending', 'interview_scheduled', 'voting']).first()
-	if existing_request:
-		messages.warning(request, f"You already have a pending request to join {group.name}.")
-		return redirect('group_detail', group_id=group.id)
+    # Get groups managed by this admin (you might have sub_admins or main admin)
+    admin_groups = BorrowerGroup.objects.filter(admin=borrower_profile)
 
-	if request.method == 'POST':
-		form = BorrowerJoinRequestForm(request.POST)
-		if form.is_valid():
-			join_request = form.save(commit=False)
-			join_request.requester = borrower
-			join_request.group = group
-			join_request.status = 'pending'
-			join_request.save()
+    # Pending join requests for all their groups
+    pending_requests = GroupJoinRequest.objects.filter(
+        group__in=admin_groups, status='pending'
+    ).select_related('group', 'requester')
 
-			messages.success(request, f"Your request to join {group.name} has been submitted for review.")
-			return redirect('groups:group_detail', group_id=group.id)
-	else:
-		form = BorrowerJoinRequestForm(initial={'group': group})
+    context = {
+        'pending_requests': pending_requests,
+    }
 
-	return render(request, 'borrower_join_request_form.html', {'form': form, 'group': group})
+    return render(request, 'pending_join_requests.html', context)
+
+
+@login_required
+def approve_join_request(request, request_id):
+    join_request = get_object_or_404(GroupJoinRequest, id=request_id, status='pending')
+    borrower = join_request.requester
+    group = join_request.group
+
+    # Add borrower to group membership
+    group.memberships.create(borrower=borrower)
+    join_request.status = 'approved'
+    join_request.save()
+
+    messages.success(request, f"{borrower} has been added to {group.name}.")
+    return redirect('groups:pending_join_requests')
+
+
+@login_required
+def decline_join_request(request, request_id):
+    join_request = get_object_or_404(GroupJoinRequest, id=request_id, status='pending')
+    join_request.status = 'declined'
+    join_request.save()
+
+    messages.warning(request, f"Join request from {join_request.requester} has been declined.")
+    return redirect('groups:pending_join_requests')
+
 
 
 # -------------------------------------------------------
@@ -570,7 +592,7 @@ def review_join_request(request, request_id):
 	group = join_request.group
 
 	# Only admin or sub-admins can access
-	if request.user.borrowerprofile not in [group.admin, *group.sub_admins.all()]:
+	if request.user.borrower not in [group.admin, *group.sub_admins.all()]:
 		messages.error(request, "You are not authorized to review this request.")
 		return redirect('groups:group_detail', group_id=group.id)
 
@@ -620,7 +642,35 @@ def join_group_by_code(request, code):
 
 
 
+# -------------------------------------------------------
+# 1️⃣ Borrower applies to join a group
+# -------------------------------------------------------
+@login_required
+def apply_to_join_group(request, group_id):
+	group = get_object_or_404(BorrowerGroup, id=group_id)
+	borrower = request.user.borrower
 
+	# Check if they already applied
+	existing_request = GroupJoinRequest.objects.filter(group=group, requester=borrower, status__in=['pending', 'interview_scheduled', 'voting']).first()
+	if existing_request:
+		messages.warning(request, f"You already have a pending request to join {group.name}.")
+		return redirect('group_detail', group_id=group.id)
+
+	if request.method == 'POST':
+		form = BorrowerJoinRequestForm(request.POST)
+		if form.is_valid():
+			join_request = form.save(commit=False)
+			join_request.requester = borrower
+			join_request.group = group
+			join_request.status = 'pending'
+			join_request.save()
+
+			messages.success(request, f"Your request to join {group.name} has been submitted for review.")
+			return redirect('groups:group_detail', group_id=group.id)
+	else:
+		form = BorrowerJoinRequestForm(initial={'group': group})
+
+	return render(request, 'borrower_join_request_form.html', {'form': form, 'group': group})
 
 
 def activate_invite(request, code):

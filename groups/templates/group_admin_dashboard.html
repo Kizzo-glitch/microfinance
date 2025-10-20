@@ -129,6 +129,10 @@
                             <input type="hidden" name="status" value="approved">
                             <button type="submit" class="btn btn-sm btn-success">Approve</button>
                             </form>
+                            <a href="{% url 'groups:decline_join_request' r.id %}" 
+                                class="btn btn-sm btn-outline-danger rounded-pill">
+                                Decline
+                            </a>
                         </div>
                         </li>
                         {% endfor %}

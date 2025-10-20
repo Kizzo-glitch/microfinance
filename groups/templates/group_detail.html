@@ -33,7 +33,7 @@
                     <i class="bi bi-person-check display-5 text-success"></i>
                     <h5 class="fw-semibold mt-2">Join Requests</h5>
                     <p class="mb-0 fs-4">{{ pending_requests_count }}</p>
-                    <a href="{% url 'groups:join_group' group.id %}" class="text-decoration-none small text-success">Review Requests</a>
+                    <a href="{% url 'groups:pending_join_requests' %}" class="text-decoration-none small text-success">Review Requests</a>
                 </div>
             </div>
         </div>
@@ -60,6 +60,7 @@
             </div>
         </div>
     </div>
+    
 
     <!-- Group Info Details -->
     <div class="card shadow-sm border-0">

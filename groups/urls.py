@@ -14,8 +14,6 @@ urlpatterns = [
     path('group-admin-login/', views.group_admin_login, name='group_admin_login'),
     
     path('admin-logout/', views.admin_logout, name='admin_logout'),
-              
-  
             
     path('admin-dashboard/', views.group_admin_dashboard, name='group_admin_dashboard'),
 
@@ -25,13 +23,21 @@ urlpatterns = [
     path('<int:group_id>/members/', views.group_members, name='group_members'), 
     path('<int:pk>/edit/', views.group_edit, name='group_edit'),
     path('<int:group_id>/constitution/', views.group_constitution, name='group_constitution'),
-    #path('<int:group_id>/settings/', views.group_type_settings, name='group_type_settings'),
+    
     path('<int:group_id>/settings/', GroupTypeSpecificSettingsView.as_view(), name='group_type_settings'),
 
     
     
     path("<int:group_id>/invite/", views.send_group_invite, name="group_invite"),
     path("invite/<str:code>/activate/", views.activate_invite, name="activate_invite"),
+
+    path('<int:request_id>/review/', views.review_join_request, name='review_join_request'),
+    path('join-requests/', views.pending_join_requests, name='pending_join_requests'),
+
+    path('join-requests/<int:request_id>/approve/', views.approve_join_request, name='approve_join_request'),
+    path('join-requests/<int:request_id>/decline/', views.decline_join_request, name='decline_join_request'),
+
+    
     
 
 
