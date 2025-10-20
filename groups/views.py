@@ -136,13 +136,13 @@ def group_admin_login(request):
 				borrower_profile = BorrowerProfile.objects.get(user=user)
 			except BorrowerProfile.DoesNotExist:
 				messages.error(request, "You must be a borrower to access Group Admin login.")
-				return redirect("group_admin_login")
+				return redirect("groups:group_admin_login")
 
 			# ✅ Check if this borrower has "is_group_admin" flag set at registration
 			if borrower_profile.is_group_admin:
 				login(request, user)
 				messages.success(request, "Welcome to your Group Admin Dashboard.")
-				return redirect("group_admin_dashboard")
+				return redirect("groups:group_admin_dashboard")
 			else:
 				messages.error(request, "You are not authorized as a Group Admin.")
 		else:
@@ -155,6 +155,8 @@ def admin_logout(request):
 	logout(request)
 	messages.success(request, ('You have been logged out'))
 	return redirect('groups:groups_landing') 
+
+
 
 def group_admin_dashboard(request):
 	"""
@@ -224,20 +226,6 @@ def group_admin_dashboard2(request):
 		return render(request, "group_admin_dashboard.html", {"groups": groups})
 	else:
 		messages.error(request, "You are not authorized as a Group Admin.")
-
-
-
-
-@login_required
-def my_group_dashboard(request):
-	"""Borrower sees their group status"""
-	borrower = request.user.borrower
-	if hasattr(borrower, 'group'):
-		group = borrower.group
-		return render(request, 'my_group.html', {'group': group})
-	else:
-		return render(request, 'no_group.html')
-
 
 
 
@@ -401,26 +389,7 @@ def group_type_settings(request, group_id):
 # -----------------------------
 # JOIN REQUESTS & INVITATIONS
 # -----------------------------
-@login_required
-def join_group(request, group_id):
-	group = get_object_or_404(BorrowerGroup, id=group_id)
-	borrower = request.user.borrower
-	if GroupMembership.objects.filter(group=group, borrower=borrower).exists():
-		messages.warning(request, "You are already a member of this group.")
-		return redirect('groups:group_detail', group.id)
 
-	if request.method == 'POST':
-		form = GroupJoinRequestForm(request.POST)
-		if form.is_valid():
-			join_req = form.save(commit=False)
-			join_req.group = group
-			join_req.requester = borrower
-			join_req.save()
-			messages.success(request, "Join request submitted successfully.")
-			return redirect('groups:group_detail', group.id)
-	else:
-		form = GroupJoinRequestForm()
-	return render(request, 'join_group.html', {'group': group, 'form': form})
 
 
 

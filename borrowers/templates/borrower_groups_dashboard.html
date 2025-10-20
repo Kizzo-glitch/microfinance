@@ -1,0 +1,110 @@
+{% extends 'borrower_base.html' %}
+{% block content %}
+        <div class="container py-4">
+
+          <h3 class="text-primary mb-4">
+            <i class="bi bi-people me-2"></i>Groups Management
+          </h3>
+
+          <div class="card shadow-sm mt-4">
+              <div class="card-header bg-success text-white d-flex justify-content-between align-items-center rounded-top">
+                <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>New Groups</h5>
+                <!--<a href="{% url 'groups:group_list' %}" class="btn btn-light btn-sm rounded-pill">View All</a>-->
+                </div>
+                <div class="card-body">
+                  <h6 class="fw-bold text-success mb-3">✅ Available Groups</h6>
+                    {% if available_groups %}
+                      <div class="row">
+                        {% for group in available_groups %}
+                          <div class="col-md-4 mb-3">
+                            <div class="card h-100 shadow-sm border-0">
+                              <div class="card-body">
+                                <h5 class="card-title">{{ group.name }}</h5>
+                                <p class="text-muted small">{{ group.description|truncatewords:20 }}</p>
+                                <form method="post" action="{% url 'borrowers:borrower_join_group' group.id %}">
+                                  {% csrf_token %}
+                                  <button type="submit" class="btn btn-outline-success btn-sm w-100">Request to Join</button>
+                                </form>
+                              </div>
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      <p class="text-muted">No groups are currently available to join.</p>
+                    {% endif %}
+                  </div>
+                </div>
+                  <!-- Group Section -->
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center rounded-top">
+                    <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>My Groups</h5>
+                    <a href="{% url 'groups:group_list' %}" class="btn btn-light btn-sm rounded-pill">View All</a>
+                </div>
+
+                <div class="card-body">
+                    <!-- Joined Groups -->
+                    <h6 class="fw-bold text-success mb-3">✅ Joined Groups</h6>
+                    {% if joined_groups %}
+                        <ul class="list-group mb-4">
+                            {% for group in joined_groups %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>{{ group.name }}</span>
+                                    <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-success btn-sm rounded-pill">
+                                        View
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">You have not joined any groups yet.</p>
+                    {% endif %}
+
+                    <!-- Pending Join Requests -->
+                    <h6 class="fw-bold text-warning mb-3 mt-4">🕓 Pending Join Requests</h6>
+                    {% if pending_requests %}
+                        <ul class="list-group mb-4">
+                            {% for req in pending_requests %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>{{ req.group.name }}</span>
+                                    <span class="badge bg-warning text-dark">Awaiting Approval</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">You have no pending join requests.</p>
+                    {% endif %}
+
+                    <!-- Pending Invitations -->
+                    <h6 class="fw-bold text-info mb-3 mt-4">📨 Pending Invitations</h6>
+                    {% if pending_invitations %}
+                        <ul class="list-group">
+                            {% for invite in pending_invitations %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ invite.group.name }}</strong><br>
+                                        <small class="text-muted">{{ invite.personal_message|default:"No message" }}</small>
+                                    </div>
+                                    <div>
+                                        <a href="{% url 'groups:activate_invite' invite.invitation_code %}"
+                                        class="btn btn-outline-primary btn-sm rounded-pill">
+                                        Accept
+                                        </a>
+                                    </div>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted">You have no pending invitations.</p>
+                    {% endif %}
+                </div>
+            </div>
+                
+                </div>
+
+                
+                  
+
+               
+               
+{% endblock %}

@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 
+from groups.forms import BorrowerJoinRequestForm, GroupJoinRequestForm
 from lenders.models import LenderProfile
 from loans.models import LoanApplication, Loan, LoanPayment, Notification, Rating
 from micro.models import OTP
@@ -16,6 +17,8 @@ import random
 from django.contrib import messages
 
 from .models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
+from groups.models import BorrowerGroup, GroupInvitation, GroupJoinRequest, GroupMembership
+
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg
 
@@ -86,7 +89,7 @@ def borrower_profile(request):
 			profile.user = request.user
 			profile.save()
 			messages.success(request, "Your Info Has Been Updated!!")
-			return redirect('borrower_index')
+			return redirect('borrowers:borrower_index')
 		else:
 			print(form.errors)
 	else:
@@ -103,21 +106,126 @@ def borrower_profile(request):
 
 
 
-
 @login_required
 def borrower_index(request):
+	borrower = request.user.borrower
 	lenders = (LenderProfile.objects.filter(user__is_superuser=False, user__role='lender')
 		.annotate(average_rating=Avg('ratings__rating')))
 
 	draft_app = LoanApplication.objects.filter(borrower=request.user.borrower, status="draft").last()
 
+	# Current group membership
+	membership = borrower.group_memberships.select_related('group').first()
+	current_group = membership.group if membership else None
+
+	# Pending join requests
+	pending_requests = borrower.group_requests.filter(status='pending')
+
+	# Available groups (exclude ones borrower already belongs to or has pending requests)
+	joined_groups = BorrowerGroup.objects.filter(memberships__borrower=borrower)
+	requested_groups = BorrowerGroup.objects.filter(join_requests__requester=borrower)
+	available_groups = BorrowerGroup.objects.exclude(
+		Q(id__in=joined_groups.values_list('id', flat=True)) |
+		Q(id__in=requested_groups.values_list('id', flat=True))
+	)
+	# ✅ Pending Invitations
+	pending_invitations = GroupInvitation.objects.filter(
+		invitee_phone=borrower.phone_number,  # assuming borrowerprofile has phone_number
+		status='pending'
+	)
+
 	for lender in lenders:
 		lender.bg_color = generate_random_color()
 
-	return render(request, 'borrower_index.html', {
+	context = {
+		'current_group': current_group,
+		'pending_requests': pending_requests,
+		'available_groups': available_groups,
 		'lenders': lenders, 
-		"draft_app": draft_app
-		})
+		"draft_app": draft_app,
+		'pending_invitations': pending_invitations,
+		'joined_groups': joined_groups,
+	}
+
+	return render(request, 'borrower_index.html', context)
+
+
+@login_required
+def borrower_groups_dashboard(request):
+	borrower = request.user.borrower
+
+	# Current group membership
+	membership = borrower.group_memberships.select_related('group').first()
+	current_group = membership.group if membership else None
+
+	# Pending join requests
+	pending_requests = borrower.group_requests.filter(status='pending')
+
+	# Available groups (exclude ones borrower already belongs to or has pending requests)
+	joined_groups = BorrowerGroup.objects.filter(memberships__borrower=borrower)
+	requested_groups = BorrowerGroup.objects.filter(join_requests__requester=borrower)
+	available_groups = BorrowerGroup.objects.exclude(
+		Q(id__in=joined_groups.values_list('id', flat=True)) |
+		Q(id__in=requested_groups.values_list('id', flat=True))
+	)
+
+	# Current group membership
+	membership = borrower.group_memberships.select_related('group').first()
+	current_group = membership.group if membership else None
+
+	# Pending join requests
+	pending_requests = borrower.group_requests.filter(status='pending')
+
+	# Available groups (exclude ones borrower already belongs to or has pending requests)
+	joined_groups = BorrowerGroup.objects.filter(memberships__borrower=borrower)
+	requested_groups = BorrowerGroup.objects.filter(join_requests__requester=borrower)
+	available_groups = BorrowerGroup.objects.exclude(
+		Q(id__in=joined_groups.values_list('id', flat=True)) |
+		Q(id__in=requested_groups.values_list('id', flat=True))
+	)
+	# ✅ Pending Invitations
+	pending_invitations = GroupInvitation.objects.filter(
+		invitee_phone=borrower.phone_number,  # assuming borrowerprofile has phone_number
+		status='pending'
+	)
+
+	context = {
+		'current_group': current_group,
+		'pending_requests': pending_requests,
+		'available_groups': available_groups,
+		
+		'pending_invitations': pending_invitations,
+		'joined_groups': joined_groups,
+	}
+	return render(request, 'borrower_groups_dashboard.html', context)
+
+
+@login_required
+def borrower_join_group(request, group_id):
+	borrower = request.user.borrower
+	group = get_object_or_404(BorrowerGroup, id=group_id)
+
+	if GroupMembership.objects.filter(group=group, borrower=borrower).exists():
+		messages.info(request, "You are already a member of this group.")
+		return redirect('borrowers:borrower_groups_dashboard')
+
+	if GroupJoinRequest.objects.filter(group=group, requester=borrower, status='pending').exists():
+		messages.warning(request, "You already have a pending request for this group.")
+		return redirect('borrowers:borrower_groups_dashboard')
+
+	if request.method == 'POST':
+		form = BorrowerJoinRequestForm(request.POST)
+		if form.is_valid():
+			join_request = form.save(commit=False)
+			join_request.group = group
+			join_request.requester = borrower
+			join_request.save()
+			messages.success(request, "Your join request has been sent successfully.")
+			return redirect('borrowers:borrower_groups_dashboard')
+	else:
+		form = BorrowerJoinRequestForm()
+
+	return render(request, 'borrower_join_request_form.html', {'group': group, 'form': form})
 
 
 # List of predefined vibrant colors for dashboard
@@ -207,7 +315,7 @@ def lender_details(request, lender_id):
 				rating.borrower = borrower
 				rating.save()
 				messages.success(request, "Your rating has been submitted.")
-			return redirect('lender_details', lender_id=lender.id)
+			return redirect('borrowers:lender_details', lender_id=lender.id)
 
 	context = {
 		'lender': lender,
@@ -231,7 +339,7 @@ def rate_lender(request, lender_id):
 			messages.success(request, "Thank you for rating the lender!")
 		else:
 			messages.error(request, "Invalid rating. Please select a value between 1 and 5.")
-		return redirect('lender_detail', lender_id=lender.id)
+		return redirect('borrowers:lender_details', lender_id=lender.id)
 
 
 
@@ -255,7 +363,7 @@ def send_otp(request):
 
 	send_mail(subject, message, from_email, to_email, fail_silently=False, )
 
-	return redirect('verify_otp')
+	return redirect('borrowers:verify_otp')
 
 
 
@@ -267,104 +375,21 @@ def verify_otp(request):
 			otp_entry = OTP.objects.filter(user=request.user, is_verified=False).latest('created_at')
 		except OTP.DoesNotExist:
 			messages.error(request, "No OTP found. Please try again.")
-			return redirect('send_otp')
+			return redirect('borrowers:send_otp')
 
 		if otp_entry.is_expired():
 			messages.error(request, "OTP expired. Please request a new one.")
-			return redirect('send_otp')
+			return redirect('borrowers:send_otp')
 
 		if otp_entry.otp_code == otp_input:
 			otp_entry.is_verified = True
 			otp_entry.save()
 			messages.success(request, "OTP verified successfully!")
-			return redirect('employment_type')  
+			return redirect('borrowers:employment_type')  
 		else:
 			messages.error(request, "Invalid OTP. Please try again.")
 
 	return render(request, 'verify_otp.html')
-
-
-
-
-
-'''@login_required
-def select_employment_type22(request):
-	profile = request.user.borrower
-	lender_id = request.session.get('lender_id')
-
-	REQUIRED_DOCS = {
-		"employed": [
-			"Payslip (last 3 months)",
-			"Bank statement (last 3 months)",
-			"ID document",
-			"Chief's Letter"
-		],
-		"self_employed": [
-			"Proof of income (invoices/receipts)",
-			"Bank statement (last 6 months)",
-			"ID document",
-			"Business Address",
-			"Chief Letter",
-			"Customer Invoice",
-			"Supplier Invoice",
-			"Tax Clearance Certificate"
-		],
-		"registered_business": [
-			"Company registration certificate",
-			"Tax clearance certificate",
-			"Business Bank statement (last 6 months)",
-			"Director’s ID document",
-			"Business Address",
-			"Chief Letter",
-			"Customer Invoice",
-			"Supplier Invoice",
-		],
-	}
-
-	# fetch draft or create new
-	loan_app, created = LoanApplication.objects.get_or_create(
-		borrower=profile,
-		status="draft"
-	)
-
-	if request.method == 'POST':
-		form = EmploymentTypeForm(request.POST, instance=profile)
-
-		if form.is_valid():
-			form.save()
-			loan_app.employment_type = form.cleaned_data['employment_type']
-
-			if "save" in request.POST:  # borrower clicked "Save & Exit"
-				loan_app.current_stage = "employment_type"  # stay here
-				loan_app.save()
-				return redirect("borrower_index")
-
-			# borrower clicked Save & Continue
-			loan_app.current_stage = "documents"
-			loan_app.save()
-
-			if loan_app.employment_type == 'employed':
-				return redirect('upload_documents_employed')
-			elif loan_app.employment_type == 'self_employed':
-				return redirect('upload_documents_self_employed')
-			elif loan_app.employment_type == 'registered_business':
-				return redirect('upload_documents_registered_business')
-			else:
-				return redirect('employment_type')
-
-	else:
-		form = EmploymentTypeForm(instance=profile)
-
-	return render(
-		request,
-		"employment_type.html",
-		{
-			"form": form,
-			"required_docs": REQUIRED_DOCS,
-			"loan_app": loan_app
-		}
-	)'''
-
 
 
 
@@ -427,14 +452,14 @@ def select_employment_type(request):
 			# decide redirect dynamically
 			if loan_app.employment_type == "employed":
 				loan_app.current_stage = "documents"
-				return "upload_documents_employed"
+				return "borrowers:upload_documents_employed"
 			elif loan_app.employment_type == "self_employed":
 				loan_app.current_stage = "documents"
-				return "upload_documents_self_employed"
+				return "borrowers:upload_documents_self_employed"
 			elif loan_app.employment_type == "registered_business":
 				loan_app.current_stage = "documents"
-				return "upload_documents_registered_business"
-			return "borrower_index"
+				return "borrowers:upload_documents_registered_business"
+			return "borrowers:borrower_index"
 
 		response = handle_stage_navigation(request, form, loan_app, next_stage)
 		if response:
@@ -453,31 +478,31 @@ def resume_application(request, app_id):
 	loan_app = LoanApplication.objects.get(id=app_id, borrower=request.user.borrower)
 
 	if loan_app.current_stage == "employment":
-		return redirect("employment_type")
+		return redirect("borrowers:employment_type")
 
 	elif loan_app.current_stage == "documents":
 		if loan_app.borrower.employment_type == "employed":
-			return redirect("upload_documents_employed")
+			return redirect("borrowers:upload_documents_employed")
 		elif loan_app.employment_type == "self_employed":
-			return redirect("upload_documents_self_employed")
+			return redirect("borrowers:upload_documents_self_employed")
 		elif loan_app.employment_type == "registered_business":
-			return redirect("upload_documents_registered_business")
+			return redirect("borrowers:upload_documents_registered_business")
 		else:
 			# fallback if employment_type is missing/corrupt
-			return redirect("select_employment_type")
+			return redirect("borrowers:select_employment_type")
 
 	elif loan_app.current_stage == "affordability":
-		return redirect("update_expenses")
+		return redirect("borrowers:update_expenses")
 
 	elif loan_app.current_stage == "loan_calculator":
-		return redirect("loan-calculator")
+		return redirect("borrowers:loan-calculator")
 
 	elif loan_app.current_stage == "apply_loan":
-		return redirect("apply-loan")
+		return redirect("borrowers:apply-loan")
 
 	else:
 		# unknown stage → fallback to dashboard
-		return redirect("borrower_index")
+		return redirect("borrowers:borrower_index")
 
 
 
@@ -487,15 +512,15 @@ def resume_application22(request, app_id):
 	loan_app = LoanApplication.objects.get(id=app_id, borrower=request.user.borrower)
 
 	if loan_app.current_stage == "employment":
-		return redirect("select_employment_type")
+		return redirect("borrowers:select_employment_type")
 	elif loan_app.current_stage == "documents":
-		return redirect("upload_documents_employed")
+		return redirect("borrowers:upload_documents_employed")
 	elif loan_app.current_stage == "affordability":
-		return redirect("update_expenses")
+		return redirect("borrowers:update_expenses")
 	elif loan_app.current_stage == "loan_calculator":
-		return redirect("loan-calculator")
+		return redirect("borrowers:loan-calculator")
 	else:
-		return redirect("borrower_index")
+		return redirect("borrowers:borrower_index")
 
 
 
@@ -510,7 +535,7 @@ def delete_draft_application(request, pk):
 	else:
 		messages.error(request, "Only draft applications can be deleted.")
 
-	return redirect('borrower_index')
+	return redirect('borrowers:borrower_index')
 
 
 
@@ -793,14 +818,14 @@ def update_expenses(request):
 				loan_app.save(update_fields=["current_stage"])
 				
 				messages.success(request, "Expenses saved successfully.")
-				return redirect('borrower_index')
+				return redirect('borrowers:borrower_index')
 
 			# ✅ Handle Save & Continue
 			elif action == "save_continue":
 				loan_app.current_stage = "loan_calculator"
 				loan_app.save(update_fields=["current_stage"])
 				messages.success(request, "Expenses saved successfully.")
-				return redirect('loan-calculator')
+				return redirect('borrowers:loan-calculator')
 
 		else:
 			messages.error(request, "Please fill all required fields correctly.")
@@ -829,7 +854,7 @@ def loan_application(request):
 
 		if not lender_id: 
 			messages.error(request, "No lender selected. Please start again.")
-			return redirect('borrower_index')
+			return redirect('borrowers:borrower_index')
 
 		lender = LenderProfile.objects.get(id=lender_id)
 
@@ -872,7 +897,7 @@ def loan_application(request):
 	
 	except BorrowerProfile.DoesNotExist:
 		messages.error(request, "You do not have a Profile. Please complete your profile first.")
-		return redirect('borrower_profile')
+		return redirect('borrowers:borrower_profile')
 
 
 '''@login_required
@@ -974,13 +999,13 @@ def loan_calculator(request):
 			loan_app.current_stage = "loan_calculator"
 			loan_app.save(update_fields=["current_stage"])
 			messages.success(request, "Loan calculator draft saved. You can resume later.")
-			return redirect("borrower_index")
+			return redirect("borrowers:borrower_index")
 
 		# Handle Save & Continue → move to apply_loan step
 		elif action == "save_continue":
 			loan_app.current_stage = "apply_loan"
 			loan_app.save(update_fields=["current_stage"])
-			return redirect("apply-loan")
+			return redirect("borrowers:apply-loan")
 
 	return render(request, "loan_calculator.html", {
 		"lender": lender,
@@ -1044,7 +1069,7 @@ def apply_loan(request):
 
 	if not loan_app:
 		messages.error(request, "No draft loan application found.")
-		return redirect("borrower_index")
+		return redirect("borrowers:borrower_index")
 
 	if request.method == "POST":
 		# Before submission, check if borrower has any pending loan
@@ -1054,7 +1079,7 @@ def apply_loan(request):
 		)
 		if existing_loans.exists():
 			messages.error(request, "You cannot apply for a new loan while you have a pending loan.")
-			return redirect("pending_loan")
+			return redirect("borrowers:pending_loan")
 
 		# ✅ Move draft to submitted
 		loan_app.status = "pending"
@@ -1086,7 +1111,7 @@ def apply_loan(request):
 		send_mail(subject, message, from_email, to_email, fail_silently=False,)
 
 		messages.success(request, f"Loan application submitted successfully to {lender.company_name}")
-		return redirect("borrower_index")
+		return redirect("borrowers:borrower_index")
 
 
 	BorrowerDocs.objects.filter(
@@ -1173,7 +1198,7 @@ def update_loan_application(request, application_id):
 
 	if application.status != 'pending':
 		messages.error(request, "You can only update a pending loan application.")
-		return redirect('borrower_index')  
+		return redirect('borrowers:borrower_index')  
 
 	if request.method == 'POST':
 		form = LoanApplicationForm(request.POST, instance=application)
@@ -1204,7 +1229,7 @@ def update_loan_application(request, application_id):
 			)
 
 			messages.success(request, f"Your loan application to {application.lender.company_name} was successfully updated.")
-			return redirect('borrower_index')
+			return redirect('borrowers:borrower_index')
 	else:
 		form = LoanApplicationForm(instance=application)
 
@@ -1269,7 +1294,7 @@ def update_documents(request, loan_id):
 			loan_application=loan_application
 		)
 		messages.success(request, f"Loan Documents for {loan_application.lender.company_name} are updated successfully.")
-		return redirect('borrower_index')
+		return redirect('borrowers:borrower_index')
 
 
 	existing_documents_qs = BorrowerDocs.objects.filter(
@@ -1313,7 +1338,7 @@ def delete_loan_application(request, application_id):
 	
 	messages.success(request, "Loan application deleted successfully.")
 
-	return redirect('borrower_index')
+	return redirect('borrowers:borrower_index')
 
 
 
@@ -1382,13 +1407,13 @@ def mark_notification_read(request, notification_id):
 
 	# Optionally, redirect based on category
 	if notification.category == 'loan_approved':
-		return redirect('loan-detail', notification.loan_application.id)
+		return redirect('borrowers:loan-detail', notification.loan_application.id)
 	elif notification.category == 'loan_rejected':
-		return redirect('loan-status')
+		return redirect('borrowers:loan-status')
 	elif notification.category == 'loan_pending':
-		return redirect('pending-loans')
+		return redirect('borrowers:pending-loans')
 
-	return redirect('notifications')
+	return redirect('borrowers:notifications')
 
 @require_POST
 @login_required
@@ -1551,7 +1576,7 @@ def record_payment(request, loan_id):
 			# Prevent overpayment
 			if payment.amount > loan.outstanding_balance:
 				messages.error(request, "You cannot pay more than the outstanding balance!")
-				return redirect('record-payment', loan_id=loan.id)
+				return redirect('borrowers:record-payment', loan_id=loan.id)
 			
 			payment.save()
 			# Update loan outstanding balance
@@ -1577,7 +1602,7 @@ def record_payment(request, loan_id):
 					loan=loan
 				)
 
-			return redirect('loan-details', loan_id=loan.id)
+			return redirect('borrowers:loan-details', loan_id=loan.id)
 	else:
 		form = LoanPaymentForm()
 
@@ -1701,55 +1726,39 @@ def paid_vs_outstanding(request):
 		'data': [float(total_paid), float(total_outstanding)]
 	})
 
-
-
-'''def create_group(request):
-	if request.method == "POST":
-		form = BorrowerGroupForm(request.POST)
-		if form.is_valid():
-			group = form.save(commit=False)
-			group.created_by = request.user
-			group.save()
-			# Make creator the admin
-			GroupMembership.objects.create(user=request.user, group=group, role='admin')
-			messages.success(request, "Group created successfully!")
-			return redirect('group_detail', group_id=group.id)
+@login_required
+def my_group(request):
+	"""Borrower sees their group status"""
+	borrower = request.user.borrower
+	if hasattr(borrower, 'group'):
+		group = borrower.group
+		return render(request, 'my_group.html', {'group': group})
 	else:
-		form = BorrowerGroupForm()
-	return render(request, 'groups/create_group.html', {'form': form})
+		return render(request, 'no_group.html')
 
+"""
+def join_group(request, group_id):
+	group = get_object_or_404(BorrowerGroup, id=group_id)
+	borrower = request.user.borrower
+	if GroupMembership.objects.filter(group=group, borrower=borrower).exists():
+		messages.warning(request, "You are already a member of this group.")
+		return redirect('groups:group_detail', group.id)
 
-def invite_member(request, group_id):
-	group = BorrowerGroup.objects.get(id=group_id)
-	# Check role permissions
-	membership = GroupMembership.objects.filter(user=request.user, group=group).first()
-	if not membership or membership.role not in ['admin', 'sub_admin']:
-		messages.error(request, "You don't have permission to invite members.")
-		return redirect('group_detail', group_id=group_id)
-
-	if request.method == "POST":
-		form = GroupInviteForm(request.POST)
+	if request.method == 'POST':
+		form = GroupJoinRequestForm(request.POST)
 		if form.is_valid():
-			invite = form.save(commit=False)
-			invite.group = group
-			invite.invited_by = request.user
-			invite.save()
-
-			invite_link = request.build_absolute_uri(f"/groups/join/{invite.token}/")
-			send_mail(
-				subject="You're invited to join a Borrower Group",
-				message=f"You have been invited to join '{group.name}'. Click the link to register: {invite_link}",
-				from_email="noreply@fedhagrow.com",
-				recipient_list=[invite.email]
-			)
-
-			messages.success(request, "Invitation sent successfully.")
-			return redirect('group_detail', group_id=group_id)
+			join_req = form.save(commit=False)
+			join_req.group = group
+			join_req.requester = borrower
+			join_req.save()
+			messages.success(request, "Join request submitted successfully.")
+			return redirect('groups:group_detail', group.id)
 	else:
-		form = GroupInviteForm()
-	return render(request, 'groups/invite_member.html', {'form': form, 'group': group})
+		form = GroupJoinRequestForm()
+	return render(request, 'join_group.html', {'group': group, 'form': form})
+"""
 
-
+'''
 def join_group(request, token):
 	invite = get_object_or_404(GroupInvite, token=token, is_used=False)
 	if request.method == "POST":

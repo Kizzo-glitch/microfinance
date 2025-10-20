@@ -6,138 +6,135 @@
 
 <div class="container-fluid">
 
-    
-
             {% if draft_app %}
             <h3>Saved Draft Applications</h3>
                 <div class="alert alert-info">
                 You have a saved application ({{ draft_app.current_stage }} stage).
-                <a href="{% url 'resume_application' draft_app.id %}" class="btn btn-sm btn-primary">Resume</a>
-                <a href="{% url 'delete_draft_application' draft_app.id %}" 
-                                       class="btn btn-danger btn-sm"
-                                       onclick="return confirm('Are you sure you want to delete this draft?');">
-                                        Delete
-                                    </a>
+                <a href="{% url 'borrowers:resume_application' draft_app.id %}" class="btn btn-sm btn-primary">Resume</a>
+                <a href="{% url 'borrowers:delete_draft_application' draft_app.id %}" 
+                    class="btn btn-danger btn-sm"
+                    onclick="return confirm('Are you sure you want to delete this draft?');">
+                    Delete
+                </a>
             </div>
 
             {% endif %}
 
-    <!--{% if drafts %}
-        <ul class="list-group">
-            {% for app in drafts %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>
-                        Draft for {{ app.lender }} - Stage: {{ app.current_stage }}
-                    </span>
-                    <span>
-                        <a href="{% url 'resume_application' app.id %}" class="btn btn-primary btn-sm">
-                            Resume
-                        </a>
-                        <a href="{% url 'delete_draft_application' app.id %}" 
-                           class="btn btn-danger btn-sm"
-                           onclick="return confirm('Are you sure you want to delete this draft?');">
-                            Delete
-                        </a>
-                    </span>
-                </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <p>You have no saved draft applications.</p>
-    {% endif %}-->
+            <center>
+                <h1 class="mt-4">Borrower Dashboard</h1>
+            </center>
+        
 
+            <h1 class="mt-4">Groups</h1>
+            <ol class="breadcrumb mb-4">
+                <li class="breadcrumb-item active">Click on any of the Groups below to see which best suits your needs</li>
+            </ol>
+            <div class="row">
+                <div class="col-xl-6 col-md-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <h5 class="card-title text-primary fw-bold mb-3">
+                            <i class="bi bi-people-fill me-2"></i>My Group
+                            </h5>
 
-                        <!--{% for application in applications %}
-                          <div>
-                            <p>Loan Application #{{ application.id }}</p>
-                            <p>Status: {{ application.get_status_display }}</p>
+                            {% if current_group %}
+                            <p class="mb-1"><strong>{{ current_group.name }}</strong></p>
+                            <p class="text-muted small">Status: Member</p>
+                            <a href="{% url 'groups:group_detail' current_group.id %}" class="btn btn-outline-primary btn-sm">View Group</a>
 
-                            {% if application.status == "draft" %}
-                              <a href="{% url 'resume_application' application.pk %}" class="btn btn-primary">
-                                Resume Application
-                              </a>
+                            {% elif pending_requests %}
+                            <p class="text-warning mb-2">You have a pending join request.</p>
+                            {% for req in pending_requests %}
+                                <small class="text-muted d-block">{{ req.group.name }}</small>
+                            {% endfor %}
+
+                            {% else %}
+                            <p class="text-muted">You’re not part of any group yet.</p>
+                            <a href="{% url 'borrowers:borrower_join_group' %}" class="btn btn-success btn-sm">
+                                <i class="bi bi-plus-circle me-1"></i>Join a Group
+                            </a>
                             {% endif %}
-                          </div>
-                        {% endfor %}-->
+                        </div>
+                    </div>
+                </div>
+            </div>
 
+            
+            <h1 class="mt-4">Lenders</h1>
+            <ol class="breadcrumb mb-4">
+                <li class="breadcrumb-item active">Click on any of the Lenders below to see who best suit your needs</li>
+            </ol>
+            <div class="row">
+                {% for lender in lenders %}                       
+                <div class="col-xl-6 col-md-6 mb-4">
+                    <div class="card border-left-primary shadow h-100 py-2">
+                        <div class="card-body">
+                            <div class="row no-gutters align-items-center">
 
-                        <h1 class="mt-4">My Dashboard</h1>
-                        <ol class="breadcrumb mb-4">
-                            <li class="breadcrumb-item active">Click on any of the Lenders below to see who best suit your needs</li>
-                        </ol>
-
-                        <div class="row">
-                            {% for lender in lenders %}                      
-                            
-                            <div class="col-xl-6 col-md-6 mb-4">
-                                <div class="card border-left-primary shadow h-100 py-2">
-                                    <div class="card-body">
-                                        <div class="row no-gutters align-items-center">
-
-                                            <div class="col mr-2">
-                                                <br>
-                                                <div class="h5 font-weight-bold text-primary text-uppercase mb-1">
-                                                    <strong>{{ lender.company_name }}</strong>
-                                                </div>
-                                                <!--<p style="font-weight: bold; font-style: italic;">Average Rating: -->
-                                                    {% if lender.average_rating %} 
-                                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                                            {{ lender.average_rating|floatformat:1 }}
-                                                            <i class="fas fa-star" style="color:yellow"></i>s
-                                                        </div>
-                                                    
-                                                    {% else %}
-                                                        Not Rated
-                                                    {% endif %}
-                                                <!--</p>-->
-                                            </div>
-
-                                            <div class="col mr-2">
-                                                <br>
-                                                <div class="h8 font-weight-bold mb-1">
-                                                    <strong>Interest Rate: {{ lender.interest_rate }}%</strong>
-                                                </div>
-                                                <div class="h8 font-weight-bold mb-1">
-                                                    <strong>Min Loan: R{{ lender.min_loan }}</strong>
-                                                </div>
-                                                <div class="h8 font-weight-bold mb-1">
-                                                    <strong>Max Loan: R{{ lender.max_loan }}</strong>
-                                                </div>
-                                                <div class="h8 font-weight-bold mb-1">
-                                                    <strong>Loan Terms: {{ lender.loan_terms|join:", " }}</strong>
-                                                </div>
-                                                <div class="h8 font-weight-bold mb-1">
-                                                    <strong>Missed payment recalculations: {{lender.missed_payment_policy}}</strong>
-                                                </div>
-                                                
-                                            </div>
-
-                                            <div class="badge-overlay text-white"> 
-                                                {% if lender.verification_status == 'licensed' %}
-                                                    <span class="badge bg-success"><i class="fas fa-check-circle"></i> Licensed</span>
-                                                {% elif lender.verification_status == 'verified' %}
-                                                    <span class="badge bg-info"><i class="fas fa-check-circle"></i> Verified</span>
-                                                {% else %}
-                                                    <span class="badge bg-secondary"><i class="fas fa-user-clock"></i> Unverified</span>
-                                                {% endif %}
-                                                <br>
-                                            </div>
-                                        </div>
-
+                                <div class="col mr-2">
+                                    <br>
+                                    <div class="h5 font-weight-bold text-primary text-uppercase mb-1">
+                                        <strong>{{ lender.company_name }}</strong>
                                     </div>
-                                    <div class="card-footer d-flex align-items-center justify-content-between">
-                                                <a class="small text-primary stretched-link" href="{% url 'lender_details' lender.id %}">View More Details</a>
-                                                <div class="small text-primary"><i class="fas fa-angle-right"></i></div>
+                                    <!--<p style="font-weight: bold; font-style: italic;">Average Rating: -->
+                                        {% if lender.average_rating %} 
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                                {{ lender.average_rating|floatformat:1 }}
+                                                <i class="fas fa-star" style="color:yellow"></i>s
                                             </div>
+                                        
+                                        {% else %}
+                                            Not Rated
+                                        {% endif %}
+                                    <!--</p>-->
+                                </div>
+
+                                <div class="col mr-2">
+                                    <br>
+                                    <div class="h8 font-weight-bold mb-1">
+                                        <strong>Interest Rate: {{ lender.interest_rate }}%</strong>
+                                    </div>
+                                    <div class="h8 font-weight-bold mb-1">
+                                        <strong>Min Loan: R{{ lender.min_loan }}</strong>
+                                    </div>
+                                    <div class="h8 font-weight-bold mb-1">
+                                        <strong>Max Loan: R{{ lender.max_loan }}</strong>
+                                    </div>
+                                    <div class="h8 font-weight-bold mb-1">
+                                        <strong>Loan Terms: {{ lender.loan_terms|join:", " }}</strong>
+                                    </div>
+                                    <div class="h8 font-weight-bold mb-1">
+                                        <strong>Missed payment recalculations: {{lender.missed_payment_policy}}</strong>
+                                    </div>
+                                    
+                                </div>
+
+                                <div class="badge-overlay text-white"> 
+                                    {% if lender.verification_status == 'licensed' %}
+                                        <span class="badge bg-success"><i class="fas fa-check-circle"></i> Licensed</span>
+                                    {% elif lender.verification_status == 'verified' %}
+                                        <span class="badge bg-info"><i class="fas fa-check-circle"></i> Verified</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary"><i class="fas fa-user-clock"></i> Unverified</span>
+                                    {% endif %}
+                                    <br>
                                 </div>
                             </div>
-                            {% empty %}
-                            <center>
-                                <h1>No lenders available at this time.</h1>
-                                <br>
-                            </center>
-                            {% endfor %}
+
                         </div>
+                        <div class="card-footer d-flex align-items-center justify-content-between">
+                                    <a class="small text-primary stretched-link" href="{% url 'borrowers:lender_details' lender.id %}">View More Details</a>
+                                    <div class="small text-primary"><i class="fas fa-angle-right"></i></div>
+                                </div>
+                    </div>
+                </div>
+                {% empty %}
+                <center>
+                    <h1>No lenders available at this time.</h1>
+                    <br>
+                </center>
+                {% endfor %}
+            </div>
 
 
                         <!--<div class="row">
@@ -189,125 +186,74 @@
 
 
 
-                        <div class="row">
-                            <div class="col-xl-6">
-                                <div class="card mb-4">
-                                    <div class="card-header bg-secondary text-white">
-                                        <i class="fas fa-chart-bar me-1"></i>
-                                        average monthly repayments
-                                    </div>
-                                    
-                                    <div class="card-body"><canvas id="repaymentsBarChart"></canvas></div>
-                                </div>
-                            </div>
-                            <div class="col-xl-6">
-                                <div class="card mb-4">
-                                    <div class="card-header bg-secondary text-white">
-                                        <i class="fas fa-chart-area me-1"></i>
-                                        outstanding balance over time
-                                    </div>
-                                   
-                                    <div class="card-body"><canvas id="balanceLineChart"></canvas></div>
-                                </div>
-                            </div>
-                            <div class="col-xl-6">
-                                <div class="card mb-4">
-                                    <div class="card-header bg-secondary text-white">
-                                        <i class="fas fa-chart-pie me-1"></i>
-                                        Summary of paid vs owed
-                                    </div>
-                                    <div class="card-body"><canvas id="paidVsOutstandingPieChart"></canvas></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="card mb-4">
+            <div class="row">
+                <div class="col-xl-6">
+                    <div class="card mb-4">
                         <div class="card-header bg-secondary text-white">
-                                <i class="fas fa-table me-1"></i>
-                                Summary of all Lenders
-                            </div>
-                        <table class="table table-hover">
-                            <thead class="table-primary">
-                                <tr>
-                                    <th>Company Name</th>
-                                    <th>Registration No.</th>
-                                    <th>Office</th>
-                                    <th>Interest rate</th>
-                                    <th>Min Loan</th>
-                                    <th>Max Loan</th>
-                                    <th>More Details</th>
-
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for lender in lenders %}
-                                    <tr>
-                                        <td>{{ lender.company_name }}</td>
-                                        <td>{{ lender.registration_no }}</td>
-                                        <td>{{ lender.office_address }}</td>
-                                        <td>{{ lender.interest_rate }}%</td>
-                                        <td>R{{ lender.min_loan }} </td>
-                                        <td>R{{ lender.max_loan }}</td>
-                                        <td><a href="{% url 'lender_details' lender.id %}" class="btn btn-sm btn-outline-primary">View</a></td>
-                                        
-                                       
-                                    </tr>
-                               {% endfor %}
-                            </tbody>
-                        </table>
+                            <i class="fas fa-chart-bar me-1"></i>
+                            average monthly repayments
                         </div>
+                        
+                        <div class="card-body"><canvas id="repaymentsBarChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-xl-6">
+                    <div class="card mb-4">
+                        <div class="card-header bg-secondary text-white">
+                            <i class="fas fa-chart-area me-1"></i>
+                            outstanding balance over time
+                        </div>
+                        
+                        <div class="card-body"><canvas id="balanceLineChart"></canvas></div>
+                    </div>
+                </div>
+                <div class="col-xl-6">
+                    <div class="card mb-4">
+                        <div class="card-header bg-secondary text-white">
+                            <i class="fas fa-chart-pie me-1"></i>
+                            Summary of paid vs owed
+                        </div>
+                        <div class="card-body"><canvas id="paidVsOutstandingPieChart"></canvas></div>
+                    </div>
+                </div>
+            </div>
 
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                        <i class="fas fa-table me-1"></i>
+                        Summary of all Lenders
+                    </div>
+                <table class="table table-hover">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>Company Name</th>
+                            <th>Registration No.</th>
+                            <th>Office</th>
+                            <th>Interest rate</th>
+                            <th>Min Loan</th>
+                            <th>Max Loan</th>
+                            <th>More Details</th>
 
-                        <!--<div class="card mb-4">
-                            <div class="card-header">
-                                <i class="fas fa-table me-1"></i>
-                                Summary of all Lenders
-                            </div>
-                            <div class="card-body">
-                                <table id="datatablesSimple">
-                                    <thead>
-                                        <tr>
-                                            <th>Company Name</th>
-                                            <th>Registration No.</th>
-                                            <th>Office</th>
-                                            <th>Interest rate</th>
-                                            <th>Min Loan</th>
-                                            <th>Max Loan</th>
-                                        </tr>
-                                    </thead>
-                                    <tfoot>
-                                        <tr>
-                                            <th>Company Name</th>
-                                            <th>Registration No.</th>
-                                            <th>Office</th>
-                                            <th>Interest rate</th>
-                                            <th>Min Loan</th>
-                                            <th>Max Loan</th>
-                                        </tr>
-                                    </tfoot>
-                                    <tbody>
-                                        {% for lender in lenders %}
-                                            <tr>
-
-                                                <td>
-                                                  <a href="{% url 'lender_details' lender.id %}">
-                                                    {{ lender.company_name }}
-                                                    </a>
-                                                </td>
-                                                
-                                                <td>{{ lender.registration_no }}</td>
-                                                <td>{{ lender.office_address }}</td>
-                                                <td>{{ lender.interest_rate }}%</td>
-                                                <td>{{ lender.min_loan | floatformat:2 }}</td>
-                                                <td>{{ lender.max_loan | floatformat:2 }}</td>
-                                            </tr>
-                                            {% endfor %}
-                                        
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>-->
-</div>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lender in lenders %}
+                            <tr>
+                                <td>{{ lender.company_name }}</td>
+                                <td>{{ lender.registration_no }}</td>
+                                <td>{{ lender.office_address }}</td>
+                                <td>{{ lender.interest_rate }}%</td>
+                                <td>R{{ lender.min_loan }} </td>
+                                <td>R{{ lender.max_loan }}</td>
+                                <td><a href="{% url 'borrowers:lender_details' lender.id %}" class="btn btn-sm btn-outline-primary">View</a></td>
+                                
+                                
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            </div>
 
            <script>
             function fetchChartData(url, callback) {

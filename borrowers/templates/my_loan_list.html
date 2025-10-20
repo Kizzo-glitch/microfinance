@@ -59,10 +59,10 @@
                             {{ loan.get_status_display }}
                         </td>-->
                         <td>
-                            <a href="{% url 'loan-details' loan.id %}" class="btn btn-details">View</a>
+                            <a href="{% url 'borrowers:loan-details' loan.id %}" class="btn btn-details">View</a>
                             <br><br>
                             {% if loan.status == 'approved' and loan.outstanding_balance > 0 %}
-                                <a href="{% url 'record-payment' loan.id %}" class="btn btn-pay">Pay</a>
+                                <a href="{% url 'borrowers:record-payment' loan.id %}" class="btn btn-pay">Pay</a>
                             {% endif %}
                         </td>
                     </tr>

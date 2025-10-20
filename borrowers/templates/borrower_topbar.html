@@ -195,7 +195,7 @@
                             <i class="fas fa-home fa-sm fa-fw mr-2 text-gray-400"></i>
                             Home
                         </a>
-                        <a class="dropdown-item" href="{% url 'borrower_profile' %}">
+                        <a class="dropdown-item" href="{% url 'borrowers:borrower_profile' %}">
                             <i class="fas fa-user fa-sm fa-fw mr-2 text-gray-400"></i>
                             Profile
                         </a>
@@ -222,7 +222,7 @@
 
 <script>
     document.getElementById('loanApplicationDropdown').addEventListener('click', function () {
-        fetch("{% url 'mark_loan_approved_read' %}", {
+        fetch("{% url 'borrowers:mark_loan_approved_read' %}", {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}',
@@ -236,7 +236,7 @@
     });
 
     document.getElementById('loanPaymentDropdown').addEventListener('click', function () {
-        fetch("{% url 'mark_loan_rejected_read' %}", {
+        fetch("{% url 'borrowers:mark_loan_rejected_read' %}", {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}',
@@ -250,7 +250,7 @@
     });
 
     document.getElementById('pendingLoanUpdateDropdown').addEventListener('click', function () {
-        fetch("{% url 'mark_loan_pending_read' %}", {
+        fetch("{% url 'borrowers:mark_loan_pending_read' %}", {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}',

@@ -26,7 +26,7 @@ urlpatterns = [
 	path('admin/', admin.site.urls),
 	path('', include('micro.urls')),
 	path('lenders/', include('lenders.urls')),
-	path('borrowers/', include('borrowers.urls')),
+	path('borrowers/', include('borrowers.urls', namespace='borrowers')),
 	path('groups/', include('groups.urls', namespace='groups')),
 
 	path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

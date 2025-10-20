@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from .views import BorrowerNotificationListView 
 
+app_name = 'borrowers'
 
 urlpatterns = [
     path('borrower_index/', views.borrower_index, name='borrower_index'),
@@ -74,6 +75,11 @@ urlpatterns = [
     path('api/borrower/monthly-repayments/', views.monthly_repayments, name='monthly_repayments'),
     path('api/borrower/balance-over-time/', views.balance_over_time, name='balance_over_time'),
     path('api/borrower/paid-vs-outstanding/', views.paid_vs_outstanding, name='paid_vs_outstanding'),
+
+    path('dashboard/groups/', views.borrower_groups_dashboard, name='borrower_groups_dashboard'),
+    path('join-groups/<int:group_id>/', views.borrower_join_group, name='borrower_join_group'),
+    
+
 
     
     # Groups

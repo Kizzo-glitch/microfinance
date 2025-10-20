@@ -90,7 +90,7 @@ class GroupInvite(models.Model):
 class GroupRequest(models.Model):
 	"""Borrower requests to join group instead of being invited"""
 	borrower = models.ForeignKey("borrowers.BorrowerProfile", on_delete=models.CASCADE)
-	group = models.ForeignKey(BorrowerGroup, on_delete=models.CASCADE, related_name="join_requests")
+	group = models.ForeignKey(BorrowerGroup, on_delete=models.CASCADE, related_name="")
 	status = models.CharField(
 		max_length=20,
 		choices=[("pending", "Pending"), ("approved", "Approved"), ("rejected", "Rejected")],

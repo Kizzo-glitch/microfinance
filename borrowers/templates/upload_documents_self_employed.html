@@ -139,7 +139,7 @@
                     progressBar.style.width = '0%';
                     progressBar.textContent = '0%';
 
-                    fetch("{% url 'upload_documents_self_employed' %}", {
+                    fetch("{% url 'borrowers:upload_documents_self_employed' %}", {
                         method: 'POST',
                         headers: {
                             'X-CSRFToken': '{{ csrf_token }}'

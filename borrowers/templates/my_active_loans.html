@@ -41,7 +41,7 @@
                             </div>
                                 </td>
                             <td>
-                                <a href="{% url 'loan-details' loan.id %}" class="btn btn-details">View</a>
+                                <a href="{% url 'borrowers:loan-details' loan.id %}" class="btn btn-details">View</a>
                             </td>
 
                         </tr>
@@ -106,7 +106,7 @@
             </div>
         </div>
 
-        <a class="btn btn-outline-primary" href="{% url 'loan-details' loan.id %}">View History</a>
+        <a class="btn btn-outline-primary" href="{% url 'borrowers:loan-details' loan.id %}">View History</a>
     </div>
 {% empty %}
     <p>No Detailed Active Loans.</p>

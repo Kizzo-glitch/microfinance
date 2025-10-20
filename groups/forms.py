@@ -698,7 +698,7 @@ class GroupJoinRequestForm(forms.ModelForm):
 		model = GroupJoinRequest
 		fields = [
 			# Basic info
-			'group', 'requester', 'reason_for_joining', 'how_found_group', 'existing_connection',
+			'requester', 'reason_for_joining', 'how_found_group', 'existing_connection',
 
 			# Vetting process
 			'status', 'approvals', 'rejections', 'approval_threshold_met',
@@ -709,6 +709,11 @@ class GroupJoinRequestForm(forms.ModelForm):
 			# Decision metadata
 			'decision_date', 'rejection_reason',
 		]
+
+		exclude = [
+            'group',
+            
+        ]
 
 		widgets = {
 			# Group and Requester
@@ -775,7 +780,6 @@ class GroupJoinRequestForm(forms.ModelForm):
 
 
 
-
 # -------------------------------------------
 # 1️⃣ Borrower Form – Simple Join Request
 # -------------------------------------------
@@ -783,12 +787,16 @@ class BorrowerJoinRequestForm(forms.ModelForm):
 	class Meta:
 		model = GroupJoinRequest
 		fields = [
-			'group',
 			'reason_for_joining',
 			'how_found_group',
 			'existing_connection',
 		]
-
+		exclude = [
+            'group',
+			'requester',
+			'status'
+        ]
+	
 		widgets = {
 			'group': forms.Select(attrs={'class': 'form-select'}),
 			'reason_for_joining': forms.Textarea(attrs={

@@ -15,7 +15,7 @@ urlpatterns = [
     
     path('admin-logout/', views.admin_logout, name='admin_logout'),
               
-    path('group-member-dashboard/', views.my_group_dashboard, name='my_group_dashboard'), 
+  
             
     path('admin-dashboard/', views.group_admin_dashboard, name='group_admin_dashboard'),
 
@@ -28,11 +28,11 @@ urlpatterns = [
     #path('<int:group_id>/settings/', views.group_type_settings, name='group_type_settings'),
     path('<int:group_id>/settings/', GroupTypeSpecificSettingsView.as_view(), name='group_type_settings'),
 
-    path('<int:group_id>/join/', views.join_group, name='join_group'),
-    #path('<int:group_id>/invite/', views.group_invite, name='group_invite'),
+    
     
     path("<int:group_id>/invite/", views.send_group_invite, name="group_invite"),
     path("invite/<str:code>/activate/", views.activate_invite, name="activate_invite"),
+    
 
 
     #path('invite/<str:code>/', views.join_group_by_code, name='join_group'),   # /groups/invite/ABC123

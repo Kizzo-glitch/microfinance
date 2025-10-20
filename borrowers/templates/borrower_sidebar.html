@@ -14,7 +14,7 @@
             <hr class="sidebar-divider my-0">
 
             <li class="nav-item active">
-                <a class="nav-link" href="{% url 'borrower_index' %}">
+                <a class="nav-link" href="{% url 'borrowers:borrower_index' %}">
                     <i class="fas fa-fw fa-tachometer-alt"></i>
                     <span>Go to Dashboard</span></a>
             </li>
@@ -22,6 +22,12 @@
 
             <!-- Divider -->
             <hr class="sidebar-divider">
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'borrowers:borrower_groups_dashboard' %}">
+                    <i class="bi bi-people"></i> My Groups Dashboard
+                </a>
+            </li>
+
 
             <!-- Heading -->
             <div class="sidebar-heading">
@@ -38,13 +44,13 @@
                 <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordionSidebar">
                     <div class="bg-white py-2 collapse-inner rounded">
                         <h6 class="collapse-header">Loan Analysis:</h6>
-                        <a class="collapse-item" href="{% url 'apply-for-loan-list' %}">Apply For a Loan</a>
-                        <a class="collapse-item" href="{% url 'pending_loan' %}">Pending Loan</a>
+                        <a class="collapse-item" href="{% url 'borrowers:apply-for-loan-list' %}">Apply For a Loan</a>
+                        <a class="collapse-item" href="{% url 'borrowers:pending_loan' %}">Pending Loan</a>
                                         
-                        <a class="collapse-item" href="{% url 'my_loan_list' %}">Approved Loans</a>
-                        <a class="collapse-item" href="{% url 'my_active_loans' %}">Active Loans Details</a>
-                        <a class="collapse-item" href="{% url 'my_loan_applications' %}">All Loans</a>
-                        <a class="collapse-item" href="{% url 'view_documents' %}">View Documents</a>                                                                  
+                        <a class="collapse-item" href="{% url 'borrowers:my_loan_list' %}">Approved Loans</a>
+                        <a class="collapse-item" href="{% url 'borrowers:my_active_loans' %}">Active Loans Details</a>
+                        <a class="collapse-item" href="{% url 'borrowers:my_loan_applications' %}">All Loans</a>
+                        <a class="collapse-item" href="{% url 'borrowers:view_documents' %}">View Documents</a>                                                                  
                     </div>
                 </div>
             </li>
@@ -120,7 +126,7 @@
             </li>-->
 
              <li class="nav-item">
-                <a class="nav-link" href="{% url 'borrower-notifications' %}"> 
+                <a class="nav-link" href="{% url 'borrowers:borrower-notifications' %}"> 
                     <i class="fas fa-fw fa-bell"></i>
                     <span>All my Notifications</span></a>
             </li>
@@ -135,7 +141,7 @@
 
             <!-- Nav Item - Tables -->
             <li class="nav-item">
-                <a class="nav-link" href="{% url 'borrower_profile' %}">
+                <a class="nav-link" href="{% url 'borrowers:borrower_profile' %}">
                     <i class="fa fa-user"></i>
                     <span>My Profile</span></a>
             </li>

@@ -29,7 +29,7 @@
 
     <div class="container">
      
-        <form id="loanApplicationForm" method="POST" action="{% url 'loan-calculator' %}">
+        <form id="loanApplicationForm" method="POST" action="{% url 'borrowers:loan-calculator' %}">
                 {% csrf_token %}
                 
                 <div class="loan-calculator">
