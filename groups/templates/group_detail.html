@@ -82,10 +82,19 @@
     </div>
 
     <!-- Action Buttons -->
+   
     <div class="mt-4 d-flex justify-content-end">
+        {% if request.user.borrower == group.admin %}
+        <a href="{% url 'groups:manage_sub_admins' group.id %}" class="btn btn-outline-primary">
+            <i class="bi bi-person-gear me-1"></i> Manage Agents
+        </a>
+        {% endif %}
+
+        &nbsp;&nbsp;&nbsp;
         <a href="{% url 'groups:group_invite' group.id %}" class="btn btn-success me-2">
             <i class="bi bi-person-plus"></i> Invite Members
         </a>
+
         &nbsp;&nbsp;&nbsp;
         <a href="{% url 'groups:group_list' %}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> Back to My Groups
@@ -93,64 +102,3 @@
     </div>
 </div>
 {% endblock %}
-
-<!--<div class="container py-4">
-    <h2 class="mb-3">{{ group.name }}</h2>
-    <p><strong>Type:</strong> {{ group.get_group_type_display }}</p>
-    <p><strong>Description:</strong> {{ group.description }}</p>
-    <p><strong>Group Editor</strong> {{ group.can_edit }}</p>
-    <p><strong>Members:</strong> {{ group.members.count }}</p>
-
-    <hr>
-
-    <h4>Type-Specific Settings</h4>
-    {% if can_edit %}
-        <form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="btn btn-primary mt-3">Save Settings</button>
-        </form>
-    {% elif type_settings %}
-        <table class="table table-sm table-bordered mt-3">
-            {% for field in form %}
-                {% if field.value %}
-                <tr>
-                    <th>{{ field.label }}</th>
-                    <td>{{ field.value }}</td>
-                </tr>
-                {% endif %}
-            {% endfor %}
-        </table>
-    {% else %}
-        <p>No specific settings configured yet.</p>
-    {% endif %}
-
-    <hr>
-
-    <h4>Join Requests</h4>
-    {% if join_requests %}
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th>Requester</th>
-                    <th>Reason</th>
-                    <th>Status</th>
-                    <th>Requested At</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for req in join_requests %}
-                <tr>
-                    <td>{{ req.requester.full_name }}</td>
-                    <td>{{ req.reason_for_joining|truncatechars:50 }}</td>
-                    <td>{{ req.get_status_display }}</td>
-                    <td>{{ req.requested_at|date:"Y-m-d" }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No join requests yet.</p>
-    {% endif %}
-</div>-->
-

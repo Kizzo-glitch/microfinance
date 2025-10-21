@@ -228,6 +228,28 @@ def group_admin_dashboard2(request):
 		messages.error(request, "You are not authorized as a Group Admin.")
 
 
+@login_required
+def manage_sub_admins(request, group_id):
+    group = get_object_or_404(BorrowerGroup, id=group_id, admin=request.user.borrower)
+
+    # Only admin can manage sub-admins
+    members = group.memberships.select_related('borrower').all()
+    current_sub_admins = group.sub_admins.all()
+
+    if request.method == 'POST':
+        selected_ids = request.POST.getlist('sub_admins')
+        group.sub_admins.set(selected_ids)
+        group.save()
+        messages.success(request, "Sub-admins updated successfully.")
+        return redirect('groups:group_detail', group.id)
+
+    context = {
+        'group': group,
+        'members': members,
+        'current_sub_admins': current_sub_admins
+    }
+    return render(request, 'manage_sub_admins.html', context)
+
 
 # -----------------------------
 # GROUP CREATION & MANAGEMENT
@@ -390,9 +412,6 @@ def group_type_settings(request, group_id):
 # JOIN REQUESTS & INVITATIONS
 # -----------------------------
 
-
-
-
 def send_group_invite(request, group_id):
 	user = request.user.borrower
 	group = get_object_or_404(BorrowerGroup, id=group_id, admin=user)
@@ -529,7 +548,6 @@ def group_invite2(request, group_id):
 		'group': group,
 		'form': form
 	})
-
 
 
 # -------------------------------------------------------

@@ -522,6 +522,7 @@ class GroupJoinRequest(models.Model):
         return f"{self.requester.full_name} → {self.group.name}"
 
 
+
 class LenderGroupSubscription(models.Model):
     """
     Lenders subscribe to groups they want to work with

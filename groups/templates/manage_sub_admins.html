@@ -1,0 +1,46 @@
+{% extends "group_dash_base.html" %}
+{% block content %}
+<div class="container py-5">
+    <h3 class="fw-bold text-primary mb-4">
+        <i class="bi bi-people-gear me-2"></i>Manage Sub-Admins – {{ group.name }}
+    </h3>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <p class="text-muted mb-3">Select group members who will serve as sub-admins.</p>
+
+                <div class="row">
+                    {% for membership in members %}
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check border p-3 rounded shadow-sm">
+                                <input 
+                                    class="form-check-input" 
+                                    type="checkbox" 
+                                    name="sub_admins" 
+                                    value="{{ membership.borrower.id }}"
+                                    id="member_{{ membership.borrower.id }}"
+                                    {% if membership.borrower in current_sub_admins %}checked{% endif %}
+                                >
+                                <label class="form-check-label" for="member_{{ membership.borrower.id }}">
+                                    {{ membership.borrower.user.get_full_name|default:membership.borrower }}
+                                </label>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted">No members found in this group.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 text-end">
+            <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary me-2">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-save me-1"></i> Save Sub-Admins
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
