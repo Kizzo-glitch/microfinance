@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.db.models import Sum, Count
 import uuid
 from loans.utils import send_sms_smsportal
+from .utils import is_group_admin, is_sub_admin, can_manage_operations
 from django.core.mail import send_mail
 from django.conf import settings
 
@@ -27,7 +28,7 @@ from .forms import (
 	GroupTypeSpecificSettingsForm, GroupJoinRequestForm, GroupInvitationForm,
 	BorrowerGroupRegistrationForm, BorrowerJoinRequestForm, GroupAdminReviewForm
 )
-     
+	 
 
 
 def group_landing(request):
@@ -230,25 +231,25 @@ def group_admin_dashboard2(request):
 
 @login_required
 def manage_sub_admins(request, group_id):
-    group = get_object_or_404(BorrowerGroup, id=group_id, admin=request.user.borrower)
+	group = get_object_or_404(BorrowerGroup, id=group_id, admin=request.user.borrower)
 
-    # Only admin can manage sub-admins
-    members = group.memberships.select_related('borrower').all()
-    current_sub_admins = group.sub_admins.all()
+	# Only admin can manage sub-admins
+	members = group.memberships.select_related('borrower').all()
+	current_sub_admins = group.sub_admins.all()
 
-    if request.method == 'POST':
-        selected_ids = request.POST.getlist('sub_admins')
-        group.sub_admins.set(selected_ids)
-        group.save()
-        messages.success(request, "Sub-admins updated successfully.")
-        return redirect('groups:group_detail', group.id)
+	if request.method == 'POST':
+		selected_ids = request.POST.getlist('sub_admins')
+		group.sub_admins.set(selected_ids)
+		group.save()
+		messages.success(request, "Sub-admins updated successfully.")
+		return redirect('groups:group_detail', group.id)
 
-    context = {
-        'group': group,
-        'members': members,
-        'current_sub_admins': current_sub_admins
-    }
-    return render(request, 'manage_sub_admins.html', context)
+	context = {
+		'group': group,
+		'members': members,
+		'current_sub_admins': current_sub_admins
+	}
+	return render(request, 'manage_sub_admins.html', context)
 
 
 # -----------------------------
@@ -279,6 +280,7 @@ def group_create(request):
 	else:
 		form = BorrowerGroupForm()
 	return render(request, 'group_create.html', {'form': form})
+
 
 
 def group_detail(request, pk):
@@ -450,81 +452,81 @@ def send_group_invite(request, group_id):
 
 
 def activate_invite(request, code):
-    invite = get_object_or_404(GroupInvitation, invitation_code=code, status='pending')
+	invite = get_object_or_404(GroupInvitation, invitation_code=code, status='pending')
 
-    if invite.expires_at < timezone.now():
-        invite.status = 'expired'
-        invite.save()
-        messages.error(request, "This invitation has expired.")
-        return redirect('landing')
+	if invite.expires_at < timezone.now():
+		invite.status = 'expired'
+		invite.save()
+		messages.error(request, "This invitation has expired.")
+		return redirect('landing')
 
-    if request.method == 'POST':
-        form = ActivationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.email = form.cleaned_data['email']
-            user.save()
+	if request.method == 'POST':
+		form = ActivationForm(request.POST)
+		if form.is_valid():
+			user = form.save(commit=False)
+			user.email = form.cleaned_data['email']
+			user.save()
 
-            # create or fetch BorrowerProfile and link it
-            borrower_profile, created = BorrowerProfile.objects.get_or_create(
-                email_address=user.email,
-                defaults={'full_name': invite.invitee_name or user.get_full_name(), 'phone_number': invite.invitee_phone}
-            )
-            borrower_profile.user = user
-            borrower_profile.save()
+			# create or fetch BorrowerProfile and link it
+			borrower_profile, created = BorrowerProfile.objects.get_or_create(
+				email_address=user.email,
+				defaults={'full_name': invite.invitee_name or user.get_full_name(), 'phone_number': invite.invitee_phone}
+			)
+			borrower_profile.user = user
+			borrower_profile.save()
 
-            # add to group membership
-            GroupMembership.objects.get_or_create(group=invite.group, borrower=borrower_profile, defaults={'role':'member'})
+			# add to group membership
+			GroupMembership.objects.get_or_create(group=invite.group, borrower=borrower_profile, defaults={'role':'member'})
 
-            invite.status = 'accepted'
-            invite.responded_at = timezone.now()
-            invite.save()
+			invite.status = 'accepted'
+			invite.responded_at = timezone.now()
+			invite.save()
 
-            login(request, user)
-            messages.success(request, "Account created and joined the group.")
-            return redirect('borrower_index')
-    else:
-        form = ActivationForm(initial={
+			login(request, user)
+			messages.success(request, "Account created and joined the group.")
+			return redirect('borrower_index')
+	else:
+		form = ActivationForm(initial={
 			'email': invite.invitee_email or '',
 			'phone_number': invite.invitee_phone or '',
 			})
 
-    return render(request, 'activate_invite.html', {'invite': invite, 'form': form})
+	return render(request, 'activate_invite.html', {'invite': invite, 'form': form})
 
 
 def activate_invite2(request, code):
-    invite = get_object_or_404(GroupInvitation, invitation_code=code, status='pending')
-    
-    if invite.expires_at < timezone.now():
-        invite.status = 'expired'
-        invite.save()
-        messages.error(request, "This invitation has expired.")
-        return redirect("landing")
+	invite = get_object_or_404(GroupInvitation, invitation_code=code, status='pending')
+	
+	if invite.expires_at < timezone.now():
+		invite.status = 'expired'
+		invite.save()
+		messages.error(request, "This invitation has expired.")
+		return redirect("landing")
 
-    if request.method == "POST":
-        form = ActivationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            borrower_profile = BorrowerProfile.objects.get_or_create(
-                user=user,
-                defaults={
+	if request.method == "POST":
+		form = ActivationForm(request.POST)
+		if form.is_valid():
+			user = form.save()
+			borrower_profile = BorrowerProfile.objects.get_or_create(
+				user=user,
+				defaults={
 					'phone_number': invite.invitee_phone, 
 					'full_name': invite.invitee_name,
 					'email_address': invite.invitee_email,
 					}
-            )[0]
-            
-            invite.group.members.add(borrower_profile)
-            invite.status = 'accepted'
-            invite.responded_at = timezone.now()
-            invite.save()
-            
-            messages.success(request, "Welcome! You have joined the group.")
-            return redirect("groups:my_group_dashboard")
-    else:
-        form = ActivationForm()
-    
-    return render(request, "activate_invite.html", {"invite": invite, "form": form})
+			)[0]
+			
+			invite.group.members.add(borrower_profile)
+			invite.status = 'accepted'
+			invite.responded_at = timezone.now()
+			invite.save()
+			
+			messages.success(request, "Welcome! You have joined the group.")
+			return redirect("groups:my_group_dashboard")
+	else:
+		form = ActivationForm()
+	
+	return render(request, "activate_invite.html", {"invite": invite, "form": form})
 
 
 def group_invite2(request, group_id):
@@ -555,49 +557,54 @@ def group_invite2(request, group_id):
 # -------------------------------------------------------
 @login_required
 def pending_join_requests(request):
-    """
-    Shows a list of all pending join requests for the admin's groups.
-    """
-    borrower_profile = request.user.borrower
+	"""
+	Shows a list of all pending join requests for the admin's groups.
+	"""
+	borrower_profile = request.user.borrower
 
-    # Get groups managed by this admin (you might have sub_admins or main admin)
-    admin_groups = BorrowerGroup.objects.filter(admin=borrower_profile)
+	# Get groups managed by this admin (you might have sub_admins or main admin)
+	admin_groups = BorrowerGroup.objects.filter(admin=borrower_profile)
 
-    # Pending join requests for all their groups
-    pending_requests = GroupJoinRequest.objects.filter(
-        group__in=admin_groups, status='pending'
-    ).select_related('group', 'requester')
+	# Pending join requests for all their groups
+	pending_requests = GroupJoinRequest.objects.filter(
+		group__in=admin_groups, status='pending'
+	).select_related('group', 'requester')
 
-    context = {
-        'pending_requests': pending_requests,
-    }
+	context = {
+		'pending_requests': pending_requests,
+	}
 
-    return render(request, 'pending_join_requests.html', context)
+	return render(request, 'pending_join_requests.html', context)
 
 
 @login_required
 def approve_join_request(request, request_id):
-    join_request = get_object_or_404(GroupJoinRequest, id=request_id, status='pending')
-    borrower = join_request.requester
-    group = join_request.group
+	join_request = get_object_or_404(GroupJoinRequest, id=request_id, status='pending')
+	borrower = join_request.requester
+	group = join_request.group
 
-    # Add borrower to group membership
-    group.memberships.create(borrower=borrower)
-    join_request.status = 'approved'
-    join_request.save()
+	if not is_group_admin(request.user, group):
+		messages.error(request, "Only the group admin can review join requests.")
+		return redirect('groups:group_detail', group.id)
 
-    messages.success(request, f"{borrower} has been added to {group.name}.")
-    return redirect('groups:pending_join_requests')
+	# Add borrower to group membership
+	group.memberships.create(borrower=borrower)
+	join_request.status = 'approved'
+	join_request.save()
+
+	messages.success(request, f"{borrower} has been added to {group.name}.")
+	return redirect('groups:pending_join_requests')
 
 
 @login_required
 def decline_join_request(request, request_id):
-    join_request = get_object_or_404(GroupJoinRequest, id=request_id, status='pending')
-    join_request.status = 'declined'
-    join_request.save()
+	join_request = get_object_or_404(GroupJoinRequest, id=request_id, status='pending')
 
-    messages.warning(request, f"Join request from {join_request.requester} has been declined.")
-    return redirect('groups:pending_join_requests')
+	join_request.status = 'declined'
+	join_request.save()
+
+	messages.warning(request, f"Join request from {join_request.requester} has been declined.")
+	return redirect('groups:pending_join_requests')
 
 
 
@@ -609,10 +616,10 @@ def review_join_request(request, request_id):
 	join_request = get_object_or_404(GroupJoinRequest, id=request_id)
 	group = join_request.group
 
-	# Only admin or sub-admins can access
-	if request.user.borrower not in [group.admin, *group.sub_admins.all()]:
-		messages.error(request, "You are not authorized to review this request.")
-		return redirect('groups:group_detail', group_id=group.id)
+	# Only admin can access
+	if not is_group_admin(request.user, group):
+		messages.error(request, "Only the group admin can review join requests.")
+		return redirect('groups:group_detail', group.id)
 
 	if request.method == 'POST':
 		form = GroupAdminReviewForm(request.POST, instance=join_request)
