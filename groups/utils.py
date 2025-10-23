@@ -1,9 +1,9 @@
 
 def is_group_admin(user, group):
-    return group.admin == user.borrowerprofile
+    return group.admin == user.borrower
 
 def is_sub_admin(user, group):
-    return group.sub_admins.filter(id=user.borrowerprofile.id).exists()
+    return group.sub_admins.filter(id=user.borrower.id).exists()
 
 def can_manage_operations(user, group):
     """Admin or sub-admin can manage day-to-day operations."""
