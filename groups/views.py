@@ -169,7 +169,7 @@ def group_admin_dashboard(request):
 		borrower_profile = request.user.borrower
 	except Exception:
 		# fallback if attribute name differs
-		borrower_profile = getattr(request.user, 'borrowerprofile', None)
+		borrower_profile = getattr(request.user, 'borrower', None)
 
 	# Groups where the current user is the admin
 	administered_groups = BorrowerGroup.objects.filter(admin=borrower_profile).order_by('-created_at')
