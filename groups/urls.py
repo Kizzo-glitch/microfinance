@@ -34,6 +34,9 @@ urlpatterns = [
     path('join-requests/<int:request_id>/approve/', views.approve_join_request, name='approve_join_request'),
     path('join-requests/<int:request_id>/decline/', views.decline_join_request, name='decline_join_request'),
 
+    path('api/borrowers/has_profile/<int:user_id>/', views.has_borrower_profile, name='has_borrower_profile'),
+
+
     
     
 

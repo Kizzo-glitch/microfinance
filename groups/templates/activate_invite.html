@@ -1,6 +1,36 @@
 {% extends 'group_base.html' %}
 {% block content %}
-<div class="container mt-5">
+
+<div class="container py-5">
+  <div class="card shadow-sm border-0 mx-auto" style="max-width: 500px;">
+    <div class="card-body">
+      <h4 class="fw-bold text-center mb-4 text-success">Join via Invitation</h4>
+      <h4 class="mb-3">You’ve been invited to join {{ invite.group.name }}</h4>
+      <p>{{ invite.personal_message }}</p>
+      <p><strong>Invited by:</strong> {{ invite.invited_by.full_name }}</p>
+      
+      <form method="POST">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label">Invitation Code</label>
+          <input type="text" name="invitation_code" class="form-control" placeholder="Enter your code" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Username</label>
+          <input type="text" name="username" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <input type="password" name="password" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-success w-100">Join Group</button>
+      
+      </form>
+    </div>
+  </div>
+</div>
+
+<!--<div class="container mt-5">
   <div class="card shadow-sm p-4">
     <h4 class="mb-3">You’ve been invited to join {{ invite.group.name }}</h4>
     <p>{{ invite.personal_message }}</p>
@@ -11,5 +41,5 @@
       <button type="submit" class="btn btn-success rounded-pill">Accept & Create Account</button>
     </form>
   </div>
-</div>
+</div>-->
 {% endblock %}

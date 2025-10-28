@@ -37,7 +37,6 @@ class BorrowerGroupRegistrationForm(UserCreationForm):
 
 
 
-
 # -----------------------------
 # GROUP CREATION & EDITING
 # -----------------------------
@@ -121,24 +120,6 @@ class BorrowerGroupForm(forms.ModelForm):
 			)
 
 		return cleaned_data
-
-"""class BorrowerGroupForm(forms.ModelForm):
-	class Meta:
-		model = BorrowerGroup
-		fields = [
-			'name',
-			'group_type',
-			'description',
-			'verification_document',
-			'logo',
-		]
-		widgets = {
-			'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter group name'}),
-			'group_type': forms.Select(attrs={'class': 'form-select'}),
-			'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Describe your group’s purpose'}),
-			'verification_document': forms.ClearableFileInput(attrs={'class': 'form-control'}),
-			'logo': forms.ClearableFileInput(attrs={'class': 'form-control'}),
-		}"""
 
 
 # -----------------------------
@@ -543,17 +524,51 @@ class GroupMembershipForm(forms.ModelForm):
 			'member_score': 'Member Score (0–100)',
 		}
 
+# -----------------------------
+# GROUP INVITES B-PROFILE
+# -----------------------------
+
+class BorrowerMiniForm(forms.ModelForm):
+	"""
+	A lightweight borrower form used when the invitee doesn't yet exist.
+	"""
+	class Meta:
+		model = BorrowerProfile
+		fields = '__all__'
+		exclude = [
+			'user',
+		]
+
+		""" 
+		
+		['first_name', 'last_name', 'email', 'phone_number', 'id_number', 'employment_type']
+		widgets = {
+			'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First name'}),
+			'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last name'}),
+			'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'example@email.com'}),
+			'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+266...'}),
+			'id_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ID or Passport No.'}),
+			'employment_type': forms.Select(attrs={'class': 'form-select'}),
+		}
+		"""
 
 # -----------------------------
 # GROUP INVITES
 # -----------------------------
 
 class GroupInvitationForm(forms.ModelForm):
+	borrower_profile = BorrowerMiniForm()
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		self.fields['invitee'].widget.attrs.update({'class': 'form-select', 'id': 'invitee-select'})
+
+		
 	class Meta:
 		model = GroupInvitation
 		fields = [
 			# Basic links
-			#'group', 
+			'group', 
 			'invited_by', 'invitee', 
 			'invitee_name', 'invitee_phone', 'invitee_email',
 
@@ -571,17 +586,17 @@ class GroupInvitationForm(forms.ModelForm):
 			'expires_at',
 		]
 		exclude = [
-            'invitation_code',
+			'invitation_code',
 			
-            #'invited_by',
-            'group',
-            'status',
-            'sent_at',
-            'responded_at',
-            'sms_sent',
-            'sms_sent_at',
-            'endorsed_by',
-        ]
+			#'invited_by',
+			#'group',
+			'status',
+			'sent_at',
+			'responded_at',
+			'sms_sent',
+			'sms_sent_at',
+			'endorsed_by',
+		]
 
 		widgets = {
 			# Group and Inviter
@@ -650,43 +665,21 @@ class GroupInvitationForm(forms.ModelForm):
 
 
 class ActivationForm(UserCreationForm):
-    email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
+	email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
 
-    class Meta:
-        model = User
-        fields = ("username","phone_number" ,"email", "password1", "password2")
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        for fieldname, field in self.fields.items():
-            # add bootstrap classes
-            if not getattr(field.widget, 'attrs', None):
-                field.widget.attrs = {}
-            if 'class' not in field.widget.attrs:
-                field.widget.attrs['class'] = 'form-control'
-
-
-"""class GroupTypeSpecificSettingsForm(forms.ModelForm):
 	class Meta:
-		model = GroupTypeSpecificSettings
-		fields = [
-			'group',
-			'requires_admin_approval',
-			'auto_approve_members',
-			'allow_external_lenders',
-			'group_credit_limit',
-			'max_loan_per_member',
-			'interest_rate_modifier',
-		]
-		widgets = {
-			'group': forms.HiddenInput(),
-			'requires_admin_approval': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-			'auto_approve_members': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-			'allow_external_lenders': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-			'group_credit_limit': forms.NumberInput(attrs={'class': 'form-control'}),
-			'max_loan_per_member': forms.NumberInput(attrs={'class': 'form-control'}),
-			'interest_rate_modifier': forms.NumberInput(attrs={'class': 'form-control'}),
-		}"""
+		model = User
+		fields = ("username","phone_number" ,"email", "password1", "password2")
+
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
+		for fieldname, field in self.fields.items():
+			# add bootstrap classes
+			if not getattr(field.widget, 'attrs', None):
+				field.widget.attrs = {}
+			if 'class' not in field.widget.attrs:
+				field.widget.attrs['class'] = 'form-control'
+
 
 
 # -----------------------------
@@ -711,9 +704,9 @@ class GroupJoinRequestForm(forms.ModelForm):
 		]
 
 		exclude = [
-            'group',
-            
-        ]
+			'group',
+			
+		]
 
 		widgets = {
 			# Group and Requester
@@ -792,10 +785,10 @@ class BorrowerJoinRequestForm(forms.ModelForm):
 			'existing_connection',
 		]
 		exclude = [
-            'group',
+			'group',
 			'requester',
 			'status'
-        ]
+		]
 	
 		widgets = {
 			'group': forms.Select(attrs={'class': 'form-select'}),

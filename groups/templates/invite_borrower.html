@@ -1,0 +1,111 @@
+{% extends 'group_dash_base.html' %}
+{% block content %}
+
+
+<div class="container py-4">
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <h4 class="fw-bold text-success mb-3">Invite Borrower to {{ group.name }}</h4>
+      <form method="post">
+  {% csrf_token %}
+  
+  <!-- Group Invitation Form -->
+  <div class="card mb-4">
+    <div class="card-header bg-light fw-bold">Invitation Details</div>
+    <div class="card-body">
+      {{ form.as_p }}
+    </div>
+  </div>
+
+  <!-- Borrower Profile Form -->
+  <div id="borrower-profile-section" class="card">
+    <div class="card-header bg-light fw-bold">Borrower Profile (for new invitees)</div>
+    <div class="card-body">
+      {{ profile_form.as_p }}
+    </div>
+  </div>
+
+  <div class="text-end mt-3">
+    <button type="submit" class="btn btn-success">Send Invitation</button>
+    <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">Cancel</a>
+  </div>
+</form>
+
+
+
+
+      <!--<form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <h5 class="border-bottom pb-2">Invitation Details</h5>
+            {{ invite_form.non_field_errors }}
+            {% for field in invite_form %}
+              <div class="mb-3">
+                {{ field.label_tag }} {{ field }}
+                {% if field.help_text %}
+                  <small class="text-muted">{{ field.help_text }}</small>
+                {% endif %}
+                {% for error in field.errors %}
+                  <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="col-md-6">
+            <h5 class="border-bottom pb-2">Borrower Profile (if new)</h5>
+            <p class="text-muted small">Leave this section empty if the borrower already exists.</p>
+            {% for field in borrower_form %}
+              <div class="mb-3">
+                {{ field.label_tag }} {{ field }}
+                {% for error in field.errors %}
+                  <div class="text-danger small">{{ error }}</div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <button type="submit" class="btn btn-success px-4">
+            <i class="bi bi-send-check"></i> Send Invitation
+          </button>
+          <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>-->
+
+
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+      const inviteeSelect = document.getElementById("invitee-select");
+      const profileSection = document.getElementById("borrower-profile-section");
+
+      async function checkBorrowerProfile(userId) {
+          if (!userId) {
+              profileSection.style.display = "block";
+              return;
+          }
+
+          const response = await fetch(`/groups/api/borrowers/has_profile/${userId}/`);
+          const data = await response.json();
+
+          if (data.has_profile) {
+              profileSection.style.display = "none";
+          } else {
+              profileSection.style.display = "block";
+          }
+      }
+
+      inviteeSelect.addEventListener("change", function () {
+          checkBorrowerProfile(this.value);
+      });
+  });
+</script>
+
+{% endblock %}

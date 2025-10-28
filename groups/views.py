@@ -17,6 +17,9 @@ from loans.utils import send_sms_smsportal
 from .utils import is_group_admin, is_sub_admin, can_manage_operations
 from django.core.mail import send_mail
 from django.conf import settings
+from django.http import JsonResponse
+
+from django.contrib.auth import get_user_model
 
 from .models import (
 	BorrowerGroup, GroupMembership, GroupInvitation,
@@ -24,12 +27,12 @@ from .models import (
 )
 from borrowers.models import BorrowerProfile
 from .forms import (
-	BorrowerGroupForm, GroupConstitutionForm, ActivationForm,
+	BorrowerGroupForm, BorrowerMiniForm, GroupConstitutionForm, ActivationForm,
 	GroupTypeSpecificSettingsForm, GroupJoinRequestForm, GroupInvitationForm,
 	BorrowerGroupRegistrationForm, BorrowerJoinRequestForm, GroupAdminReviewForm
 )
 	 
-
+User = get_user_model()
 
 def group_landing(request):
 	"""Public marketing page for Groups"""
@@ -414,7 +417,7 @@ def group_type_settings(request, group_id):
 # JOIN REQUESTS & INVITATIONS
 # -----------------------------
 
-def send_group_invite(request, group_id):
+def send_group_invite2(request, group_id):
 	user = request.user.borrower
 	group = get_object_or_404(BorrowerGroup, id=group_id, admin=user)
 	
@@ -451,8 +454,179 @@ def send_group_invite(request, group_id):
 	return render(request, "group_invite.html", {"form": form, "group": group})
 
 
-def activate_invite(request, code):
-	invite = get_object_or_404(GroupInvitation, invitation_code=code, status='pending')
+def send_group_invite(request, group_id):
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+    inviter = request.user.borrower  # Ensure correct relationship name
+
+    if request.method == 'POST':
+        form = GroupInvitationForm(request.POST)
+        profile_form = BorrowerMiniForm(request.POST)
+
+        if form.is_valid():
+            invitation = form.save(commit=False)
+            invitation.group = group
+            invitation.invited_by = inviter
+
+            # ✅ Handle new borrower profile creation if not linked
+            if not invitation.invitee:
+                if profile_form.is_valid():
+                    borrower = profile_form.save()
+                    invitation.invitee = borrower
+                    invitation.invitee_name = borrower.full_name
+                    invitation.invitee_phone = borrower.phone_number
+                else:
+                    messages.error(request, "Please complete the invitee profile information.")
+                    return render(request, 'invite_borrower.html', {
+                        'group': group,
+                        'form': form,
+                        'profile_form': profile_form,
+                    })
+
+            # ✅ Ensure unique invitation code
+            if not invitation.invitation_code:
+                invitation.invitation_code = uuid.uuid4().hex[:8].upper()
+
+            invitation.save()
+
+            # ✅ Prepare message (use absolute URL for activation)
+            activation_url = request.build_absolute_uri(invitation.get_activation_url())
+            sms_body = (
+                f"Hi {invitation.invitee_name}, you’ve been invited to join {group.name}. "
+                f"Use code {invitation.invitation_code} or click {activation_url}"
+            )
+
+            # ✅ Send SMS
+            send_sms_smsportal(invitation.invitee_phone, sms_body)
+            invitation.sms_sent = True
+            invitation.sms_sent_at = timezone.now()
+
+            # ✅ Send email if available
+            if invitation.invitee_email:
+                send_mail(
+                    subject=f"Invitation to join {group.name}",
+                    message=sms_body,
+                    from_email=settings.EMAIL_HOST_USER,
+                    recipient_list=[invitation.invitee_email],
+                )
+
+            invitation.save()
+
+            messages.success(request, f"Invitation sent successfully! Code: {invitation.invitation_code}")
+            return redirect('groups:group_detail', group.id)
+
+        else:
+            messages.error(request, "Please correct the errors below.")
+
+    else:
+        form = GroupInvitationForm()
+        profile_form = BorrowerMiniForm()
+
+    return render(request, 'invite_borrower.html', {
+        'group': group,
+        'form': form,
+        'profile_form': profile_form,
+    })
+
+
+
+def send_group_invite3(request, group_id):
+	group = get_object_or_404(BorrowerGroup, id=group_id)
+	if request.method == 'POST':
+		form = GroupInvitationForm(request.POST)
+		profile_form = BorrowerMiniForm(request.POST)
+
+		if form.is_valid():
+			invitee = form.cleaned_data.get('invitee')
+			invitation = form.save(commit=False)
+
+			# Only save borrower profile if invitee is new (no profile)
+			if not invitee or not BorrowerProfile.objects.filter(user=invitee).exists():
+				if profile_form.is_valid():
+					borrower_profile = profile_form.save(commit=False)
+					borrower_profile.user = invitee
+					borrower_profile.save()
+
+			invitation.save()
+			return redirect('groups:group_detail', group.id)
+	else:
+		form = GroupInvitationForm()
+		profile_form = BorrowerMiniForm()
+
+	return render(request, 'invite_borrower.html', {
+		'form': form,
+		'profile_form': profile_form,
+		'group': group,
+	})
+
+
+def has_borrower_profile(request, user_id):
+	try:
+		user = User.objects.get(pk=user_id)
+		exists = BorrowerProfile.objects.filter(user=user).exists()
+		return JsonResponse({'has_profile': exists})
+	except User.DoesNotExist:
+		return JsonResponse({'has_profile': False})
+
+
+
+def activate_invite(request, code=None):
+    # ✅ Handle both URL code and POSTed code
+    invitation_code = code or request.POST.get('invitation_code')
+
+    if not invitation_code:
+        messages.error(request, "Invalid activation link or missing code.")
+        return redirect('login')
+
+    invitation_code = invitation_code.strip().upper()
+    invite = get_object_or_404(GroupInvitation, invitation_code=invitation_code, status='pending')
+
+    borrower_profile = invite.invitee
+
+    if request.method == "POST":
+        form = ActivationForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password1']
+
+            # ✅ Create the User account
+            user = User.objects.create_user(
+                username=username,
+                email=invite.invitee_email,
+                password=password
+            )
+
+            # ✅ Link user to borrower profile
+            borrower_profile.user = user
+            borrower_profile.activated_at = timezone.now()
+            borrower_profile.save()
+
+            # ✅ Mark invitation as used
+            invite.status = 'accepted'
+            invite.responded_at = timezone.now()
+            invite.save()
+
+            # ✅ Auto-login and redirect
+            login(request, user)
+            messages.success(request, f"Welcome {borrower_profile.full_name}, your account has been activated!")
+            return redirect("borrower_index")
+    else:
+        form = ActivationForm()
+
+    return render(request, "activate_invite.html", {
+        "form": form,
+        "invite": invite
+    })
+
+
+def activate_invite2(request, code):
+	#invite = get_object_or_404(GroupInvitation, invitation_code=code, status='pending')
+
+	code = request.POST.get('invitation_code').strip().upper()
+	try:
+		invite = GroupInvitation.objects.get(invitation_code=code, status='pending')
+	except GroupInvitation.DoesNotExist:
+		messages.error(request, "Invalid or expired invitation code.")
+		return redirect('landing')
 
 	if invite.expires_at < timezone.now():
 		invite.status = 'expired'
@@ -484,7 +658,7 @@ def activate_invite(request, code):
 
 			login(request, user)
 			messages.success(request, "Account created and joined the group.")
-			return redirect('borrower_index')
+			return redirect('borrowers:borrower_index')
 	else:
 		form = ActivationForm(initial={
 			'email': invite.invitee_email or '',
@@ -494,62 +668,6 @@ def activate_invite(request, code):
 	return render(request, 'activate_invite.html', {'invite': invite, 'form': form})
 
 
-def activate_invite2(request, code):
-	invite = get_object_or_404(GroupInvitation, invitation_code=code, status='pending')
-	
-	if invite.expires_at < timezone.now():
-		invite.status = 'expired'
-		invite.save()
-		messages.error(request, "This invitation has expired.")
-		return redirect("landing")
-
-	if request.method == "POST":
-		form = ActivationForm(request.POST)
-		if form.is_valid():
-			user = form.save()
-			borrower_profile = BorrowerProfile.objects.get_or_create(
-				user=user,
-				defaults={
-					'phone_number': invite.invitee_phone, 
-					'full_name': invite.invitee_name,
-					'email_address': invite.invitee_email,
-					}
-			)[0]
-			
-			invite.group.members.add(borrower_profile)
-			invite.status = 'accepted'
-			invite.responded_at = timezone.now()
-			invite.save()
-			
-			messages.success(request, "Welcome! You have joined the group.")
-			return redirect("groups:my_group_dashboard")
-	else:
-		form = ActivationForm()
-	
-	return render(request, "activate_invite.html", {"invite": invite, "form": form})
-
-
-def group_invite2(request, group_id):
-	group = get_object_or_404(BorrowerGroup, id=group_id, admin=request.user.borrower)
-
-	if request.method == 'POST':
-		form = GroupInvitationForm(request.POST)
-		if form.is_valid():
-			invitation = form.save(commit=False)
-			invitation.group = group
-			invitation.invited_by = request.user.borrower
-			invitation.invitation_code = str(uuid.uuid4())[:8].upper()
-			invitation.expires_at = timezone.now() + timezone.timedelta(days=7)
-			invitation.save()
-			messages.success(request, f"Invitation sent to {invitation.invitee_name or invitation.invitee_phone}.")
-			return redirect('groups:group_detail', group.id)
-	else:
-		form = GroupInvitationForm()
-
-	return render(request, 'group_invite.html', {
-		'group': group,
-		'form': form
-	})
 
 
 # -------------------------------------------------------
