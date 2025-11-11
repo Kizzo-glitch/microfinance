@@ -4,6 +4,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
+
 class User(AbstractUser):
 	ROLE_CHOICES = (
 		('lender', 'Lender'),
@@ -14,7 +15,7 @@ class User(AbstractUser):
 	first_name = models.CharField(max_length=150, null=True, blank=True)
 	last_name = models.CharField(max_length=150, null=True, blank=True)
 	phone_number = models.CharField(max_length=25, null=True, blank=True)
-	email = models.EmailField(max_length=254, unique=False, null=True, blank=True)
+	email = models.EmailField(max_length=254, unique=True, null=True, blank=True)
 
 	def is_lender(self):
 		return self.role == 'lender'
