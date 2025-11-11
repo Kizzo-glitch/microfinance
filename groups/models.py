@@ -1,105 +1,11 @@
 import uuid
 from django.db import models
 from django.urls import reverse
+from django.utils import timezone
 #from micro.models import User
 #from borrowers.models import BorrowerProfile
 #from lenders.models import LenderProfile
 
-
-
-'''class BorrowerGroup(models.Model):
-	"""Represents a group (stokvel, union, society, etc.)."""
-	GROUP_TYPES = [
-		('society', 'Society'),
-		('stokvel', 'Stokvel'),
-		('union', 'Employer Union'),
-		('other', 'Other'),
-	]
-	name = models.CharField(max_length=255, unique=True)
-	group_type = models.CharField(max_length=50, choices=GROUP_TYPES, blank=True, null=True)
-	description = models.TextField(blank=True, null=True)
-	created_at = models.DateTimeField(auto_now_add=True)
-
-	# Group creator (main admin)
-	admin = models.ForeignKey(
-		"borrowers.BorrowerProfile",
-		on_delete=models.CASCADE,
-		related_name="admin_groups"
-	)
-
-	# Sub-admins (optional 2 helpers)
-	sub_admins = models.ManyToManyField(
-		"borrowers.BorrowerProfile",
-		related_name="sub_admin_groups",
-		blank=True
-	)
-
-	# Membership (borrowers who belong to this group)
-	members = models.ManyToManyField(
-		"borrowers.BorrowerProfile",
-		through="GroupMembership",
-		related_name="groups"
-	)
-
-	# Extra details
-	is_verified = models.BooleanField(default=False)  # platform verifies group
-	invited_lenders = models.ManyToManyField(
-		"lenders.LenderProfile", 
-		related_name="subscribed_groups", 
-		blank=True
-	)
-
-	def __str__(self):
-		return self.name
-
-
-
-class GroupMembership(models.Model):
-	"""Through table for BorrowerGroup.members"""
-	ROLE_CHOICES = [
-		("member", "Member"),
-		("sub_admin", "Sub-Admin"),
-		("admin", "Admin"),
-	]
-
-	borrower = models.ForeignKey("borrowers.BorrowerProfile", on_delete=models.CASCADE)
-	group = models.ForeignKey(BorrowerGroup, on_delete=models.CASCADE)
-	role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="member")
-	joined_at = models.DateTimeField(auto_now_add=True)
-
-	class Meta:
-		unique_together = ("borrower", "group")
-
-	def __str__(self):
-		return f"{self.borrower.user.username} - {self.group.name} ({self.role})"
-
-
-class GroupInvite(models.Model):
-	"""Invite links for new members to join groups"""
-	group = models.ForeignKey(BorrowerGroup, on_delete=models.CASCADE, related_name="invites")
-	code = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-	email = models.EmailField(blank=True, null=True)  # can pre-fill email invite
-	invited_by = models.ForeignKey("borrowers.BorrowerProfile", on_delete=models.CASCADE)
-	created_at = models.DateTimeField(auto_now_add=True)
-	is_used = models.BooleanField(default=False)
-
-	def __str__(self):
-		return f"Invite to {self.group.name} - {self.code}"
-
-
-class GroupRequest(models.Model):
-	"""Borrower requests to join group instead of being invited"""
-	borrower = models.ForeignKey("borrowers.BorrowerProfile", on_delete=models.CASCADE)
-	group = models.ForeignKey(BorrowerGroup, on_delete=models.CASCADE, related_name="")
-	status = models.CharField(
-		max_length=20,
-		choices=[("pending", "Pending"), ("approved", "Approved"), ("rejected", "Rejected")],
-		default="pending"
-	)
-	requested_at = models.DateTimeField(auto_now_add=True)
-
-	def __str__(self):
-		return f"{self.borrower.user.username} request to {self.group.name} ({self.status})" '''
 
 
 # From Claude
@@ -422,17 +328,19 @@ class GroupInvitation(models.Model):
     def __str__(self):
         return f"Invitation to {self.invitee_name or self.invitee_phone} for {self.group.name}"
 """
-
+"""
 class GroupInvitation(models.Model):
     group = models.ForeignKey('groups.BorrowerGroup', on_delete=models.CASCADE, related_name='invitations')
     invited_by = models.ForeignKey('borrowers.BorrowerProfile', on_delete=models.CASCADE, related_name='invitations_sent')
     
-    invitee = models.ForeignKey('borrowers.BorrowerProfile', null=True, blank=True, on_delete=models.CASCADE, related_name='invitations_received')
+    #invitee = models.ForeignKey('borrowers.BorrowerProfile', null=True, blank=True, on_delete=models.CASCADE, related_name='invitations_received')
+    invitee = models.ForeignKey('borrowers.BorrowerProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='received_invitations')
     invitee_phone = models.CharField(max_length=20)
     invitee_email = models.EmailField(blank=True, null=True)
     invitee_name = models.CharField(max_length=200, blank=True)
 
-    invitation_code = models.CharField(max_length=20, unique=True, editable=False)
+    #invitation_code = models.CharField(max_length=20, unique=True, editable=False)
+    invitation_code = models.CharField(max_length=20, unique=True, editable=False, default='')
     personal_message = models.TextField(blank=True)
     
     relationship = models.CharField(max_length=100, blank=True)
@@ -463,9 +371,113 @@ class GroupInvitation(models.Model):
 
     def get_activation_url(self):
         return reverse('groups:activate_invite', args=[self.invitation_code])
+    
+    def mark_accepted(self):
+        
+        self.status = 'accepted'
+        self.responded_at = timezone.now()
+        self.save()
 
     def __str__(self):
         return f"Invitation to {self.invitee_name or self.invitee_phone} for {self.group.name}"
+"""
+
+class GroupInvitation(models.Model):
+    """
+    Invitation system for group admins to invite members
+    Admin fills in member profile, invitee just sets username/password
+    """
+    group = models.ForeignKey('groups.BorrowerGroup', on_delete=models.CASCADE, related_name='invitations')
+    invited_by = models.ForeignKey('borrowers.BorrowerProfile', on_delete=models.CASCADE, related_name='invitations_sent')
+    
+    # Invitee profile - created by admin during invitation
+    invitee = models.ForeignKey('borrowers.BorrowerProfile', on_delete=models.CASCADE, null=True, blank=True, related_name='received_invitations')
+    
+    # Invitee contact details (required for SMS/email)
+    invitee_phone = models.CharField(max_length=20)
+    invitee_email = models.EmailField(blank=True, null=True)
+    invitee_name = models.CharField(max_length=200, help_text="Full name of invitee")
+    
+    # Invitation details
+    invitation_code = models.CharField(max_length=20, unique=True, editable=False)
+    personal_message = models.TextField(blank=True, help_text="Optional message to invitee")
+    
+    # Cultural context
+    relationship = models.CharField(max_length=100, blank=True, help_text="Friend, Family, Colleague, etc.")
+    reason_for_invite = models.TextField(blank=True, help_text="Why inviting this person")
+    
+    # Endorsements (optional feature for verification)
+    endorsements_required = models.IntegerField(default=0, help_text="Number of members who must endorse")
+    endorsed_by = models.ManyToManyField('borrowers.BorrowerProfile', related_name='endorsements_given', blank=True)
+    
+    # Status tracking
+    status = models.CharField(max_length=50, default='pending', choices=[
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('declined', 'Declined'),
+        ('expired', 'Expired'),
+        ('withdrawn', 'Withdrawn by Inviter'),
+    ])
+    
+    # Timestamps
+    sent_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(help_text="Invitation expiry date")
+    responded_at = models.DateTimeField(null=True, blank=True)
+    
+    # Communication tracking
+    sms_sent = models.BooleanField(default=False)
+    sms_sent_at = models.DateTimeField(null=True, blank=True)
+    email_sent = models.BooleanField(default=False)
+    email_sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-sent_at']
+        verbose_name = "Group Invitation"
+        verbose_name_plural = "Group Invitations"
+
+    def save(self, *args, **kwargs):
+        # Auto-generate invitation code if not exists
+        if not self.invitation_code:
+            self.invitation_code = uuid.uuid4().hex[:8].upper()
+        
+        # Set default expiry if not provided (30 days from now)
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timezone.timedelta(days=30)
+        
+        super().save(*args, **kwargs)
+
+    def get_activation_url(self):
+        """Get the full activation URL for the invitation"""
+        return reverse('groups:activate_invite', args=[self.invitation_code])
+    
+    def mark_accepted(self):
+        """Mark invitation as accepted"""
+        self.status = 'accepted'
+        self.responded_at = timezone.now()
+        self.save()
+    
+    def mark_declined(self):
+        """Mark invitation as declined"""
+        self.status = 'declined'
+        self.responded_at = timezone.now()
+        self.save()
+    
+    def is_expired(self):
+        """Check if invitation has expired"""
+        return self.expires_at < timezone.now() if self.expires_at else False
+    
+    def is_pending(self):
+        """Check if invitation is still pending"""
+        return self.status == 'pending' and not self.is_expired()
+    
+    def endorsements_met(self):
+        """Check if required endorsements are met"""
+        return self.endorsed_by.count() >= self.endorsements_required
+
+    def __str__(self):
+        return f"Invitation to {self.invitee_name or self.invitee_phone} for {self.group.name}"
+
+
 
 
 

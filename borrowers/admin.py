@@ -10,6 +10,7 @@ admin.site.register(BorrowerProfile)
 admin.site.register(BorrowerDocs)
 
 
+
 '''@admin.register(BorrowerProfile)
 class BorrowerProfileAdmin(admin.ModelAdmin):
 	list_display = ['first_name', 'last_name', 'title', 'date_of_birth']

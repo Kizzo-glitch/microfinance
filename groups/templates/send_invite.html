@@ -1,0 +1,256 @@
+{% extends 'group_dash_base.html' %}
+{% load static %}
+
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-plus"></i> Invite Member to {{ group.name }}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" id="invite-form">
+                        {% csrf_token %}
+                        
+                        <!-- Invitation Type Selection -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Invitation Type</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="invite_type" id="invite-new" value="new" checked>
+                                <label class="btn btn-outline-primary" for="invite-new">
+                                    <i class="fas fa-user-plus"></i> New Member
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="invite_type" id="invite-existing" value="existing">
+                                <label class="btn btn-outline-primary" for="invite-existing">
+                                    <i class="fas fa-search"></i> Existing User
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Search Existing User Section -->
+                        <div id="existing-user-section" style="display: none;">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                Search for an existing user by phone number, email, or name.
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Search User</label>
+                                <input type="text" class="form-control form-control-lg" id="search-query" 
+                                       placeholder="Enter phone, email, or name...">
+                                <div id="search-results" class="mt-2"></div>
+                            </div>
+                        </div>
+
+                        <!-- New Member Section -->
+                        <div id="new-member-section">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                Fill in the member's details. They'll receive an invitation to create their account.
+                            </div>
+                            
+
+                            <!-- Borrower Profile Fields -->
+                            <fieldset class="border p-4 mb-4 rounded">
+                                <legend class="w-auto px-3 fw-bold">Member Information</legend>
+                                {{ profile_form.as_p }}
+                                
+                                
+
+                        <!-- Invitation Details (Common for both types) -->
+                        <fieldset class="border p-4 mb-4 rounded">
+                            <legend class="w-auto px-3 fw-bold">Invitation Details</legend>
+                            
+                            {{ invitation_form.invitee_name.errors }}
+                            <div class="mb-3" id="invitee-name-field">
+                                <label class="form-label">{{ invitation_form.invitee_name.label }}</label>
+                                {{ invitation_form.invitee_name }}
+                            </div>
+
+                            {{ invitation_form.invitee_phone.errors }}
+                            <div class="mb-3" id="invitee-phone-field">
+                                <label class="form-label">{{ invitation_form.invitee_phone.label }}</label>
+                                {{ invitation_form.invitee_phone }}
+                            </div>
+
+                            {{ invitation_form.invitee_email.errors }}
+                            <div class="mb-3" id="invitee-email-field">
+                                <label class="form-label">{{ invitation_form.invitee_email.label }}</label>
+                                {{ invitation_form.invitee_email }}
+                            </div>
+
+                            {{ invitation_form.relationship.errors }}
+                            <div class="mb-3">
+                                <label class="form-label">{{ invitation_form.relationship.label }}</label>
+                                {{ invitation_form.relationship }}
+                            </div>
+
+                            {{ invitation_form.reason_for_invite.errors }}
+                            <div class="mb-3">
+                                <label class="form-label">{{ invitation_form.reason_for_invite.label }}</label>
+                                {{ invitation_form.reason_for_invite }}
+                            </div>
+
+                            {{ invitation_form.personal_message.errors }}
+                            <div class="mb-3">
+                                <label class="form-label">{{ invitation_form.personal_message.label }}</label>
+                                {{ invitation_form.personal_message }}
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ invitation_form.endorsements_required.errors }}
+                                    <div class="mb-3">
+                                        <label class="form-label">{{ invitation_form.endorsements_required.label }}</label>
+                                        {{ invitation_form.endorsements_required }}
+                                        <small class="form-text text-muted">Number of members who must endorse (0 for none)</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    {{ invitation_form.expires_at.errors }}
+                                    <div class="mb-3">
+                                        <label class="form-label">{{ invitation_form.expires_at.label }}</label>
+                                        {{ invitation_form.expires_at }}
+                                    </div>
+                                </div>
+                            </div>
+                        </fieldset>
+
+                        <!-- Submit Buttons -->
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane"></i> Send Invitation
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const inviteNewRadio = document.getElementById('invite-new');
+    const inviteExistingRadio = document.getElementById('invite-existing');
+    const newMemberSection = document.getElementById('new-member-section');
+    const existingUserSection = document.getElementById('existing-user-section');
+    const searchQuery = document.getElementById('search-query');
+    const searchResults = document.getElementById('search-results');
+
+    // Toggle sections based on invitation type
+    function toggleSections() {
+        if (inviteNewRadio.checked) {
+            newMemberSection.style.display = 'block';
+            existingUserSection.style.display = 'none';
+        } else {
+            newMemberSection.style.display = 'none';
+            existingUserSection.style.display = 'block';
+        }
+    }
+
+    inviteNewRadio.addEventListener('change', toggleSections);
+    inviteExistingRadio.addEventListener('change', toggleSections);
+
+    // Search functionality
+    let searchTimeout;
+    searchQuery.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        
+        if (query.length < 3) {
+            searchResults.innerHTML = '';
+            return;
+        }
+
+        searchResults.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Searching...</div>';
+
+        searchTimeout = setTimeout(function() {
+            fetch(`/groups/api/search-borrower/?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.results.length === 0) {
+                        searchResults.innerHTML = '<div class="alert alert-warning">No users found. Try a different search term.</div>';
+                        return;
+                    }
+
+                    let html = '<div class="list-group">';
+                    data.results.forEach(function(borrower) {
+                        html += `
+                            <a href="#" class="list-group-item list-group-item-action select-borrower" 
+                               data-id="${borrower.id}"
+                               data-name="${borrower.full_name}"
+                               data-phone="${borrower.phone_number}"
+                               data-email="${borrower.email}">
+                                <div class="d-flex w-100 justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">${borrower.full_name}</h6>
+                                        <small class="text-muted">${borrower.phone_number} ${borrower.email ? '• ' + borrower.email : ''}</small>
+                                    </div>
+                                    ${borrower.has_account ? '<span class="badge bg-success">Has Account</span>' : '<span class="badge bg-warning">No Account</span>'}
+                                </div>
+                            </a>
+                        `;
+                    });
+                    html += '</div>';
+                    searchResults.innerHTML = html;
+
+                    // Add click handlers
+                    document.querySelectorAll('.select-borrower').forEach(function(element) {
+                        element.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            document.getElementById('id_invitee_name').value = this.dataset.name;
+                            document.getElementById('id_invitee_phone').value = this.dataset.phone;
+                            document.getElementById('id_invitee_email').value = this.dataset.email;
+                            searchResults.innerHTML = '<div class="alert alert-success"><i class="fas fa-check"></i> Selected: ' + this.dataset.name + '</div>';
+                        });
+                    });
+                })
+                .catch(error => {
+                    searchResults.innerHTML = '<div class="alert alert-danger">Search failed. Please try again.</div>';
+                });
+        }, 500);
+    });
+
+    // Sync profile form to invitation form for new members
+    const fullNameInput = document.querySelector('[name="full_name"]');
+    const phoneInput = document.querySelector('[name="phone_number"]');
+    const emailInput = document.querySelector('[name="email_address"]');
+
+    if (fullNameInput) {
+        fullNameInput.addEventListener('blur', function() {
+            document.getElementById('id_invitee_name').value = this.value;
+        });
+    }
+    if (phoneInput) {
+        phoneInput.addEventListener('blur', function() {
+            document.getElementById('id_invitee_phone').value = this.value;
+        });
+    }
+    if (emailInput) {
+        emailInput.addEventListener('blur', function() {
+            document.getElementById('id_invitee_email').value = this.value;
+        });
+    }
+});
+</script>
+
+
+<style>
+.border {
+    border: 2px solid #e0e0e0 !important;
+}
+legend {
+    font-size: 1.1rem;
+    color: #495057;
+}
+</style>
+{% endblock %}

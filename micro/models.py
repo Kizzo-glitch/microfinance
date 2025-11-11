@@ -2,11 +2,6 @@ from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.db.models.signals import post_save
-from django.contrib.auth.decorators import user_passes_test
-
-
-
 
 
 class User(AbstractUser):
@@ -18,16 +13,8 @@ class User(AbstractUser):
 	# Additional fields
 	first_name = models.CharField(max_length=150, null=True, blank=True)
 	last_name = models.CharField(max_length=150, null=True, blank=True)
-	phone_number = models.CharField(max_length=15, null=True, blank=True)
-	email = models.EmailField(max_length=254, unique=True, null=True, blank=True)
-
-	#def is_lender(user):
-	#	return user.is_authenticated and user.role == 'lender'
-
-	#@user_passes_test(is_lender, login_url='landing')
-	#def lender_info(request):
-	#	return render(request, 'lender_info.html')
-
+	phone_number = models.CharField(max_length=25, null=True, blank=True)
+	email = models.EmailField(max_length=254, unique=False, null=True, blank=True)
 
 	def is_lender(self):
 		return self.role == 'lender'

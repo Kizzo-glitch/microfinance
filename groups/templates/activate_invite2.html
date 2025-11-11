@@ -1,0 +1,170 @@
+{% extends 'group_base.html' %}
+{% block content %}
+
+
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-lg">
+                <div class="card-header bg-success text-white text-center py-4">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-check"></i> Activate Your Account
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    {% if show_code_entry %}
+                        <!-- Step 1: Enter invitation code -->
+                        <div class="text-center mb-4">
+                            <i class="fas fa-envelope-open-text fa-5x text-primary mb-3"></i>
+                            <h5>Welcome!</h5>
+                            <p class="text-muted">Enter your invitation code to get started</p>
+                        </div>
+
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Invitation Code</label>
+                                <input type="text" name="invitation_code" class="form-control form-control-lg text-center text-uppercase" 
+                                       placeholder="XXXXXXXX" maxlength="8" required 
+                                       style="letter-spacing: 5px; font-size: 1.5rem;"
+                                       autofocus>
+                                <small class="form-text text-muted">Enter the 8-character code from your invitation SMS/Email</small>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-lg w-100">
+                                <i class="fas fa-arrow-right"></i> Continue
+                            </button>
+                        </form>
+
+                        <hr class="my-4">
+                        <div class="text-center">
+                            <p class="text-muted mb-0">Already have an account?</p>
+                            <a href="{% url 'login' %}" class="btn btn-link">Login here</a>
+                        </div>
+                    {% else %}
+                        <!-- Step 2: Create account -->
+                        <div class="alert alert-info mb-4">
+                            <h5 class="alert-heading"><i class="fas fa-info-circle"></i> Welcome {{ invitation.invitee_name }}!</h5>
+                            <p class="mb-2">You've been invited to join <strong>{{ invitation.group.name }}</strong></p>
+                            <p class="mb-0">Invited by: <strong>{{ invitation.invited_by.full_name }}</strong></p>
+                            
+                            {% if invitation.personal_message %}
+                            <hr>
+                            <p class="mb-0 fst-italic">"{{ invitation.personal_message }}"</p>
+                            {% endif %}
+                        </div>
+
+                        <h5 class="mb-3"><i class="fas fa-user"></i> Your Profile Details</h5>
+                        <div class="card mb-4 bg-light">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <p class="mb-2"><strong>Name: {{invitation.invitee_name}}</strong></p>
+                                        <p class="mb-2"><strong>Phone:{{invitation.invitee_phone}}</strong></p>
+                                        {% if borrower_profile.email_address %}
+                                        <p class="mb-2"><strong>Email:</strong></p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-6">
+                                        <p class="mb-2">{{ borrower_profile.full_name }}</p>
+                                        <p class="mb-2">{{ borrower_profile.phone_number }}</p>
+                                        {% if borrower_profile.email_address %}
+                                        <p class="mb-2">{{ borrower_profile.email_address }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if borrower_profile.national_id %}
+                                <hr>
+                                <p class="mb-0"><strong>ID:</strong> {{ borrower_profile.national_id }}</p>
+                                {% endif %}
+                                {% if borrower_profile.address %}
+                                <p class="mb-0"><strong>Address:</strong> {{ borrower_profile.address }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <h5 class="mb-3"><i class="fas fa-key"></i> Create Your Login Credentials</h5>
+                        <p class="text-muted">Your profile has been created. Just choose a username and password to complete activation.</p>
+
+                        <form method="post">
+                            {% csrf_token %}
+                            
+                            <!-- Username -->
+                            {% if form.username.errors %}
+                            <div class="alert alert-danger">
+                                {{ form.username.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">{{ form.username.label }} <span class="text-danger">*</span></label>
+                                {{ form.username }}
+                                <small class="form-text text-muted">Choose a unique username (letters, numbers, underscores only)</small>
+                            </div>
+
+                            <!-- Password -->
+                            {% if form.password1.errors %}
+                            <div class="alert alert-danger">
+                                {{ form.password1.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">{{ form.password1.label }} <span class="text-danger">*</span></label>
+                                {{ form.password1 }}
+                                <small class="form-text text-muted">Minimum 8 characters, mix of letters and numbers recommended</small>
+                            </div>
+
+                            <!-- Confirm Password -->
+                            {% if form.password2.errors %}
+                            <div class="alert alert-danger">
+                                {{ form.password2.errors }}
+                            </div>
+                            {% endif %}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">{{ form.password2.label }} <span class="text-danger">*</span></label>
+                                {{ form.password2 }}
+                            </div>
+
+                            <!-- Hidden readonly fields -->
+                            <div style="display: none;">
+                                {{ form.first_name }}
+                                {{ form.last_name }}
+                                {{ form.email }}
+                                {{ form.phone_number }}
+                            </div>
+
+                            <button type="submit" class="btn btn-success btn-lg w-100 mt-4">
+                                <i class="fas fa-check-circle"></i> Activate My Account
+                            </button>
+                        </form>
+
+                        <div class="text-center mt-4">
+                            <small class="text-muted">
+                                <i class="fas fa-clock"></i> Invitation expires: {{ invitation.expires_at|date:"d M Y, H:i" }}
+                            </small>
+                        </div>
+
+                        <hr class="my-4">
+                        <div class="text-center">
+                            <p class="text-muted mb-2">Don't want to join?</p>
+                            <!--<a href="" class="btn btn-link text-danger">
+                                <i class="fas fa-times-circle"></i> Decline this invitation
+                            </a>-->
+                            <a href="#" class="btn btn-link text-danger">
+                                <i class="fas fa-times-circle"></i> Decline this invitation
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if not show_code_entry %}
+            <div class="text-center mt-3">
+                <p class="text-muted">
+                    Already have an account? <a href="{% url 'login' %}">Login here</a>
+                </p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

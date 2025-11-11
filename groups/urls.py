@@ -36,6 +36,15 @@ urlpatterns = [
 
     path('api/borrowers/has_profile/<int:user_id>/', views.has_borrower_profile, name='has_borrower_profile'),
 
+    # Invitation actions
+    
+    #path('invitation/<int:invitation_id>/', views.invitation_detail, name='invitation_detail'),
+    #path('invitation/<int:invitation_id>/withdraw/', views.withdraw_invitation, name='withdraw_invitation'),
+    #path('invitation/<int:invitation_id>/resend/', views.resend_invitation, name='resend_invitation'),
+    #path('invitation/<int:invitation_id>/extend/', views.extend_invitation, name='extend_invitation'),
+    #path('invitation/<int:invitation_id>/decline/', views.cancel_invitation_activation, name='decline_invitation'),
+    
+
 
     
     

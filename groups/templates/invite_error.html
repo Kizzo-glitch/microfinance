@@ -1,0 +1,26 @@
+{% extends 'group_base.html' %}
+{% block content %}
+
+<div class="container">
+    <div class="card">
+      <h1>Something went wrong</h1>
+      <p class="muted">
+        We couldn't complete your invitation activation due to an unexpected error.
+        Please copy the reference below and contact support so we can investigate.
+      </p>
+
+      <p><strong>Reference code:</strong> {{ error_id }}</p>
+
+      {% if support_email %}
+        <p>Contact: <a href="mailto:{{ support_email }}">{{ support_email }}</a> and include the reference code above.</p>
+      {% else %}
+        <p>Please contact your group administrator and provide the reference code above.</p>
+      {% endif %}
+
+      <p style="margin-top: 12px;">
+        <a href="{% url 'login' %}" class="btn">Back to Login</a>
+      </p>
+    </div>
+  </div>
+
+{% endblock %}

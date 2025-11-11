@@ -8,8 +8,7 @@ import os
 from django.utils.text import slugify
 import uuid
 from django.contrib.auth import get_user_model
-
-
+from django.conf import settings
 
 
 
@@ -84,7 +83,7 @@ class BorrowerProfile(models.Model):
 		('registered_business', 'Self-Employed (Registered)'),
 	]
 
-	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='borrower', null=True, blank=True)
+	user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='borrower', null=True, blank=True)
 	full_name = models.CharField(max_length=100, default='')
 	gender = models.CharField(max_length=100, choices=GENDER_CHOICES, null=True, blank=True)
 	title = models.CharField(max_length=4, choices=TITLE_CHOICES, null=True, blank=True)
@@ -94,7 +93,7 @@ class BorrowerProfile(models.Model):
 	phone_number = models.CharField(max_length=100, null=True, default='')
 	email_address = models.CharField(max_length=100, null=True, default='')
 	employer_name = models.CharField(max_length=100, null=True, default='')
-	employment_position = models.CharField(max_length=100, null=True, default='')
+	#employment_position = models.CharField(max_length=100, null=True, default='')
 	income = models.DecimalField(default=0, decimal_places=2, max_digits=50)
 	position_level = models.CharField(max_length=50, choices=POSITION_LEVEL_CHOICES, null=True, blank=True)
 	
@@ -102,20 +101,17 @@ class BorrowerProfile(models.Model):
 	employer_address = models.CharField(max_length=100, null=False, default='')
 	
 	income_type = models.CharField(max_length=100, choices=INCOME_TYPE_CHOICES, null=True, blank=True)
-	#pay_date = models.CharField(max_length=100, null=False, default='')
+	
 	pay_day = models.PositiveSmallIntegerField(
 		validators=[MinValueValidator(1), MaxValueValidator(31)],
 		help_text="Day of the month you usually receive your salary (1–31).",
 		null=True, blank=True
 	)
-	monthly_expenses = models.CharField(max_length=100, choices=MONTHLY_EXPENSES_CHOICES, null=True, blank=True)
+	#monthly_expenses = models.CharField(max_length=100, choices=MONTHLY_EXPENSES_CHOICES, null=True, blank=True)
 	existing_debts = models.CharField(max_length=100, choices=EXISTING_DEBTS_CHOICES, null=True, blank=True)
 	
-
-	#credit_score = models.IntegerField(validators=[MinValueValidator(300), MaxValueValidator(850)], default=300)
-	#credit_intend = models.CharField(max_length=100, null=False, default='')
-	
 	employment_type = models.CharField(max_length=20, choices=EMPLOYMENT_CHOICES, null=True, blank=True)
+	
 	is_group_admin = models.BooleanField(default=False)
 	is_sub_admins = models.BooleanField(default=False)
 
@@ -129,15 +125,7 @@ class BorrowerProfile(models.Model):
 	def __str__(self):
 		return self.user.username
 	
-# Create a user Profile by default when user signs up
-#def create_profile(sender, instance, created, **kwargs):
-#	if created:
-#		borrower_profile = BorrowerProfile(user=instance)
-#		borrower_profile.save()
 
-
-# Automate the profile thing
-#post_save.connect(create_profile, sender=User)
 
 
 
@@ -193,6 +181,7 @@ class BorrowerGroup(models.Model):
 		return self.name
 
 
+"""
 class GroupMembership(models.Model):
 	ROLE_CHOICES = [
 		('admin', 'Admin'),
@@ -222,7 +211,7 @@ class GroupInvite(models.Model):
 	def __str__(self):
 		return f"Invite to {self.group.name} for {self.email}"
 
-
+"""
 
 
 
