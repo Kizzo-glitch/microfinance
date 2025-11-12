@@ -24,6 +24,7 @@ urlpatterns = [
 
     path('<int:group_id>/members/', views.group_members, name='group_members'),
     path('<int:group_id>/manage-sub-admins/', views.manage_sub_admins, name='manage_sub_admins'),
+    path('<int:group_id>/manage-members/', views.admin_manage_members, name='admin_manage_members'),
  
     
     path("<int:group_id>/invite/", views.send_group_invite, name="group_invite"),

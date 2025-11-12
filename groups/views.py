@@ -262,6 +262,20 @@ def manage_sub_admins(request, group_id):
 	return render(request, 'manage_sub_admins.html', context)
 
 
+def admin_manage_members(request, group_id):
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+    
+    # Permission check
+    if not GroupMembership.objects.filter(group=group, borrower=request.user.borrower, role__in=['admin', 'sub-admin']).exists():
+        messages.error(request, "You don’t have permission to manage members.")
+        return redirect('borrowers:borrower_index')
+
+    members = group.memberships.select_related('borrower__user')
+    return render(request, 'admin_manage_members.html', {
+        'group': group,
+        'members': members,
+    })
+
 # -----------------------------
 # GROUP CREATION & MANAGEMENT
 # -----------------------------

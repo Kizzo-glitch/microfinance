@@ -79,6 +79,7 @@ urlpatterns = [
     path('my-groups-dashboard/', views.borrower_groups_dashboard, name='borrower_groups_dashboard'),
     path('<int:group_id>/', views.borrower_group_detail, name='borrower_group_detail'),
     path('join-group/<int:group_id>/', views.borrower_join_group, name='borrower_join_group'),
+    path('<int:group_id>/manage-members/', views.admin_manage_members, name='admin_manage_members'),
     
 
 
