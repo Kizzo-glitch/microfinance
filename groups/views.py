@@ -485,13 +485,13 @@ def send_group_invite(request, group_id):
 			invitation.sms_sent = True
 			invitation.sms_sent_at = timezone.now()
 
-			if invitation.invitee_email:
-				send_mail(
-					subject=f"Invitation to join {group.name}",
-					message=sms_body,
-					from_email=settings.EMAIL_HOST_USER,
-					recipient_list=[invitation.invitee_email],
-				)
+			#if invitation.invitee_email:
+				#send_mail(
+				#	subject=f"Invitation to join {group.name}",
+				#	message=sms_body,
+				#	from_email=settings.EMAIL_HOST_USER,
+				#	recipient_list=[invitation.invitee_email],
+				#)
 
 			invitation.save()
 			messages.success(request, f"Invitation sent successfully! Code: {invitation.invitation_code}")
