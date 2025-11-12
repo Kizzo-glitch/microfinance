@@ -484,7 +484,7 @@ def send_group_invite(request, group_id):
 			send_sms_smsportal(invitation.invitee_phone, sms_body)
 			invitation.sms_sent = True
 			invitation.sms_sent_at = timezone.now()
-			"""
+			
 			if invitation.invitee_email:
 				send_mail(
 					subject=f"Invitation to join {group.name}",
@@ -492,7 +492,7 @@ def send_group_invite(request, group_id):
 					from_email=settings.EMAIL_HOST_USER,
 					recipient_list=[invitation.invitee_email],
 				)
-				"""
+				
 
 			invitation.save()
 			messages.success(request, f"Invitation sent successfully! Code: {invitation.invitation_code}")

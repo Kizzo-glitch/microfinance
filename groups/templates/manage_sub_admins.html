@@ -24,7 +24,7 @@
                                     {% if membership.borrower in current_sub_admins %}checked{% endif %}
                                 >
                                 <label class="form-check-label" for="member_{{ membership.borrower.id }}">
-                                    {{ membership.borrower.user.get_full_name|default:membership.borrower }}
+                                    {{ membership.borrower.get_full_name|default:membership.borrower }}
                                 </label>
                             </div>
                         </div>
