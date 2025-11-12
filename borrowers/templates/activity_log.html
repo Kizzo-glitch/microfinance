@@ -1,0 +1,40 @@
+{% extends 'borrower_base.html' %}
+{% block content %}
+<div class="container mt-4">
+  <h3>{{ group.name }} - Activity Log</h3>
+  
+  <form method="get" class="mb-3">
+    <div class="input-group">
+      <input type="text" name="action" value="{{ request.GET.action }}" placeholder="Filter by action..." class="form-control">
+      <button type="submit" class="btn btn-success">Filter</button>
+    </div>
+  </form>
+
+  <table class="table table-striped">
+    <thead class="table-light">
+      <tr>
+        <th>Date</th>
+        <th>Action</th>
+        <th>Actor</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>{{ log.created_at|date:"d M Y H:i" }}</td>
+        <td>{{ log.action }}</td>
+        <td>{% if log.actor %}
+            {{ log.actor.full_name }}
+            {% else %}
+              System
+            {% endif %}</td>
+        <td>{{ log.details|default:"-" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="text-center text-muted">No activity found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

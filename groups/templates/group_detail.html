@@ -26,6 +26,16 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-people display-5 text-primary"></i>
+                    <h5 class="fw-semibold mt-2">Activity Logs</h5>
+                    <p class="mb-0 fs-4">View recent activities</p>
+                    <a href="{% url 'groups:group_activity_log' group.id %}" class="text-decoration-none small text-primary">View Log</a>
+                </div>
+            </div>
+        </div>
 
         <div class="col-md-3">
             <div class="card shadow-sm border-0">
@@ -84,6 +94,13 @@
     <!-- Action Buttons -->
    
     <div class="mt-4 d-flex justify-content-end">
+        {% if request.user.borrower == group.admin or group.sub_admin %}
+        <a href="{% url 'groups:manage_members' group.id %}" class="btn btn-outline-success">
+            <i class="bi bi-person-gear me-1"></i> Manage Members
+        </a>
+        {% endif %}
+
+        &nbsp;&nbsp;
         {% if request.user.borrower == group.admin %}
         <a href="{% url 'groups:manage_sub_admins' group.id %}" class="btn btn-outline-primary">
             <i class="bi bi-person-gear me-1"></i> Manage Agents

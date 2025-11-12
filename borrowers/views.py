@@ -18,7 +18,7 @@ import random
 from django.contrib import messages
 
 from .models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
-from groups.models import BorrowerGroup, GroupInvitation, GroupJoinRequest, GroupMembership
+from groups.models import BorrowerGroup, GroupActivity, GroupDocument, GroupInvitation, GroupJoinRequest, GroupMembership
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg
@@ -213,7 +213,7 @@ def borrower_group_detail(request, group_id):
 
     if not (is_admin or is_sub or member_related or user.is_superuser):
         messages.error(request, "You do not have permission to view that group.")
-        return redirect('borrower_index')
+        return redirect('borrowers:borrower_index')
 
     # Members list
     memberships = group.memberships.select_related('borrower').order_by('-joined_date')[:100]  # limit
@@ -326,6 +326,67 @@ def borrower_join_group(request, group_id):
 
 def admin_manage_members(request, group_id):
     group = get_object_or_404(BorrowerGroup, id=group_id)
+    current_member = GroupMembership.objects.filter(group=group, borrower=request.user.borrower).first()
+
+    # Permission check
+    if not current_member or current_member.role not in ['admin', 'sub-admin']:
+        messages.error(request, "You don’t have permission to manage members.")
+        return redirect('borrowers:borrower_index')
+
+    members = group.memberships.select_related('borrower__user')
+
+    # Handle role actions
+    if request.method == "POST":
+        member_id = request.POST.get('member_id')
+        action = request.POST.get('action')
+        target_member = get_object_or_404(GroupMembership, id=member_id, group=group)
+
+        if action == "promote" and target_member.role == "member":
+            target_member.role = "sub-admin"
+            target_member.save()
+            GroupActivity.objects.create(
+                group=group,
+                actor=request.user.borrower,
+                action="Promoted Member",
+                details=f"{target_member.borrower.full_name} was promoted to Sub-Admin"
+            )
+            messages.success(request, f"{target_member.borrower.full_name} promoted to Sub-Admin.")
+
+        elif action == "demote" and target_member.role == "sub-admin":
+            target_member.role = "member"
+            target_member.save()
+            GroupActivity.objects.create(
+                group=group,
+                actor=request.user.borrower,
+                action="Demoted Member",
+                details=f"{target_member.borrower.full_name} was demoted to Member"
+            )
+            messages.info(request, f"{target_member.borrower.full_name} demoted to Member.")
+
+        elif action == "remove":
+            GroupActivity.objects.create(
+                group=group,
+                actor=request.user.borrower,
+                action="Removed Member",
+                details=f"{target_member.borrower.full_name} was removed from the group"
+            )
+            target_member.delete()
+            messages.warning(request, f"{target_member.borrower.full_name} removed from the group.")
+
+        else:
+            messages.error(request, "Invalid action or role change not allowed.")
+
+        return redirect('borrowers:admin_manage_members', group_id=group.id)
+
+    return render(request, 'borrowers:admin_manage_members.html', {
+        'group': group,
+        'members': members,
+        'is_admin': current_member.role in ['admin', 'sub-admin']
+    })
+
+
+def admin_manage_members2(request, group_id):
+    group = get_object_or_404(BorrowerGroup, id=group_id)
     
     # Permission check
     if not GroupMembership.objects.filter(group=group, borrower=request.user.borrower, role__in=['admin', 'sub-admin']).exists():
@@ -336,6 +397,44 @@ def admin_manage_members(request, group_id):
     return render(request, 'admin_manage_members.html', {
         'group': group,
         'members': members,
+    })
+
+
+def group_activity_log(request, group_id):
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+    logs = group.activities.all()
+
+    action_filter = request.GET.get('action')
+    if action_filter:
+        logs = logs.filter(action__icontains=action_filter)
+
+    return render(request, 'activity_log.html', {
+        'group': group,
+        'logs': logs,
+    })
+
+def group_documents(request, group_id):
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+    documents = group.documents.all()
+
+    if request.method == 'POST':
+        file = request.FILES.get('file')
+        description = request.POST.get('description')
+        if file:
+            version = (group.documents.filter(file__icontains=file.name).count() + 1)
+            GroupDocument.objects.create(
+                group=group,
+                uploaded_by=request.user.borrower,
+                file=file,
+                version=version,
+                description=description,
+            )
+            messages.success(request, "Document uploaded successfully.")
+            return redirect('groups:group_documents', group.id)
+
+    return render(request, 'group_documents.html', {
+        'group': group,
+        'documents': documents,
     })
 
 
@@ -472,7 +571,7 @@ def send_otp(request):
 	from_email = settings.EMAIL_HOST_USER
 	to_email = [borrower.email_address]
 
-	send_mail(subject, message, from_email, to_email, fail_silently=False, )
+	#send_mail(subject, message, from_email, to_email, fail_silently=False, )
 
 	return redirect('borrowers:verify_otp')
 

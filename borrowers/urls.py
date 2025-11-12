@@ -57,8 +57,6 @@ urlpatterns = [
     
     path('loan/<int:loan_id>/', views.loan_details, name='loan-details'),
 
-    #path('record-payment/<int:loan_id>/', views.record_payment, name='record-payment'),
-
     path('loan/<int:loan_id>/record-payment/', views.record_payment, name='record-payment'),
     path('borrower/payment-history/', views.borrower_payment_history, name='borrower_payment_history'),
 
@@ -80,6 +78,8 @@ urlpatterns = [
     path('<int:group_id>/', views.borrower_group_detail, name='borrower_group_detail'),
     path('join-group/<int:group_id>/', views.borrower_join_group, name='borrower_join_group'),
     path('<int:group_id>/manage-members/', views.admin_manage_members, name='admin_manage_members'),
+    path('<int:group_id>/activity/', views.group_activity_log, name='group_activity_log'),
+    path('<int:group_id>/documents/', views.group_documents, name='group_documents'),
     
 
 

@@ -1,0 +1,46 @@
+{% extends "group_dash_base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h3>{{ group.name }} - Documents</h3>
+
+  <form method="post" enctype="multipart/form-data" class="mb-4">
+    {% csrf_token %}
+    <div class="row g-2">
+      <div class="col-md-6">
+        <input type="file" name="file" class="form-control" required>
+      </div>
+      <div class="col-md-4">
+        <input type="text" name="description" placeholder="Description (optional)" class="form-control">
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-success w-100">Upload</button>
+      </div>
+    </div>
+  </form>
+
+  <table class="table table-bordered">
+    <thead class="table-success">
+      <tr>
+        <th>File</th>
+        <th>Version</th>
+        <th>Uploaded By</th>
+        <th>Date</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for doc in documents %}
+      <tr>
+        <td><a href="{{ doc.file.url }}" target="_blank">{{ doc.file.name }}</a></td>
+        <td>{{ doc.version }}</td>
+        <td>{{ doc.uploaded_by.full_name }}</td>
+        <td>{{ doc.uploaded_at|date:"d M Y H:i" }}</td>
+        <td>{{ doc.description|default:"-" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="text-center text-muted">No documents uploaded yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
