@@ -105,7 +105,66 @@
             <ol class="breadcrumb mb-4">
                 <li class="breadcrumb-item active">Join or Manage Groups</li>
             </ol>
-            <div class="row">
+
+            <div class="card shadow-sm mt-4">
+              <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center rounded-top">
+                <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Group Market</h5>
+                <!--<a href="{% url 'groups:group_list' %}" class="btn btn-light btn-sm rounded-pill">View All</a>-->
+                </div>
+                <div class="card-body">
+                  <h6 class="fw-bold text-primary mb-3">Available Groups / Not joined Groups</h6>
+                    {% if available_groups %}
+                      <div class="row">
+                        {% for group in available_groups %}
+                          <div class="col-md-4 mb-3">
+                            <div class="card h-100 shadow-sm border-0">
+                              <div class="card-body">
+                                <h5 class="card-title">{{ group.name }}</h5>
+                                <p class="text-muted small">{{ group.description|truncatewords:20 }}</p>
+                                <form method="post" action="{% url 'borrowers:borrower_join_group' group.id %}">
+                                  {% csrf_token %}
+                                  <button type="submit" class="btn btn-outline-primary btn-sm w-100">Request to Join</button>
+                                </form>
+                              </div>
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    {% else %}
+                      <p class="text-muted">No groups are currently available to join.</p>
+                    {% endif %}
+                  </div>
+                </div>
+
+
+                <div class="card shadow-sm mt-4">
+                    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center rounded-top">
+                        <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>My Groups</h5>
+                        <!--<a href="{% url 'groups:group_list' %}" class="btn btn-light btn-sm rounded-pill">View All</a>-->
+                    </div>
+                    <div class="card-body">
+                        <h6 class="fw-bold text-primary mb-3">Joined Groups</h6>
+                        {% if joined_groups %}
+                        <div class="row">
+                            {% for group in joined_groups %}
+                            <div class="col-md-4 mb-3">
+                                <div class="card h-100 shadow-sm border-0">
+                                    <div class="card-body">
+                                        <p class="mb-1"><strong>{{ group.name }}</strong></p>
+                                        <p class="text-muted small">Status: Member</p>
+                                        <a href="{% url 'borrowers:borrower_group_detail' group.id %}" class="btn btn-outline-primary btn-sm">View Group</a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-muted">You have not joined any groups yet.</p>
+                    {% endif %}
+                  </div>
+                </div>
+
+            <!--<div class="row">
                 <div class="col-xl-6 col-md-6 mb-4">
                     <div class="card border-left-primary shadow h-100 py-2">
                         <div class="card-body">
@@ -133,7 +192,7 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div>-->
 
             <div class="row">
                 <div class="col-xl-6">

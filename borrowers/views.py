@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 
@@ -48,6 +49,10 @@ from loans.utils import send_sms_smsportal
 from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
 
 from .utils import handle_stage_navigation
+from groups.utils import is_group_admin, is_sub_admin, can_manage_operations, is_group_member
+from django.utils.safestring import mark_safe
+
+from django.db.models.functions import TruncMonth
 
 
 
@@ -191,6 +196,104 @@ def borrower_groups_dashboard(request):
 		'joined_groups': joined_groups,
 	}
 	return render(request, 'borrower_groups_dashboard.html', context)
+
+
+def borrower_group_detail(request, group_id):
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+
+    # Authorization: allow group members, admins/sub-admins, or platform admins
+    user = request.user
+    is_admin = is_group_admin(user, group)
+    is_sub = is_sub_admin(user, group)
+    member_related = False
+    try:
+        member_related = group.memberships.filter(borrower__user=user).exists() or group.admin == getattr(user, 'borrower', None)
+    except Exception:
+        member_related = False
+
+    if not (is_admin or is_sub or member_related or user.is_superuser):
+        messages.error(request, "You do not have permission to view that group.")
+        return redirect('borrower_index')
+
+    # Members list
+    memberships = group.memberships.select_related('borrower').order_by('-joined_date')[:100]  # limit
+    members = [m for m in memberships]
+
+    # Stats
+    total_members = group.memberships.count()
+    pending_invitations = group.invitations.filter(status='pending').count()
+    pending_join_requests = group.join_requests.filter(status='pending').count()
+    total_loans = group.total_loans_taken or 0
+    total_amount_borrowed = group.total_amount_borrowed or 0
+    total_amount_repaid = group.total_amount_repaid or 0
+
+    # Recent activity: combine last invitations and join requests and show sorted by date
+    inv_qs = group.invitations.all().values('id','invited_by_id','invitee_name','status','sent_at','sms_sent')
+    jr_qs = group.join_requests.all().values('id','requester_id','reason_for_joining','status','requested_at')
+    # unify into python list with label
+    recent = []
+    for i in group.invitations.order_by('-sent_at')[:10]:
+        recent.append({
+            'type': 'invitation',
+            'actor': getattr(i.invited_by, 'full_name', str(i.invited_by)),
+            'target': i.invitee_name or i.invitee_phone or i.invitee_email,
+            'status': i.status,
+            'created_at': i.sent_at,
+            'obj': i,
+        })
+    for j in group.join_requests.order_by('-requested_at')[:10]:
+        recent.append({
+            'type': 'join_request',
+            'actor': getattr(j.requester, 'full_name', str(j.requester)),
+            'target': j.requester.full_name,
+            'status': j.status,
+            'created_at': j.requested_at,
+            'obj': j,
+        })
+    # sort by created_at desc and limit
+    recent_sorted = sorted(recent, key=lambda r: r['created_at'] or timezone.now(), reverse=True)[:12]
+
+    # Member growth placeholder: monthly counts (example derived from joined_date)
+    # build small synthetic series: last 6 months with counts (fallback to zeros)
+    
+    six_months_ago = now() - timezone.timedelta(days=180)
+    monthly_qs = group.memberships.filter(joined_date__gte=six_months_ago).annotate(month=TruncMonth('joined_date')).values('month').annotate(count=Count('id')).order_by('month')
+    # convert to dict month->count
+    monthly_map = {item['month'].strftime("%b %Y"): item['count'] for item in monthly_qs}
+    # create labels for last 6 months
+    labels = []
+    counts = []
+    for i in range(5, -1, -1):
+        m = (now() - timezone.timedelta(days=30*i)).replace(day=1)
+        key = m.strftime("%b %Y")
+        labels.append(key)
+        counts.append(monthly_map.get(key, 0))
+
+    # Chart data JSON-safe
+    chart_data = {
+        'labels': labels,
+        'counts': counts
+    }
+
+    context = {
+        'group': group,
+        'memberships': memberships,
+        'members': members,
+        'is_admin': is_admin,
+        'is_sub_admin': is_sub,
+        'can_manage': can_manage_operations(user, group),
+        'total_members': total_members,
+        'pending_invitations': pending_invitations,
+        'pending_join_requests': pending_join_requests,
+        'total_loans': total_loans,
+        'total_amount_borrowed': total_amount_borrowed,
+        'total_amount_repaid': total_amount_repaid,
+        'recent_activity': recent_sorted,
+        'chart_data_json': mark_safe(json.dumps(chart_data)),
+    }
+
+    return render(request, 'borrower_group_detail.html', context)
+
 
 
 @login_required
@@ -354,7 +457,7 @@ def send_otp(request):
 	from_email = settings.EMAIL_HOST_USER
 	to_email = [borrower.email_address]
 
-	#send_mail(subject, message, from_email, to_email, fail_silently=False, )
+	send_mail(subject, message, from_email, to_email, fail_silently=False, )
 
 	return redirect('borrowers:verify_otp')
 

@@ -1,0 +1,173 @@
+{% extends "borrower_base.html" %}
+{% load static %}
+{% load humanize %}
+{% block content %}
+<div class="container py-4">
+  <div class="row g-4">
+    <!-- Header -->
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <h2 class="mb-1">{{ group.name }}</h2>
+          <div class="text-muted small">
+            {{ group.get_group_type_display }} • Status: <span class="fw-semibold">{{ group.get_status_display }}</span>
+            • Created: {{ group.created_at|date:"M j, Y" }}
+          </div>
+        </div>
+
+        <div class="text-end">
+          {% if is_admin %}
+            <a href="{% url 'groups:group_edit' group.id %}" class="btn btn-outline-primary btn-sm me-2">Edit Group</a>
+          {% endif %}
+          {% if can_manage %}
+            <a href="{% url 'groups:invite_borrower' group.id %}" class="btn btn-success btn-sm me-2">Invite Member</a>
+            <a href="{% url 'groups:manage_sub_admins' group.id %}" class="btn btn-outline-secondary btn-sm">Manage Sub-Admins</a>
+          {% endif %}
+        </div>
+      </div>
+      <hr>
+    </div>
+
+    <!-- Left: Stats & Members -->
+    <div class="col-lg-4">
+      <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+          <h6 class="text-uppercase small text-muted">Summary</h6>
+          <div class="row text-center mt-3">
+            <div class="col-4">
+              <div class="h4 mb-0">{{ total_members }}</div>
+              <div class="small text-muted">Members</div>
+            </div>
+            <div class="col-4">
+              <div class="h4 mb-0">{{ pending_invitations }}</div>
+              <div class="small text-muted">Invites</div>
+            </div>
+            <div class="col-4">
+              <div class="h4 mb-0">{{ pending_join_requests }}</div>
+              <div class="small text-muted">Join Requests</div>
+            </div>
+          </div>
+          <hr>
+          <p class="small text-muted mb-1">Total loans given</p>
+          <h5>R{{ total_amount_borrowed|floatformat:2 }}</h5>
+        </div>
+      </div>
+
+      <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+          <h6 class="mb-3">Member Growth (6 months)</h6>
+          <canvas id="memberGrowthChart" width="100%" height="120"></canvas>
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h6 class="mb-3">Quick Actions</h6>
+          <div class="d-grid gap-2">
+            {% if can_manage %}
+              <a class="btn btn-outline-success" href="{% url 'groups:group_meetings' group.id %}">Record Meeting</a>
+            {% endif %}
+            <a class="btn btn-outline-primary" href="">Shared Documents</a>
+            {% if not is_admin %}
+              <a class="btn btn-outline-danger" href="">Leave Group</a>
+            {% endif %}
+          </div>
+        </div> <!--'groups:group_documents' group.id-->
+      </div> <!--'groups:leave_group' group.id-->
+    </div>
+
+    <!-- Right: Members & Recent Activity -->
+    <div class="col-lg-8">
+      <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Members <small class="text-muted">({{ total_members }})</small></h5>
+          <div class="list-group list-group-flush">
+            {% for membership in memberships %}
+              <div class="list-group-item d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                  <div class="avatar me-3 rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width:44px;height:44px;">
+                    <!-- initials -->
+                    {% with initials=membership.borrower.full_name|default_if_none:"?" %}
+                      {{ initials|slice:":1" }}
+                    {% endwith %}
+                  </div>
+                  <div>
+                    <div class="fw-semibold">{{ membership.borrower.full_name }}</div>
+                    <div class="small text-muted">{{ membership.get_role_display }} • Joined {{ membership.joined_date|date:"M j, Y" }}</div>
+                  </div>
+                </div>
+
+                <div class="text-end">
+                    {# url 'borrowers:borrower_profile' membership.borrower.user.id #}
+                  <a href="" class="btn btn-sm btn-outline-primary me-2">View</a>
+                  {% if can_manage %}
+                    {% if membership.role != 'admin' %}
+                      <a href="{% url 'groups:manage_member' group.id membership.id %}" class="btn btn-sm btn-outline-secondary">Manage</a>
+                    {% endif %}
+                  {% endif %}
+                </div>
+              </div>
+            {% empty %}
+              <div class="p-3 text-center text-muted">No members yet.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="card-title">Recent Activity</h5>
+          <ul class="timeline list-unstyled mb-0">
+            {% for item in recent_activity %}
+              <li class="mb-3">
+                {% if item.type == 'invitation' %}
+                  <div><strong>{{ item.actor }}</strong> invited <strong>{{ item.target }}</strong></div>
+                  <div class="small text-muted">Status: {{ item.status }} • {{ item.created_at|naturaltime }}</div>
+                {% else %}
+                  <div><strong>{{ item.actor }}</strong> requested to join</div>
+                  <div class="small text-muted">Status: {{ item.status }} • {{ item.created_at|naturaltime }}</div>
+                {% endif %}
+              </li>
+            {% empty %}
+              <li class="text-muted">No recent activity.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const data = {{ chart_data_json }};
+    const ctx = document.getElementById('memberGrowthChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: data.labels,
+        datasets: [{
+          label: 'Members',
+          data: data.counts,
+          fill: true,
+          tension: 0.3,
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, precision: 0 }
+        },
+        maintainAspectRatio: false,
+      }
+    });
+  });
+</script>
+
+<style>
+  .avatar { font-weight: 700; font-size: 16px; }
+  .timeline li { border-left: 2px solid #eee; padding-left: 12px; margin-left: 6px; }
+</style>
+{% endblock %}

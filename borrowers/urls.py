@@ -76,7 +76,8 @@ urlpatterns = [
     path('api/borrower/balance-over-time/', views.balance_over_time, name='balance_over_time'),
     path('api/borrower/paid-vs-outstanding/', views.paid_vs_outstanding, name='paid_vs_outstanding'),
 
-    path('dashboard/groups/', views.borrower_groups_dashboard, name='borrower_groups_dashboard'),
+    path('my-groups-dashboard/', views.borrower_groups_dashboard, name='borrower_groups_dashboard'),
+    path('<int:group_id>/', views.borrower_group_detail, name='borrower_group_detail'),
     path('join-group/<int:group_id>/', views.borrower_join_group, name='borrower_join_group'),
     
 

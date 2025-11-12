@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'groups',
     'crispy_forms',
     'crispy_bootstrap4',
+    'django.contrib.humanize',
     #'drf-yasg', 
 ]
 
