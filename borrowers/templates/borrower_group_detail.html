@@ -20,7 +20,7 @@
             <a href="{% url 'groups:group_edit' group.id %}" class="btn btn-outline-primary btn-sm me-2">Edit Group</a>
           {% endif %}
           {% if can_manage %}
-            <a href="{% url 'groups:invite_borrower' group.id %}" class="btn btn-success btn-sm me-2">Invite Member</a>
+            <a href="{% url 'groups:group_invite' group.id %}" class="btn btn-success btn-sm me-2">Invite Member</a>
             <a href="{% url 'groups:manage_sub_admins' group.id %}" class="btn btn-outline-secondary btn-sm">Manage Sub-Admins</a>
           {% endif %}
         </div>
@@ -28,6 +28,7 @@
       <hr>
     </div>
 
+  
     <!-- Left: Stats & Members -->
     <div class="col-lg-4">
       <div class="card mb-3 shadow-sm">
@@ -68,10 +69,16 @@
         </div> <!--'groups:group_documents' group.id-->
       </div> <!--'groups:leave_group' group.id-->
       <br><br>
-      <div class="card mb-3 shadow-sm">
+
+
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Member Growth</h6>
+        </div>
         <div class="card-body">
-          <h6 class="mb-3">Member Growth (6 months)</h6>
-          <canvas id="memberGrowthChart" width="100%" height="120"></canvas>
+            <div class="chart-area">
+                <canvas id="memberGrowthChart"></canvas>
+            </div>
         </div>
       </div>
 
@@ -104,7 +111,7 @@
                   <a href="" class="btn btn-sm btn-outline-primary me-2">View</a>
                   {% if can_manage %}
                     {% if membership.role != 'admin' %}
-                      <a href="{% url 'groups:manage_member' group.id membership.id %}" class="btn btn-sm btn-outline-secondary">Manage</a>
+                      <a href="{% url 'groups:manage_members' group.id %}" class="btn btn-sm btn-outline-secondary">Manage</a>
                     {% endif %}
                   {% endif %}
                 </div>
@@ -140,8 +147,112 @@
   </div>
 </div>
 
+<script>
+// Bootstrap font defaults
+Chart.defaults.global.defaultFontFamily =
+  'Nunito, -apple-system,system-ui,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
+Chart.defaults.global.defaultFontColor = '#858796';
+
+// number formatter
+function number_format(number, decimals, dec_point, thousands_sep) {
+  number = (number + '').replace(',', '').replace(' ', '');
+  var n = !isFinite(+number) ? 0 : +number,
+      prec = !isFinite(+decimals) ? 0 : Math.abs(decimals),
+      sep = thousands_sep || ',',
+      dec = dec_point || '.',
+      s = '',
+      toFixedFix = function(n, prec) {
+        return '' + (Math.round(n * Math.pow(10, prec)) / Math.pow(10, prec));
+      };
+  s = (prec ? toFixedFix(n, prec) : '' + Math.round(n)).split('.');
+  if (s[0].length > 3)
+    s[0] = s[0].replace(/\B(?=(?:\d{3})+(?!\d))/g, sep);
+  if ((s[1] || '').length < prec)
+    s[1] = (s[1] || '') + new Array(prec - (s[1] || '').length + 1).join('0');
+  return s.join(dec);
+}
+
+
+// Dynamic values from Django
+var labels = {{ growth_labels|safe }};
+var data = {{ growth_data|safe }};
+
+
+// Build chart
+var ctx = document.getElementById("memberGrowthChart");
+
+var memberGrowthChart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: labels,
+    datasets: [{
+      label: "New Members",
+      lineTension: 0.3,
+      backgroundColor: "rgba(78, 115, 223, 0.05)",
+      borderColor: "rgba(78, 115, 223, 1)",
+      pointRadius: 3,
+      pointBackgroundColor: "rgba(78, 115, 223, 1)",
+      pointBorderColor: "rgba(78, 115, 223, 1)",
+      pointHoverRadius: 3,
+      pointHoverBackgroundColor: "rgba(78, 115, 223, 1)",
+      pointHoverBorderColor: "rgba(78, 115, 223, 1)",
+      pointHitRadius: 10,
+      pointBorderWidth: 2,
+      data: data,
+    }],
+  },
+  options: {
+    maintainAspectRatio: false,
+    layout: {
+      padding: { left: 10, right: 25, top: 25, bottom: 0 }
+    },
+    scales: {
+      xAxes: [{
+        gridLines: { display: false, drawBorder: false },
+        ticks: { maxTicksLimit: 12 }
+      }],
+      yAxes: [{
+        ticks: {
+          maxTicksLimit: 5,
+          padding: 10,
+          callback: function(value) { return number_format(value); }
+        },
+        gridLines: {
+          color: "rgb(234, 236, 244)",
+          zeroLineColor: "rgb(234, 236, 244)",
+          drawBorder: false,
+          borderDash: [2],
+          zeroLineBorderDash: [2],
+        }
+      }],
+    },
+    legend: { display: false },
+    tooltips: {
+      backgroundColor: "rgb(255,255,255)",
+      bodyFontColor: "#858796",
+      titleMarginBottom: 10,
+      titleFontColor: '#6e707e',
+      titleFontSize: 14,
+      borderColor: '#dddfeb',
+      borderWidth: 1,
+      xPadding: 15,
+      yPadding: 15,
+      displayColors: false,
+      mode: 'index',
+      intersect: false,
+      caretPadding: 10,
+      callbacks: {
+        label: function(tooltipItem, chart) {
+          return 'New Members: ' + number_format(tooltipItem.yLabel);
+        }
+      }
+    }
+  }
+});
+</script>
+
 <!-- Chart.js (CDN) -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!--<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     const data = {{ chart_data_json }};
@@ -166,7 +277,7 @@
       }
     });
   });
-</script>
+</script>-->
 
 <style>
   .avatar { font-weight: 700; font-size: 16px; }

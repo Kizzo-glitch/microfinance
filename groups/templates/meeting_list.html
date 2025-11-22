@@ -1,0 +1,27 @@
+{% extends 'group_dash_base.html' %}
+{% load static %}
+{% block content %}
+
+    <h2>Meetings</h2>
+
+    <a href="{% url 'create_meeting' group.id %}" class="btn btn-primary">Schedule Meeting</a>
+
+    <table class="table mt-3">
+    <tr>
+        <th>Date</th>
+        <th>Title</th>
+        <th>Created By</th>
+        <th></th>
+    </tr>
+
+    {% for m in meetings %}
+    <tr>
+        <td>{{ m.date }}</td>
+        <td>{{ m.title }}</td>
+        <td>{{ m.created_by.full_name }}</td>
+        <td><a href="{% url 'meeting_detail' group.id m.id %}">View</a></td>
+    </tr>
+    {% endfor %}
+    </table>
+
+{% endblock %}

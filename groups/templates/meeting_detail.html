@@ -1,0 +1,40 @@
+{% extends 'group_dash_base.html' %}
+{% load static %}
+{% block content %}
+
+
+<h2>{{ meeting.title }}</h2>
+<p>{{ meeting.description }}</p>
+
+<h4>Attendance</h4>
+<form method="post" action="{% url 'update_attendance' group.id meeting.id %}">
+    {% csrf_token %}
+    <table class="table">
+        <tr>
+            <th>Member</th>
+            <th>Present</th>
+        </tr>
+
+        {% for a in attendance %}
+        <tr>
+            <td>{{ a.member.user.full_name }}</td>
+            <td>
+                <input type="checkbox" name="present_{{ a.id }}" {% if a.was_present %}checked{% endif %}>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <button class="btn btn-success">Save Attendance</button>
+</form>
+
+<hr>
+
+<h4>Minutes</h4>
+<p>{{ meeting.minutes }}</p>
+
+{% if meeting.minutes_file %}
+  <a href="{{ meeting.minutes_file.url }}" download>Download File</a>
+{% endif %}
+
+{% endblock %}

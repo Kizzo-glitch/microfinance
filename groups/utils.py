@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from borrowers.models import BorrowerProfile
+from groups.models import ActivityLog
 
 
 def is_group_admin(user, group):
@@ -26,6 +27,15 @@ def is_group_member(user, group):
         return bool(group.memberships.filter(borrower__user=user).exists() or group.memberships.filter(borrower=user.borrower).exists())
     except Exception:
         return False
+
+
+def log_activity(group, actor, action, details=""):
+    return ActivityLog.objects.create(
+        group=group,
+        actor=actor,
+        action=action,
+        details=details
+    )
 
 """
 def is_group_admin(user, group):

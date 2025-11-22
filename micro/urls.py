@@ -2,8 +2,7 @@ from django.urls import path
 
 from .views import (
 		landing, register, CustomLoginView, 
-		role_based_redirect, 
-		#borrower_registration, lender_registration, borrower_login, lender_login, 
+		role_based_redirect, lender_compliance,
 		logout_user
     )
 from django.contrib.auth import views as auth_views 
@@ -11,11 +10,8 @@ from django.contrib.auth import views as auth_views
 urlpatterns = [
 	path('', landing, name='landing'),
 	
-	#path('borrower_registration/', borrower_registration, name='borrower_registration'),
-	#path('lender_registration/', lender_registration, name='lender_registration'),
-
-	#path('borrower_login/', borrower_login, name='borrower_login'),
-	#path('lender_login/', lender_login, name='lender_login'),
+	path('lender_compliance/', lender_compliance, name='lender_compliance'),
+	
 	
 	path('logout/', logout_user, name='logout'),
 

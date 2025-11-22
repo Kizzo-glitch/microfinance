@@ -199,100 +199,113 @@ def borrower_groups_dashboard(request):
 
 
 def borrower_group_detail(request, group_id):
-    group = get_object_or_404(BorrowerGroup, id=group_id)
+	group = get_object_or_404(BorrowerGroup, id=group_id)
 
-    # Authorization: allow group members, admins/sub-admins, or platform admins
-    user = request.user
-    is_admin = is_group_admin(user, group)
-    is_sub = is_sub_admin(user, group)
-    member_related = False
-    try:
-        member_related = group.memberships.filter(borrower__user=user).exists() or group.admin == getattr(user, 'borrower', None)
-    except Exception:
-        member_related = False
+	# Authorization: allow group members, admins/sub-admins, or platform admins
+	user = request.user
+	is_admin = is_group_admin(user, group)
+	is_sub = is_sub_admin(user, group)
+	member_related = False
+	try:
+		member_related = group.memberships.filter(borrower__user=user).exists() or group.admin == getattr(user, 'borrower', None)
+	except Exception:
+		member_related = False
 
-    if not (is_admin or is_sub or member_related or user.is_superuser):
-        messages.error(request, "You do not have permission to view that group.")
-        return redirect('borrowers:borrower_index')
+	if not (is_admin or is_sub or member_related or user.is_superuser):
+		messages.error(request, "You do not have permission to view that group.")
+		return redirect('borrowers:borrower_index')
 
-    # Members list
-    memberships = group.memberships.select_related('borrower').order_by('-joined_date')[:100]  # limit
-    members = [m for m in memberships]
+	# Members list
+	memberships = group.memberships.select_related('borrower').order_by('-joined_date')[:100]  # limit
+	members = [m for m in memberships]
 
-    # Stats
-    total_members = group.memberships.count()
-    pending_invitations = group.invitations.filter(status='pending').count()
-    pending_join_requests = group.join_requests.filter(status='pending').count()
-    total_loans = group.total_loans_taken or 0
-    total_amount_borrowed = group.total_amount_borrowed or 0
-    total_amount_repaid = group.total_amount_repaid or 0
+	# Stats
+	total_members = group.memberships.count()
+	pending_invitations = group.invitations.filter(status='pending').count()
+	pending_join_requests = group.join_requests.filter(status='pending').count()
+	total_loans = group.total_loans_taken or 0
+	total_amount_borrowed = group.total_amount_borrowed or 0
+	total_amount_repaid = group.total_amount_repaid or 0
 
-    # Recent activity: combine last invitations and join requests and show sorted by date
-    inv_qs = group.invitations.all().values('id','invited_by_id','invitee_name','status','sent_at','sms_sent')
-    jr_qs = group.join_requests.all().values('id','requester_id','reason_for_joining','status','requested_at')
-    # unify into python list with label
-    recent = []
-    for i in group.invitations.order_by('-sent_at')[:10]:
-        recent.append({
-            'type': 'invitation',
-            'actor': getattr(i.invited_by, 'full_name', str(i.invited_by)),
-            'target': i.invitee_name or i.invitee_phone or i.invitee_email,
-            'status': i.status,
-            'created_at': i.sent_at,
-            'obj': i,
-        })
-    for j in group.join_requests.order_by('-requested_at')[:10]:
-        recent.append({
-            'type': 'join_request',
-            'actor': getattr(j.requester, 'full_name', str(j.requester)),
-            'target': j.requester.full_name,
-            'status': j.status,
-            'created_at': j.requested_at,
-            'obj': j,
-        })
-    # sort by created_at desc and limit
-    recent_sorted = sorted(recent, key=lambda r: r['created_at'] or timezone.now(), reverse=True)[:12]
+	# Recent activity: combine last invitations and join requests and show sorted by date
+	inv_qs = group.invitations.all().values('id','invited_by_id','invitee_name','status','sent_at','sms_sent')
+	jr_qs = group.join_requests.all().values('id','requester_id','reason_for_joining','status','requested_at')
+	# unify into python list with label
+	recent = []
+	for i in group.invitations.order_by('-sent_at')[:10]:
+		recent.append({
+			'type': 'invitation',
+			'actor': getattr(i.invited_by, 'full_name', str(i.invited_by)),
+			'target': i.invitee_name or i.invitee_phone or i.invitee_email,
+			'status': i.status,
+			'created_at': i.sent_at,
+			'obj': i,
+		})
+	for j in group.join_requests.order_by('-requested_at')[:10]:
+		recent.append({
+			'type': 'join_request',
+			'actor': getattr(j.requester, 'full_name', str(j.requester)),
+			'target': j.requester.full_name,
+			'status': j.status,
+			'created_at': j.requested_at,
+			'obj': j,
+		})
+	# sort by created_at desc and limit
+	recent_sorted = sorted(recent, key=lambda r: r['created_at'] or timezone.now(), reverse=True)[:12]
 
-    # Member growth placeholder: monthly counts (example derived from joined_date)
-    # build small synthetic series: last 6 months with counts (fallback to zeros)
-    
-    six_months_ago = now() - timezone.timedelta(days=180)
-    monthly_qs = group.memberships.filter(joined_date__gte=six_months_ago).annotate(month=TruncMonth('joined_date')).values('month').annotate(count=Count('id')).order_by('month')
-    # convert to dict month->count
-    monthly_map = {item['month'].strftime("%b %Y"): item['count'] for item in monthly_qs}
-    # create labels for last 6 months
-    labels = []
-    counts = []
-    for i in range(5, -1, -1):
-        m = (now() - timezone.timedelta(days=30*i)).replace(day=1)
-        key = m.strftime("%b %Y")
-        labels.append(key)
-        counts.append(monthly_map.get(key, 0))
+	# Member growth placeholder: monthly counts (example derived from joined_date)
+	# build small synthetic series: last 6 months with counts (fallback to zeros)
+	
+	six_months_ago = now() - timezone.timedelta(days=180)
+	monthly_qs = group.memberships.filter(joined_date__gte=six_months_ago).annotate(month=TruncMonth('joined_date')).values('month').annotate(count=Count('id')).order_by('month')
+	# convert to dict month->count
+	monthly_map = {item['month'].strftime("%b %Y"): item['count'] for item in monthly_qs}
+	# create labels for last 6 months
+	labels = []
+	counts = []
+	# Member growth per month
+	growth_qs = (
+		GroupMembership.objects.filter(group=group)
+		.annotate(month=TruncMonth("joined_date"))
+		.values("month")
+		.annotate(total=Count("id"))
+		.order_by("month")
+	)
+	labels = [x["month"].strftime("%b %Y") for x in growth_qs]
+	data = [x["total"] for x in growth_qs]
+	for i in range(5, -1, -1):
+		m = (now() - timezone.timedelta(days=30*i)).replace(day=1)
+		key = m.strftime("%b %Y")
+		labels.append(key)
+		counts.append(monthly_map.get(key, 0))
 
-    # Chart data JSON-safe
-    chart_data = {
-        'labels': labels,
-        'counts': counts
-    }
+	# Chart data JSON-safe
+	chart_data = {
+		'labels': labels,
+		'counts': counts
+	}
 
-    context = {
-        'group': group,
-        'memberships': memberships,
-        'members': members,
-        'is_admin': is_admin,
-        'is_sub_admin': is_sub,
-        'can_manage': can_manage_operations(user, group),
-        'total_members': total_members,
-        'pending_invitations': pending_invitations,
-        'pending_join_requests': pending_join_requests,
-        'total_loans': total_loans,
-        'total_amount_borrowed': total_amount_borrowed,
-        'total_amount_repaid': total_amount_repaid,
-        'recent_activity': recent_sorted,
-        'chart_data_json': mark_safe(json.dumps(chart_data)),
-    }
+	context = {
+		'group': group,
+		'memberships': memberships,
+		'members': members,
+		'is_admin': is_admin,
+		'is_sub_admin': is_sub,
+		'can_manage': can_manage_operations(user, group),
+		'total_members': total_members,
+		'pending_invitations': pending_invitations,
+		'pending_join_requests': pending_join_requests,
+		'total_loans': total_loans,
+		'total_amount_borrowed': total_amount_borrowed,
+		'total_amount_repaid': total_amount_repaid,
+		'recent_activity': recent_sorted,
+		'chart_data_json': mark_safe(json.dumps(chart_data)),
 
-    return render(request, 'borrower_group_detail.html', context)
+		"growth_labels": labels,
+        "growth_data": data,
+	}
+
+	return render(request, 'borrower_group_detail.html', context)
 
 
 
@@ -325,117 +338,102 @@ def borrower_join_group(request, group_id):
 
 
 def admin_manage_members(request, group_id):
-    group = get_object_or_404(BorrowerGroup, id=group_id)
-    current_member = GroupMembership.objects.filter(group=group, borrower=request.user.borrower).first()
+	group = get_object_or_404(BorrowerGroup, id=group_id)
+	current_member = GroupMembership.objects.filter(group=group, borrower=request.user.borrower).first()
 
-    # Permission check
-    if not current_member or current_member.role not in ['admin', 'sub-admin']:
-        messages.error(request, "You don’t have permission to manage members.")
-        return redirect('borrowers:borrower_index')
+	# Permission check
+	if not current_member or current_member.role not in ['admin', 'sub-admin']:
+		messages.error(request, "You don’t have permission to manage members.")
+		return redirect('borrowers:borrower_index')
 
-    members = group.memberships.select_related('borrower__user')
+	members = group.memberships.select_related('borrower__user')
 
-    # Handle role actions
-    if request.method == "POST":
-        member_id = request.POST.get('member_id')
-        action = request.POST.get('action')
-        target_member = get_object_or_404(GroupMembership, id=member_id, group=group)
+	# Handle role actions
+	if request.method == "POST":
+		member_id = request.POST.get('member_id')
+		action = request.POST.get('action')
+		target_member = get_object_or_404(GroupMembership, id=member_id, group=group)
 
-        if action == "promote" and target_member.role == "member":
-            target_member.role = "sub-admin"
-            target_member.save()
-            GroupActivity.objects.create(
-                group=group,
-                actor=request.user.borrower,
-                action="Promoted Member",
-                details=f"{target_member.borrower.full_name} was promoted to Sub-Admin"
-            )
-            messages.success(request, f"{target_member.borrower.full_name} promoted to Sub-Admin.")
+		if action == "promote" and target_member.role == "member":
+			target_member.role = "sub-admin"
+			target_member.save()
+			GroupActivity.objects.create(
+				group=group,
+				actor=request.user.borrower,
+				action="Promoted Member",
+				details=f"{target_member.borrower.full_name} was promoted to Sub-Admin"
+			)
+			messages.success(request, f"{target_member.borrower.full_name} promoted to Sub-Admin.")
 
-        elif action == "demote" and target_member.role == "sub-admin":
-            target_member.role = "member"
-            target_member.save()
-            GroupActivity.objects.create(
-                group=group,
-                actor=request.user.borrower,
-                action="Demoted Member",
-                details=f"{target_member.borrower.full_name} was demoted to Member"
-            )
-            messages.info(request, f"{target_member.borrower.full_name} demoted to Member.")
+		elif action == "demote" and target_member.role == "sub-admin":
+			target_member.role = "member"
+			target_member.save()
+			GroupActivity.objects.create(
+				group=group,
+				actor=request.user.borrower,
+				action="Demoted Member",
+				details=f"{target_member.borrower.full_name} was demoted to Member"
+			)
+			messages.info(request, f"{target_member.borrower.full_name} demoted to Member.")
 
-        elif action == "remove":
-            GroupActivity.objects.create(
-                group=group,
-                actor=request.user.borrower,
-                action="Removed Member",
-                details=f"{target_member.borrower.full_name} was removed from the group"
-            )
-            target_member.delete()
-            messages.warning(request, f"{target_member.borrower.full_name} removed from the group.")
+		elif action == "remove":
+			GroupActivity.objects.create(
+				group=group,
+				actor=request.user.borrower,
+				action="Removed Member",
+				details=f"{target_member.borrower.full_name} was removed from the group"
+			)
+			target_member.delete()
+			messages.warning(request, f"{target_member.borrower.full_name} removed from the group.")
 
-        else:
-            messages.error(request, "Invalid action or role change not allowed.")
+		else:
+			messages.error(request, "Invalid action or role change not allowed.")
 
-        return redirect('borrowers:admin_manage_members', group_id=group.id)
+		return redirect('borrowers:admin_manage_members', group_id=group.id)
 
-    return render(request, 'borrowers:admin_manage_members.html', {
-        'group': group,
-        'members': members,
-        'is_admin': current_member.role in ['admin', 'sub-admin']
-    })
-
-
-def admin_manage_members2(request, group_id):
-    group = get_object_or_404(BorrowerGroup, id=group_id)
-    
-    # Permission check
-    if not GroupMembership.objects.filter(group=group, borrower=request.user.borrower, role__in=['admin', 'sub-admin']).exists():
-        messages.error(request, "You don’t have permission to manage members.")
-        return redirect('borrowers:borrower_index')
-
-    members = group.memberships.select_related('borrower__user')
-    return render(request, 'admin_manage_members.html', {
-        'group': group,
-        'members': members,
-    })
+	return render(request, 'borrowers:admin_manage_members.html', {
+		'group': group,
+		'members': members,
+		'is_admin': current_member.role in ['admin', 'sub-admin']
+	})
 
 
 def group_activity_log(request, group_id):
-    group = get_object_or_404(BorrowerGroup, id=group_id)
-    logs = group.activities.all()
+	group = get_object_or_404(BorrowerGroup, id=group_id)
+	logs = group.activities.all()
 
-    action_filter = request.GET.get('action')
-    if action_filter:
-        logs = logs.filter(action__icontains=action_filter)
+	action_filter = request.GET.get('action')
+	if action_filter:
+		logs = logs.filter(action__icontains=action_filter)
 
-    return render(request, 'activity_log.html', {
-        'group': group,
-        'logs': logs,
-    })
+	return render(request, 'activity_log.html', {
+		'group': group,
+		'logs': logs,
+	})
 
 def group_documents(request, group_id):
-    group = get_object_or_404(BorrowerGroup, id=group_id)
-    documents = group.documents.all()
+	group = get_object_or_404(BorrowerGroup, id=group_id)
+	documents = group.documents.all()
 
-    if request.method == 'POST':
-        file = request.FILES.get('file')
-        description = request.POST.get('description')
-        if file:
-            version = (group.documents.filter(file__icontains=file.name).count() + 1)
-            GroupDocument.objects.create(
-                group=group,
-                uploaded_by=request.user.borrower,
-                file=file,
-                version=version,
-                description=description,
-            )
-            messages.success(request, "Document uploaded successfully.")
-            return redirect('groups:group_documents', group.id)
+	if request.method == 'POST':
+		file = request.FILES.get('file')
+		description = request.POST.get('description')
+		if file:
+			version = (group.documents.filter(file__icontains=file.name).count() + 1)
+			GroupDocument.objects.create(
+				group=group,
+				uploaded_by=request.user.borrower,
+				file=file,
+				version=version,
+				description=description,
+			)
+			messages.success(request, "Document uploaded successfully.")
+			return redirect('groups:group_documents', group.id)
 
-    return render(request, 'group_documents.html', {
-        'group': group,
-        'documents': documents,
-    })
+	return render(request, 'group_documents.html', {
+		'group': group,
+		'documents': documents,
+	})
 
 
 # List of predefined vibrant colors for dashboard
@@ -1444,8 +1442,6 @@ def update_loan_application(request, application_id):
 		form = LoanApplicationForm(instance=application)
 
 	return render(request, 'update_loan_application.html', {'form': form, 'application': application})
-
-
 
 
 def update_documents(request, loan_id):

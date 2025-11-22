@@ -39,6 +39,11 @@ urlpatterns = [
 
     path('api/borrowers/has_profile/<int:user_id>/', views.has_borrower_profile, name='has_borrower_profile'),
 
+    path("<int:group_id>/meetings/", views.group_meetings, name="group_meetings"),
+    path("<int:group_id>/meetings/create/", views.create_meeting, name="create_meeting"),
+    path("<int:group_id>/meetings/<int:meeting_id>/", views.meeting_detail, name="meeting_detail"),
+    path("<int:group_id>/meetings/<int:meeting_id>/attendance/", views.update_attendance, name="update_attendance"),
+
     # Invitation actions
     
     #path('invitation/<int:invitation_id>/', views.invitation_detail, name='invitation_detail'),

@@ -17,6 +17,9 @@ from django.contrib.auth.decorators import login_required
 def landing(request):	
 	return render(request, 'landing.html', {})
 
+def lender_compliance(request):	
+	return render(request, 'lender_compliance.html', {})
+
 
 def register(request):
 	if request.method == 'POST':

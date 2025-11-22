@@ -1,0 +1,98 @@
+{% extends 'group_dash_base.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container mt-4">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{% url 'group_detail' group.id %}">{{ group.name }}</a>
+            </li>
+            <li class="breadcrumb-item active">Create Meeting</li>
+        </ol>
+    </nav>
+
+    <h2 class="mb-3">Schedule a New Meeting</h2>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <!-- MEETING TITLE -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Meeting Title</label>
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                        <div class="text-danger small">{{ form.title.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- DATE -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Date</label>
+                    {{ form.date }}
+                    {% if form.date.errors %}
+                        <div class="text-danger small">{{ form.date.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- START + END TIME -->
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Start Time</label>
+                        {{ form.start_time }}
+                        {% if form.start_time.errors %}
+                            <div class="text-danger small">{{ form.start_time.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">End Time</label>
+                        {{ form.end_time }}
+                        {% if form.end_time.errors %}
+                            <div class="text-danger small">{{ form.end_time.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- VENUE -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Venue / Location</label>
+                    {{ form.venue }}
+                    {% if form.venue.errors %}
+                        <div class="text-danger small">{{ form.venue.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- AGENDA -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Agenda</label>
+                    {{ form.agenda }}
+                    {% if form.agenda.errors %}
+                        <div class="text-danger small">{{ form.agenda.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- ATTACHMENT -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Attach Document (optional)</label>
+                    {{ form.attachment }}
+                    {% if form.attachment.errors %}
+                        <div class="text-danger small">{{ form.attachment.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <button type="submit" class="btn btn-primary">Create Meeting</button>
+                <a href="{% url 'group_meetings' group.id %}" class="btn btn-secondary">Cancel</a>
+            </form>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

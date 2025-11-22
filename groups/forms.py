@@ -15,7 +15,8 @@ from .models import (
 	GroupTypeSpecificSettings,
 	GroupJoinRequest,
 	 GroupMembership,
-	 GroupInvitation
+	 GroupInvitation,
+	 GroupMeeting
 )
 
 User = get_user_model()
@@ -555,227 +556,6 @@ class BorrowerMiniForm(forms.ModelForm):
 # -----------------------------
 # GROUP INVITES
 # -----------------------------
-"""
-class GroupInvitationForm(forms.ModelForm):
-	
-	# Add a choice field to determine if inviting existing user or new user
-	invite_type = forms.ChoiceField(
-		choices=[
-			('new', 'New Member (Create Profile)'),
-			('existing', 'Existing User (Search by Phone/Email)')
-		],
-		widget=forms.RadioSelect(attrs={'class': 'form-check-input'}),
-		initial='new',
-		label='Invitation Type'
-	)
-	
-	# Optional: search for existing user
-	search_phone = forms.CharField(
-		required=False,
-		widget=forms.TextInput(attrs={
-			'class': 'form-control',
-			'placeholder': 'Search by phone number',
-			'id': 'search-phone'
-		}),
-		label='Search Existing User'
-	)
-
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		self.fields['invitee'].widget.attrs.update({'class': 'form-select', 'id': 'invitee-select'})
-	
-	class Meta:
-		model = GroupInvitation
-		fields = [
-			'invitee',
-			'invitee_name',
-			'invitee_phone',
-			'invitee_email',
-			'relationship',
-			'reason_for_invite',
-			'personal_message',
-			'endorsements_required',
-			'expires_at',
-		]
-		
-		widgets = {
-			'invitee_name': forms.TextInput(attrs={
-				'class': 'form-control',
-				'placeholder': 'Full Name of Invitee',
-				'id': 'invitee-name'
-			}),
-			'invitee_phone': forms.TextInput(attrs={
-				'class': 'form-control',
-				'placeholder': '+266 5000 0000',
-				'id': 'invitee-phone'
-			}),
-			'invitee_email': forms.EmailInput(attrs={
-				'class': 'form-control',
-				'placeholder': 'email@example.com (optional)',
-				'id': 'invitee-email'
-			}),
-			'relationship': forms.TextInput(attrs={
-				'class': 'form-control',
-				'placeholder': 'e.g., Friend, Colleague, Family Member'
-			}),
-			'reason_for_invite': forms.Textarea(attrs={
-				'class': 'form-control',
-				'rows': 3,
-				'placeholder': 'Why are you inviting this person to the group?'
-			}),
-			'personal_message': forms.Textarea(attrs={
-				'class': 'form-control',
-				'rows': 3,
-				'placeholder': 'Optional personal message to the invitee'
-			}),
-			'endorsements_required': forms.NumberInput(attrs={
-				'class': 'form-control',
-				'min': 0,
-				'value': 0
-			}),
-			'expires_at': forms.DateInput(attrs={
-				'class': 'form-control',
-				'type': 'date',
-				'min': timezone.now().date().isoformat()
-			}),
-		}
-		
-		labels = {
-			'invitee_name': 'Full Name',
-			'invitee_phone': 'Phone Number',
-			'invitee_email': 'Email Address',
-			'relationship': 'Your Relationship',
-			'reason_for_invite': 'Reason for Invitation',
-			'personal_message': 'Personal Message',
-			'endorsements_required': 'Required Endorsements',
-			'expires_at': 'Invitation Expires On',
-		}
-	
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		
-		# Set default expiry to 30 days from now
-		if 'expires_at' in self.fields and not self.initial.get('expires_at'):
-			self.fields['expires_at'].initial = (timezone.now() + timedelta(days=30)).date()
-	
-	def clean_invitee_phone(self):
-		phone = self.cleaned_data.get('invitee_phone', '')
-		
-		# Remove spaces and common separators
-		phone = phone.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
-		
-		# Ensure it starts with +266 or add it
-		if not phone.startswith('+266'):
-			if phone.startswith('266'):
-				phone = '+' + phone
-			elif phone.startswith('0'):
-				phone = '+266' + phone[1:]
-			else:
-				phone = '+266' + phone
-		
-		# Validate length (Lesotho numbers are +266 followed by 8 digits)
-		if len(phone) != 12:  # +266 + 8 digits
-			raise forms.ValidationError('Invalid Lesotho phone number format. Should be +266 5000 0000')
-		
-		return phone
-	
-	
-	def clean_expires_at(self):
-		
-		expires_at = self.cleaned_data.get('expires_at')
-		
-		if expires_at:
-			# Convert to datetime if it's a date
-			if hasattr(expires_at, 'date'):
-				expires_datetime = expires_at
-			else:
-				expires_datetime = timezone.make_aware(
-					timezone.datetime.combine(expires_at, timezone.datetime.min.time())
-				)
-			
-			if expires_datetime <= timezone.now():
-				raise forms.ValidationError('Expiry date must be in the future')
-			
-			return expires_datetime
-		
-		# Default to 30 days from now
-		return timezone.now() + timedelta(days=30)
-
-
-class ActivationForm(UserCreationForm):
-	
-	email = forms.EmailField(
-		required=False,
-		widget=forms.EmailInput(attrs={
-			'class': 'form-control',
-			'readonly': 'readonly'  # Pre-filled, not editable
-		}),
-		label='Email Address'
-	)
-	
-	phone_number = forms.CharField(
-		required=False,
-		widget=forms.TextInput(attrs={
-			'class': 'form-control',
-			'readonly': 'readonly'  # Pre-filled, not editable
-		}),
-		label='Phone Number'
-	)
-	
-	first_name = forms.CharField(
-		required=False,
-		widget=forms.TextInput(attrs={
-			'class': 'form-control',
-			'readonly': 'readonly'  # Pre-filled, not editable
-		}),
-		label='First Name'
-	)
-	
-	last_name = forms.CharField(
-		required=False,
-		widget=forms.TextInput(attrs={
-			'class': 'form-control',
-			'readonly': 'readonly'  # Pre-filled, not editable
-		}),
-		label='Last Name'
-	)
-	
-	class Meta:
-		model = User
-		fields = ['username', 'first_name', 'last_name', 'email', 'phone_number', 'password1', 'password2']
-	
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		
-		# Make username and passwords prominent
-		self.fields['username'].widget.attrs.update({
-			'class': 'form-control form-control-lg',
-			'placeholder': 'Choose a username',
-			'autofocus': True
-		})
-		self.fields['password1'].widget.attrs.update({
-			'class': 'form-control form-control-lg',
-			'placeholder': 'Create a password'
-		})
-		self.fields['password2'].widget.attrs.update({
-			'class': 'form-control form-control-lg',
-			'placeholder': 'Confirm your password'
-		})
-	
-	def clean_username(self):
-		#Ensure username is unique and valid
-		username = self.cleaned_data.get('username')
-		
-		if User.objects.filter(username=username).exists():
-			raise forms.ValidationError('This username is already taken. Please choose another.')
-		
-		# Validate username format (alphanumeric and underscores only)
-		if not username.isalnum() and '_' not in username:
-			raise forms.ValidationError('Username can only contain letters, numbers, and underscores.')
-		
-		return username
-"""
-
 
 class GroupInvitationForm(forms.ModelForm):
 	borrower_profile = BorrowerMiniForm()
@@ -1094,4 +874,15 @@ class GroupAdminReviewForm(forms.ModelForm):
 		}
 
 
-
+class GroupMeetingForm(forms.ModelForm):
+    class Meta:
+        model = GroupMeeting
+        fields = [
+            "title",
+            "description",
+            "date",
+            "start_time",
+            "end_time",
+            "minutes",
+            "minutes_file",
+        ]

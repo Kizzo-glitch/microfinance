@@ -2,6 +2,7 @@ import uuid
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from django.conf import settings
 #from micro.models import User
 #from borrowers.models import BorrowerProfile
 #from lenders.models import LenderProfile
@@ -513,3 +514,86 @@ class LenderGroupSubscription(models.Model):
     
     def __str__(self):
         return f"{self.lender.company_name} → {self.group.name} ({self.get_subscription_type_display()})"
+    
+
+class GroupMeeting(models.Model):
+    group = models.ForeignKey("BorrowerGroup", on_delete=models.CASCADE, related_name="meetings")
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    date = models.DateField()
+    start_time = models.TimeField()
+    end_time = models.TimeField(null=True, blank=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
+
+    # Optional meeting minutes text
+    minutes = models.TextField(blank=True)
+
+    # Optional uploaded minutes (PDF, DOCX, etc.)
+    minutes_file = models.FileField(upload_to="group_meetings/minutes/", blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.group.name}"
+    
+
+class MeetingAttendance(models.Model):
+    meeting = models.ForeignKey(GroupMeeting, on_delete=models.CASCADE, related_name="attendance")
+    member = models.ForeignKey("GroupMembership", on_delete=models.CASCADE)
+    
+    was_present = models.BooleanField(default=False)
+    remarks = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        unique_together = ("meeting", "member")
+
+
+class ActivityLog(models.Model):
+    ACTION_CHOICES = [
+        ("member_added", "Member Added"),
+        ("member_removed", "Member Removed"),
+        ("member_promoted", "Member Promoted"),
+        ("member_demoted", "Member Demoted"),
+
+        ("role_changed", "Role Changed"),
+
+        ("meeting_created", "Meeting Created"),
+        ("meeting_updated", "Meeting Updated"),
+        ("meeting_deleted", "Meeting Deleted"),
+
+        ("document_uploaded", "Document Uploaded"),
+        ("document_updated", "Document Updated"),
+        ("document_deleted", "Document Deleted"),
+
+        ("group_updated", "Group Updated"),
+        ("group_created", "Group Created"),
+    ]
+
+    group = models.ForeignKey(
+        "groups.BorrowerGroup",
+        on_delete=models.CASCADE,
+        related_name="activity_logs"
+    )
+
+    # The actor might not always exist (e.g., system automation)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="activities"
+    )
+
+    action = models.CharField(max_length=50, choices=ACTION_CHOICES)
+
+    # Optional text for more detailed info
+    details = models.TextField(blank=True, default="")
+
+    # Automatically set when log is created
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.get_action_display()} - {self.group.name}"
