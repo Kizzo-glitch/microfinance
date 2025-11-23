@@ -162,7 +162,7 @@ class CustomLoginView(LoginView):
 @login_required
 def role_based_redirect(request):
 	if request.user.is_lender():
-		return redirect('lenders:llender_index')  # To lender dashboard 
+		return redirect('lenders:lender_index')  # To lender dashboard 
 	elif request.user.is_borrower():
 		return redirect('borrowers:borrower_index')  # To borrower dashboard 
 	return redirect('landing')  # Default fallback
