@@ -5,13 +5,83 @@
 
 
 	   <div class="container-fluid">
+        
+        
+        {% if compliance.has_registration %}
+<div class="card shadow-sm border-left-success">
+    <div class="card-body">
+        <h5>Compliance Progress</h5>
+        <div class="progress mb-2">
+            <div class="progress-bar bg-success"
+                 style="width: {{ compliance.completion }}%;">
+                {{ compliance.completion }}%
+            </div>
+        </div>
+        <small class="text-muted">
+            Next: {{ compliance.next_action }}
+        </small>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-warning">
+    You haven’t started CBL compliance yet.
+</div>
+{% endif %}
+
+
                    
                     <!-- Page Heading -->
-                    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                    <!--<div class="d-sm-flex align-items-center justify-content-between mb-4">
                         <h1 class="h3 mb-0 text-gray-800">My Dashboard</h1>
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <a href="{% url 'compliance:compliance_dashboard' %}" class="text-decoration-none">
+                                <div class="card shadow-sm border-left-success">
+                                    <div class="card-body">
+                                        <h5>Compliance Progress</h5>
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" style="width: {{ registration.completion }}%;">
+                                                {{ compliance.completion }}%
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </a>
+                        </div>
                         <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i
                                 class="fas fa-download fa-sm text-white-50"></i> Generate Report</a>
-                    </div>
+                    </div>-->
+
+                    <!--{% if compliance_summary.has_registration %}
+  <div class="card border-success">
+    <div class="card-body">
+      <h5>CBL Compliance</h5>
+      <p>Status: <strong>{{ compliance_summary.stage_label }}</strong></p>
+
+      <div class="progress mb-2">
+        <div class="progress-bar bg-success"
+             style="width: {{ compliance_summary.completion_percentage }}%">
+          {{ compliance_summary.completion_percentage }}%
+        </div>
+      </div>
+
+      <p class="text-muted">
+        Next Action: {{ compliance_summary.next_action }}
+      </p>
+
+      <a href="{% url 'compliance:lender_dashboard' %}" class="btn btn-sm btn-outline-success">
+        View Compliance Dashboard
+      </a>
+    </div>
+  </div>
+{% else %}
+  <div class="alert alert-warning">
+    You have not started CBL compliance.
+    <a href="">Start now</a>
+  </div>
+{% endif %}-->
+
+
+  
 
                     <!-- Content Row -->
                     <section class="bg-light py-5">

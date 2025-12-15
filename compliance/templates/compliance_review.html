@@ -1,0 +1,41 @@
+{% extends "lender_base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+  <h4>Application Review</h4>
+
+  <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Requirement</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for req in requirements %}
+      <tr>
+        <td>{{ req.name }}</td>
+        <td>
+          {% if req.completed %}
+            <span class="badge bg-success">Complete</span>
+          {% else %}
+            <span class="badge bg-danger">Missing</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if can_submit %}
+    <a href="{% url 'compliance:submit' %}" class="btn btn-success">
+      Submit to CBL
+    </a>
+  {% else %}
+    <p class="text-muted">Complete missing items before submitting.</p>
+  {% endif %}
+
+</div>
+
+{% endblock %}

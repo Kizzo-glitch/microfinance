@@ -4,8 +4,175 @@
 
 
 {% block content %}
+
+
+<div class="container">
+    <h1>My Profile Information</h1>
+    <br><br>
+
+    <form method="POST" action="{% url 'lenders:lender_profile' %}">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger" role="alert">
+                <strong>Error:</strong> {{ form.non_field_errors }}
+            </div>
+        {% endif %}
+
+        <div class="border p-3 mb-4">
+            <h4 class="text-center">Business Information & Contact</h4>
+            
+            <div class="row mb-3">
+                <div class="col-md-4"><label>Company Name</label>{{ form.company_name }}</div>
+                <div class="col-md-4"><label>Trading Name</label>{{ form.trading_name }}</div>
+                <div class="col-md-4"><label>Date of Establishment</label>{{ form.date_of_establishment }}</div>
+                {% for error in form.errors %}
+                            <small class="text-danger">{{ error }}</small>
+                        {% endfor %}
+                
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-4"><label>Ownership Type</label>{{ form.ownership_type }}</div>
+                <div class="col-md-4"><label>Business Email</label>{{ form.business_email }}</div>
+                <div class="col-md-4"><label>Website</label>{{ form.website }}</div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4"><label>Primary Phone</label>{{ form.phone_number }}</div>
+                <div class="col-md-4"><label>Alternate Phone</label>{{ form.alternate_phone }}</div>
+                <div class="col-md-4"><label>Physical Address</label>{{ form.physical_address }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4"><label>City</label>{{ form.city }}</div>
+                <div class="col-md-4"><label>District</label>{{ form.district }}</div>
+                <div class="col-md-4"><label>Postal Address</label>{{ form.postal_address }}</div>
+            </div>
+        </div>
         
-    <div class="container">
+        <div class="border p-3 mb-4">
+            <h4 class="text-center">Leadership (CEO)</h4>
+            <div class="row mb-3">
+                <div class="col-md-3"><label>First Name</label>{{ form.ceo_first_name }}</div>
+                <div class="col-md-3"><label>Last Name</label>{{ form.ceo_last_name }}</div>
+                <div class="col-md-3"><label>Email</label>{{ form.ceo_email }}</div>
+                <div class="col-md-3"><label>Phone</label>{{ form.ceo_phone }}</div>
+            </div>
+        </div>
+
+        <div class="border p-3 mb-4">
+            <h4 class="text-center">Legal & Financial Status</h4>
+            <div class="row mb-3">
+                <div class="col-md-3"><label>Registration Number</label>{{ form.registration_number }}</div>
+                <div class="col-md-3"><label>Tax Number (TIN)</label>{{ form.tax_identification_number }}</div>
+                <div class="col-md-3"><label>Stated Capital (M)</label>{{ form.stated_capital }}</div>
+                <div class="col-md-3"><label>Total Assets (M)</label>{{ form.total_assets }}</div>
+            </div>
+        </div>
+
+        <div class="border p-3 mb-4">
+            <h4 class="text-center">Lending Parameters</h4>
+            <div class="row mb-3">
+                <div class="col-md-4"><label>Minimum Loan (M)</label>{{ form.min_loan_amount }}</div>
+                <div class="col-md-4"><label>Maximum Loan (M)</label>{{ form.max_loan_amount }}</div>
+                <div class="col-md-4"><label>Annual Interest Rate (%)</label>{{ form.interest_rate }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label>Missed Payment Policy</label>{{ form.missed_payment_policy }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Available Loan Terms</label>
+                    <div class="d-flex flex-wrap">
+                        {% for choice in form.loan_terms %}
+                            <div class="form-check form-check-inline">
+                                {{ choice.tag }}
+                                <label class="form-check-label">{{ choice.choice_label }}</label>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% for error in form.loan_terms.errors %}<small class="text-danger d-block">{{ error }}</small>{% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="border p-3 mb-4">
+            <h4 class="text-center">CBL Compliance & Licensing</h4>
+            <div class="row mb-3">
+                <div class="col-md-4"><label>CBL Tier</label>{{ form.cbl_tier }}</div>
+                <div class="col-md-4"><label>License Number</label>{{ form.cbl_license_number }}</div>
+                <div class="col-md-4"><label>License Expiry Date</label>{{ form.cbl_license_expiry }}</div>
+            </div>
+            <div class="form-check mb-3">
+                {{ form.operating_under_platform }}
+                <label for="{{ form.operating_under_platform.id_for_label }}" class="form-check-label">{{ form.operating_under_platform.help_text }}</label>
+            </div>
+        </div>
+
+        <div class="border p-3 mb-4">
+            <h4 class="text-center">Regulatory & Association Membership</h4>
+            <div class="row mb-3">
+                <div class="col-md-4"><label>Regulatory Body Name</label>{{ form.regulatory_body_name }}</div>
+                <div class="col-md-4"><label>Membership Number</label>{{ form.regulatory_body_membership_number }}</div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4"><label>Association Name</label>{{ form.association_name }}</div>
+                <div class="col-md-4"><label>Association Membership No</label>{{ form.association_membership_number }}</div>
+            </div>
+        </div>
+        
+        <div class="border p-3 mb-4">
+            <h4 class="text-center">Compliance Policies</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-check">{{ form.has_kyc_policy }}<label class="form-check-label">Has KYC Policy?</label></div>
+                    <div class="form-check">{{ form.has_aml_policy }}<label class="form-check-label">Has AML Policy?</label></div>
+                    <div class="form-check">{{ form.has_data_protection_policy }}<label class="form-check-label">Has Data Protection Policy?</label></div>
+                    <div class="form-check">{{ form.has_code_of_ethics }}<label class="form-check-label">Has Code of Ethics/Conduct?</label></div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check">{{ form.has_complaints_procedure }}<label class="form-check-label">Has Complaints Procedure?</label></div>
+                    <div class="form-check">{{ form.has_risk_management_policy }}<label class="form-check-label">Has Risk Management Policy?</label></div>
+                    <div class="form-check">{{ form.participates_in_benchmarking }}<label class="form-check-label">Participates in Benchmarking?</label></div>
+                    <div class="form-check">{{ form.submits_regulatory_reports }}<label class="form-check-label">Submits Regulatory Reports?</label></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="border p-3 mb-4">
+            <h4 class="text-center">Agreements</h4>
+            
+            <div class="form-check mb-2">
+                {{ form.agrees_to_terms }}
+                <label for="{{ form.agrees_to_terms.id_for_label }}" class="form-check-label">
+                    I hereby certify that the information contained herein is complete and accurate.
+                </label>
+            </div>
+
+            <div class="form-check mb-2">
+                {{ form.agrees_to_credit_conditions }}
+                <label for="{{ form.agrees_to_credit_conditions.id_for_label }}" class="form-check-label">
+                    This information has been furnished with the understanding that it is to be used to fairly disburse loans to borrowers.
+                </label>
+            </div>
+
+            <div class="form-check mb-3">
+                {{ form.agrees_to_cbl_compliance }}
+                <label for="{{ form.agrees_to_cbl_compliance.id_for_label }}" class="form-check-label">
+                    We agree to comply with all Central Bank of Lesotho (CBL) regulations applicable to our tier.
+                </label>
+            </div>
+            {% for error in form.agrees_to_terms.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            {% for error in form.agrees_to_credit_conditions.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+            {% for error in form.agrees_to_cbl_compliance.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+        </div>
+       
+        <button type="submit" class="btn btn-primary btn-lg">Submit Profile Changes</button>
+    </form>
+    <br><br>
+</div>
+        
+    <!--<div class="container">
         <h1>My Profile Information</h1>
         <br><br>
 
@@ -94,50 +261,10 @@
                         {% endfor %}
                     {% endwith %}
                     </div>
-                </div>
-
-
-                <!--<div class="col-md-12 mb-3">
-                    <label class="form-label">My Loan Terms</label>
-                    <div class="d-flex flex-wrap loan-term-buttons">
-                    {% for cb in form.loan_terms %}
-                        <input type="checkbox"
-                            id="{{ cb.id_for_label }}"
-                            name="{{ cb.name }}"
-                            value="{{ cb.choice_value }}"
-                            {% if cb.data.selected %}checked{% endif %}
-                            class="d-none term-input">
-                        <label for="{{ cb.id_for_label }}"
-                            class="btn btn-outline-primary m-1 loan-term-label">
-                        {{ cb.choice_label }} months
-                        {% for error in form.errors %}
-                            <small class="text-danger">{{ error }}</small>
-                        {% endfor %}
-                        </label>
-                    {% endfor %}
-                    </div>
-                </div>-->
-
-                <!--<div class="col-md-4">
-                    <label class="form-label">My Loan Terms</label>
-                    <div class="d-flex flex-wrap">
-                        {% for checkbox in form.loan_terms %}
-                            <div class="form-check me-3">
-                                {{ checkbox.tag }}
-                                <label class="form-check-label" for="{{ checkbox.id_for_label }}">
-                                    {{ checkbox.choice_label }} months
-                                </label>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>-->
-
-                
+                </div>             
 
                 <div class="mb-3" style="padding: 0 20px;">
                     <label for="office_address">Office Address</label>
-                    <!--<label for="businessName" class="form-label">Business Address </label>
-                    <input type="text" class="form-control" id="businessName">-->
                     {{ form.office_address }}
                 </div>
             </div>
@@ -322,37 +449,11 @@
                 {% endfor %}
             </div>
 
-
-                <!--<div class="form-check">
-                    {{ form.agrees_to_terms }}
-                    <label for="agrees_to_terms" class="form-check-label">I hereby certify that the information contained herein is complete and accurate.</label>
-                </div>
-
-
-                <div class="form-check">
-                    {{ form.agrees_to_credit_conditions }}
-                    <label for="agrees_to_credit_conditions" class="form-check-label">This information has been furnished with the understanding that it is to be used to fairly disburse loans to borrowers.</label>
-                </div>-->
-
-            
-            <!--<div class="mb-3">
-                <div class="form-check">
-                    {{ form.agrees_to_terms }}
-                    <input type="checkbox" class="form-check-input" id="checkbox1">
-                    <label class="form-check-label" for="checkbox1">I hereby certify that the information contained herein is complete and accurate.</label>
-                </div>
-                <div class="form-check">
-                    {{ form.agrees_to_terms }}
-                    <input type="checkbox" class="form-check-input" id="checkbox2">
-                    <label class="form-check-label" for="checkbox2">This information has been furnished with the understanding that it is to be used to fairly disburse loans to borrowers.</label>
-                </div>
-            </div>-->
-
-            
+           
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>
          <br><br>
-    </div>
+    </div>-->
 
 
 

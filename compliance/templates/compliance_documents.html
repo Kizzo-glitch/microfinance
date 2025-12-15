@@ -1,0 +1,33 @@
+{% extends "lender_base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+  
+  <h4>Upload Required Documents</h4>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    {{ form.company_registration_cert.label_tag }}
+    {{ form.company_registration_cert }}
+
+    {{ form.tax_clearance_company.label_tag }}
+    {{ form.tax_clearance_company }}
+
+    {{ form.aml_manual_file.label_tag }}
+    {{ form.aml_manual_file }}
+
+    <button type="submit" class="btn btn-success mt-3">
+      Upload Documents
+    </button>
+  </form>
+
+  <hr>
+
+  <a href="{% url 'compliance:review' %}" class="btn btn-outline-success">
+    Continue to Review →
+  </a>
+
+</div>
+
+{% endblock %}

@@ -53,7 +53,7 @@ urlpatterns = [
     path('my-loan-applications/', views.my_loan_applications, name='my_loan_applications'),
 
 
-    path('loan-application-success/', views.loan_application_success, name='loan-application-success'),
+    #path('loan-application-success/', views.loan_application_success, name='loan-application-success'),
     
     path('loan/<int:loan_id>/', views.loan_details, name='loan-details'),
 

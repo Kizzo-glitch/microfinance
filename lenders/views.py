@@ -1,6 +1,10 @@
 import os
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+
+from compliance.models import CBLRegistrationManager
+
+#from compliance.models import LenderComplianceRecord
 from .forms import LenderInfoForm, LoanApplicationStatusForm, LoanStatusForm, LenderDocumentsForm
 from .models import LenderProfile, LenderDocs
 from django.contrib import messages
@@ -43,10 +47,14 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
 from django.http import HttpResponse
+from compliance.compliace_services import ComplianceDashboardService
 
 
 
 
+# ==================
+# Dashboard
+# ==================
 
 def lender_index(request):
 	if request.user.is_authenticated and request.user.is_lender():
@@ -97,6 +105,9 @@ def lender_index(request):
 			.annotate(total=Sum('amount'))
 			.order_by('month')
 		)
+		
+		compliance_service = ComplianceDashboardService(lender)
+		compliance = compliance_service.get_dashboard_data()
 
 		context = {
 			'total_loans_disbursed': total_loans_disbursed,
@@ -133,6 +144,7 @@ def lender_index(request):
 			"high_risk_count": high_risk_count,
 			"mid_risk_count": mid_risk_count,
 			"late_payers_count": late_payers_count,
+			'compliance': compliance
 		}
 
 		return render(request, 'lender_index.html', context)
@@ -142,11 +154,81 @@ def lender_index(request):
 
 
 
+# 2. Loan Status Distribution View
+def lender_loan_status_data(request):
+	lender = request.user.lender
+
+	active = Loan.get_active_loans(lender).count()
+	pending = Loan.get_pending_loans(lender).count()
+	fully_paid = Loan.get_fully_paid_loans(lender).count()
+	overdue = Loan.get_overdue_loans(lender).count()
+
+	return JsonResponse({
+		'labels': ['Active', 'Pending', 'Fully Paid', 'Overdue'],
+		'data': [active, pending, fully_paid, overdue],
+	})
+
+
+def lender_repayment_data(request):
+	lender = request.user.lender
+	loans = Loan.objects.filter(lender=lender)
+	payments = LoanPayment.objects.filter(loan__in=loans)
+
+	# Step 1: Group payments by month
+	monthly_totals = payments.annotate(month=TruncMonth('date_paid')).values('month').annotate(
+		total=Sum('amount')).order_by('month')
+
+	# Step 2: Build a dictionary for all months with 0 default
+	all_months = OrderedDict((calendar.month_name[m], 0) for m in range(1, 13))
+
+	for item in monthly_totals:
+		month_name = item['month'].strftime('%B')
+		all_months[month_name] = float(item['total'])
+
+	labels = list(all_months.keys())
+	data = list(all_months.values())
+
+	# Step 3: Identify high/low months
+	if data:
+		max_amount = max(data)
+		min_amount = min(data)
+		high_index = data.index(max_amount)
+		low_index = data.index(min_amount)
+		high_month = labels[high_index]
+		low_month = labels[low_index]
+	else:
+		high_month = low_month = None
+		max_amount = min_amount = 0
+
+	return JsonResponse({
+		'labels': labels,
+		'data': data,
+		'high': {'month': high_month, 'amount': max_amount},
+		'low': {'month': low_month, 'amount': min_amount}
+	})
+
+
+
+def risk_customer_list(request, category):
+	loans = get_loans_by_risk_category(category)
+	category_title = {
+		"high": "High Risk (Defaulted Loans)",
+		"mid": "Mid Risk (Skipped Payments)",
+		"late": "Late Payers (Beyond Grace Period)"
+	}.get(category, "Unknown Category")
+
+	context = {
+		"category": category,
+		"category_title": category_title,
+		"loans": loans,
+	}
+	return render(request, "risk_customer_list.html", context)
+
 
 def lender_profile(request):
 	if request.user.is_lender():
 		# Get Current User
-		current_user = LenderProfile.objects.get(user__id=request.user.id)	
+		current_user, created = LenderProfile.objects.get_or_create(user__id=request.user.id)	
 		
 		# Get original User Form
 		form = LenderInfoForm(request.POST or None, instance=current_user)
@@ -155,7 +237,6 @@ def lender_profile(request):
 			# Save original form
 			form.save()
 			
-
 			messages.success(request, "Your Info Has Been Updated!!")
 			return redirect('lenders:lender_index')
 		return render(request, "lender_profile.html", {'form':form})
@@ -164,7 +245,9 @@ def lender_profile(request):
 		return redirect('landing')
 
 
-
+# ==================
+# Soon to be replaced by Comliance registration
+# ==================
 def upload_lender_docs(request):
 	lender = request.user.lender
 
@@ -299,7 +382,9 @@ class LenderVerificationDetailView(UpdateView):
 		return context
 
 
-# Top-bar notifications
+# ==================
+# Notififations
+# ==================
 def mark_loan_application_notifications_read(request):
 	Notification.objects.filter(category="loan_application", is_read=False).update(is_read=True)
 	return JsonResponse({"success": True})
@@ -319,8 +404,6 @@ def mark_pending_loan_update_notifications_read(request):
 		).update(is_read=True)
 		return JsonResponse({'success': True})
 	return JsonResponse({'success': False}, status=400)
-
-
 
 
 # Side-bar notifications
@@ -396,12 +479,10 @@ class LenderNotificationListView(ListView):
 		return context
 
 
-
-
-
+"""
 def loan_application_success(request):
 	return render(request, 'loan_application_success.html', {})
-
+"""
 
 def my_loan_list(request):
 	lender_id = request.session.get('lender_id')
@@ -414,78 +495,9 @@ def my_loan_list(request):
 	return render(request, 'my_loan_list.html', {'loans': loans})
 
 
-def lender_repayment_data(request):
-	lender = request.user.lender
-	loans = Loan.objects.filter(lender=lender)
-	payments = LoanPayment.objects.filter(loan__in=loans)
-
-	# Step 1: Group payments by month
-	monthly_totals = payments.annotate(month=TruncMonth('date_paid')).values('month').annotate(
-		total=Sum('amount')).order_by('month')
-
-	# Step 2: Build a dictionary for all months with 0 default
-	all_months = OrderedDict((calendar.month_name[m], 0) for m in range(1, 13))
-
-	for item in monthly_totals:
-		month_name = item['month'].strftime('%B')
-		all_months[month_name] = float(item['total'])
-
-	labels = list(all_months.keys())
-	data = list(all_months.values())
-
-	# Step 3: Identify high/low months
-	if data:
-		max_amount = max(data)
-		min_amount = min(data)
-		high_index = data.index(max_amount)
-		low_index = data.index(min_amount)
-		high_month = labels[high_index]
-		low_month = labels[low_index]
-	else:
-		high_month = low_month = None
-		max_amount = min_amount = 0
-
-	return JsonResponse({
-		'labels': labels,
-		'data': data,
-		'high': {'month': high_month, 'amount': max_amount},
-		'low': {'month': low_month, 'amount': min_amount}
-	})
-
-
-
-# 2. Loan Status Distribution View
-def lender_loan_status_data(request):
-	lender = request.user.lender
-
-	active = Loan.get_active_loans(lender).count()
-	pending = Loan.get_pending_loans(lender).count()
-	fully_paid = Loan.get_fully_paid_loans(lender).count()
-	overdue = Loan.get_overdue_loans(lender).count()
-
-	return JsonResponse({
-		'labels': ['Active', 'Pending', 'Fully Paid', 'Overdue'],
-		'data': [active, pending, fully_paid, overdue],
-	})
-
-
-
-def risk_customer_list(request, category):
-	loans = get_loans_by_risk_category(category)
-	category_title = {
-		"high": "High Risk (Defaulted Loans)",
-		"mid": "Mid Risk (Skipped Payments)",
-		"late": "Late Payers (Beyond Grace Period)"
-	}.get(category, "Unknown Category")
-
-	context = {
-		"category": category,
-		"category_title": category_title,
-		"loans": loans,
-	}
-	return render(request, "risk_customer_list.html", context)
-
-
+# ==================
+# Loan Processing / Sidebar
+# ==================
 
 # List all pending loan applications for a specific lender
 class LoanApplicationListView(ListView):
@@ -499,7 +511,6 @@ class LoanApplicationListView(ListView):
 			lender=self.request.user.lender,
 			status='pending'
 		).order_by('-date_applied')
-
 
 
 # Update the status of a loan application (approve/reject/pending)
@@ -689,7 +700,7 @@ class LoanApplicationUpdateView(UpdateView):
 	def get_success_url(self):
 		return reverse('lenders:loan-application-list')
 
-
+# To be removed
 def view_borrower_documents(request, loan_id):
 	# Ensure lender only accesses their own loan applications
 	loan_application = get_object_or_404(LoanApplication, id=loan_id, lender=request.user.lender)
@@ -700,23 +711,6 @@ def view_borrower_documents(request, loan_id):
 	return render(request, 'view_borrower_documents.html', {
 		'loan_application': loan_application,
 		'documents': documents
-	})
-
-
-@login_required
-def view_borrower_documents2(request, loan_id):
-	loan = get_object_or_404(LoanApplication, id=loan_id, lender=request.user.lender)
-	borrower = loan.borrower
-	documents = BorrowerDocs.objects.filter(borrower=borrower).order_by('-upload_date')
-
-		# List of field names to loop through in template
-	document_fields = ['id_proof', 'bank_statement', 'payslip', 'chief_letter']
-
-	return render(request, 'borrower_documents.html', {
-		'loan': loan,
-		'borrower': borrower,
-		'documents': documents,
-		'document_fields': document_fields,
 	})
 
 
@@ -818,8 +812,6 @@ class RejectedLoansView(ListView):
 		return LoanApplication.objects.filter(lender__user=self.request.user, status='rejected')
  
 
-
-
 class OverdueLoansView(ListView):
 	model = Loan
 	template_name = 'overdue_loans.html'
@@ -916,7 +908,9 @@ def applied_loans(request):
 		messages.error(request, "You do not have a Lender Profile. Please complete your profile first.")
 		return redirect('lenders:lender_index')
 
-
+# ==================
+# Borrower Payments
+# ==================
 def borrower_payment_history(request, borrower_id):
 	borrower_loans = Loan.objects.filter(borrower_id=borrower_id)
 	
@@ -927,7 +921,6 @@ def borrower_payment_history(request, borrower_id):
 		loan.payment_history = loan.payments.all().order_by("-date_paid")
 
 	return render(request, 'borrower_payment_history.html', {'loans': borrower_loans})
-
 
 
 @login_required
@@ -1001,16 +994,9 @@ def client_documents(request):
 
 	return render(request, 'client_documents.html', {'documents': documents})
 
-
-@login_required
-def client_documents2(request):
-	borrower = BorrowerProfile.objects.get(user=borrower)
-	try:
-		document = BorrowerDocs.objects.get(borrower=borrower)
-	except BorrowerDocs.DoesNotExist:
-		document = None
-	return render(request, 'client_documents.html', {'documents': documents})
-
+# ==================
+# Reports
+# ==================
 
 @login_required
 def credit_reports(request):
@@ -1055,4 +1041,6 @@ def credit_reports(request):
 	return render(request, 'credit_reports.html', {'borrower_data': borrower_data})
 
 
-
+# =====================
+# Compliance Sections
+# =====================

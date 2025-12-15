@@ -1,0 +1,186 @@
+{% extends "lender_base.html" %}
+{% load static %}
+
+
+
+{% block content %}
+<div class="container-fluid">
+
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-md-8">
+      <h3 class="fw-bold">
+        CBL Compliance Dashboard
+      </h3>
+      <p class="text-muted mb-0">
+        Track your Central Bank of Lesotho licensing progress and requirements.
+      </p>
+    </div>
+    <div class="col-md-4 text-end">
+      {% if registration.current_stage != 'approved' %}
+        <a href="{% url 'compliance:wizard_resume' %}" class="btn btn-success">
+          Continue Compliance Process
+        </a>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Progress Summary -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-body text-center">
+          <h6 class="text-muted">Overall Completion</h6>
+
+          <div class="progress my-3" style="height: 20px;">
+            <div class="progress-bar bg-success"
+                 role="progressbar"
+                 style="width: {{ completion_percentage }}%;">
+              {{ completion_percentage }}%
+            </div>
+          </div>
+
+          <small class="text-muted">
+            Current Stage:
+            <strong>{{ registration.get_current_stage_display }}</strong>
+          </small>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-body text-center">
+          <h6 class="text-muted">Target CBL Tier</h6>
+          <h4 class="fw-bold">
+            {{ registration.get_target_tier_display|default:"Not Selected" }}
+          </h4>
+          <span class="badge bg-info">
+            {{ registration.lender_profile.get_cbl_tier_display }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card shadow-sm border-0">
+        <div class="card-body text-center">
+          <h6 class="text-muted">Next Required Action</h6>
+
+          {% if next_action %}
+            <p class="fw-bold text-danger">
+              {{ next_action }}
+            </p>
+          {% else %}
+            <p class="fw-bold text-success">
+              All requirements completed
+            </p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Missing Requirements -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">
+            Outstanding Requirements
+          </h5>
+        </div>
+        <div class="card-body">
+
+          {% if missing_requirements %}
+            <table class="table table-hover align-middle">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Requirement</th>
+                  <th>Priority</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for req in missing_requirements %}
+                  <tr>
+                    <td>
+                      <span class="badge bg-secondary">
+                        {{ req.category|title }}
+                      </span>
+                    </td>
+                    <td>
+                      {{ req.requirement }}
+                    </td>
+                    <td>
+                      {% if req.priority == 'critical' %}
+                        <span class="badge bg-danger">Critical</span>
+                      {% elif req.priority == 'high' %}
+                        <span class="badge bg-warning text-dark">High</span>
+                      {% else %}
+                        <span class="badge bg-info">Medium</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if req.is_overdue %}
+                        <span class="badge bg-danger">Overdue</span>
+                      {% else %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <div class="alert alert-success mb-0">
+              🎉 All compliance requirements have been completed.
+            </div>
+          {% endif %}
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CBL Submission Status -->
+  <div class="row mb-4">
+    <div class="col-md-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-body">
+          <h5 class="fw-bold mb-3">
+            CBL Application Status
+          </h5>
+
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Reference Number</span>
+              <strong>{{ registration.reference_number }}</strong>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Submitted to CBL</span>
+              <strong>
+                {% if registration.submitted_to_cbl %}
+                  Yes ({{ registration.cbl_submission_date|date:"d M Y" }})
+                {% else %}
+                  No
+                {% endif %}
+              </strong>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+              <span>CBL Reference</span>
+              <strong>{{ registration.cbl_reference_number|default:"—" }}</strong>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Status</span>
+              <strong>{{ registration.get_current_stage_display }}</strong>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

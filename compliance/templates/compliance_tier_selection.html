@@ -1,0 +1,18 @@
+{% extends "lender_base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+  <h4>Select Compliance Tier</h4>
+
+  <form method="post">
+    {% csrf_token %}
+    {{ form.tier.label_tag }}
+    {{ form.tier }}
+
+    <button type="submit" class="btn btn-success mt-3">
+      Continue →
+    </button>
+  </form>
+</div>
+
+{% endblock %}
