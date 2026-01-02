@@ -229,7 +229,7 @@ class LenderProfile(models.Model):
 		blank=True
 	)
 	operating_under_platform = models.BooleanField(
-		default=True,
+		default=False,
 		help_text="Operating under platform's umbrella license"
 	)
 	

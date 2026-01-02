@@ -90,6 +90,39 @@ class ComplianceUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
 # 2. PERSONNEL VIEWS
 # ================================
 
+class PersonnelUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
+    model = PersonnelProfile
+    form_class = PersonnelProfileForm
+    template_name = 'personnel_form.html'
+
+    def get_queryset(self):
+        lender = self.get_lender()
+        return PersonnelProfile.objects.filter(lender=lender)
+
+    def form_valid(self, form):
+        # 1. Save the form but don't commit to DB yet
+        self.object = form.save(commit=False)
+        
+        # 2. Check if the "Submit Final" button was pressed
+        # This is the logic that was missing!
+        if 'submit_final' in self.request.POST:
+            self.object.fit_proper_questionnaire_submitted = True
+            self.object.schedule_iii_submitted = True
+        
+        # 3. Save the object
+        self.object.save()
+        
+        # 4. Trigger the stage update on the compliance profile
+        self.object.lender.compliance.update_stage()
+        
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        # Redirecting back to the Dashboard is usually better for UX 
+        # than the separate personnel list.
+        return reverse_lazy('compliance:compliance_detail', 
+                            kwargs={'lender_id': self.object.lender.id})
+"""
 def personnel_update(request, pk):
     personnel = get_object_or_404(PersonnelProfile, pk=pk)
     
@@ -114,7 +147,7 @@ def personnel_update(request, pk):
         form = PersonnelProfileForm(instance=personnel)
         
     return render(request, 'personnel_form.html', {'form': form})
-
+"""
 
 class PersonnelListView(LoginRequiredMixin, LenderOwnerMixin, ListView):
     model = PersonnelProfile
@@ -131,7 +164,7 @@ class PersonnelListView(LoginRequiredMixin, LenderOwnerMixin, ListView):
         return context
 
 
-
+"""
 class PersonnelUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
     model = PersonnelProfile
     form_class = PersonnelProfileForm
@@ -149,7 +182,7 @@ class PersonnelUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         context['lender'] = self.get_lender()
         return context
-
+"""
 
 class PersonnelDeleteView(LoginRequiredMixin, LenderOwnerMixin, DeleteView):
     model = PersonnelProfile

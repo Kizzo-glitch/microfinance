@@ -3,6 +3,8 @@
 {% load static %}
 
 {% block content %}
+<link rel="stylesheet" href="cdnjs.cloudflare.com">
+
 <div class="container py-4">
     <h1 class="mb-4">My Profile Information</h1>
 
@@ -99,12 +101,24 @@
                 <div class="col-md-3"><label>Registration Number</label>{{ form.registration_number }}</div>
                 <div class="col-md-3"><label>Tax Number (TIN)</label>{{ form.tax_identification_number }}</div>
                 <div class="col-md-3">
-                    <label>Stated Capital (M)</label>
+                    <label class="form-label fw-bold">
+                        Stated Capital 
+                        <i class="fa fa-info-circle text-primary" 
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="This is the 'Paid-up Capital'. CBL requires a minimum amount depending on your Tier (e.g., M2M for Tier 1)."></i>
+                    </label>
                     {{ form.stated_capital }}
                     <small class="text-muted">Min for Tier 3: M500,000</small>
                 </div>
                 <div class="col-md-3">
-                    <label>Total Assets (M)</label>
+                    <label class="form-label fw-bold">
+                        Total Assets 
+                        <i class="fas fa-info-circle text-primary" 
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="Includes your gross loan portfolio and cash. If this exceeds M10 Million, you are classified as Tier 2."></i>
+                    </label>
                     {{ form.total_assets }}
                     <small class="text-muted">Min for Tier 2: M10,000,000</small>
                 </div>
@@ -248,6 +262,10 @@ document.addEventListener('DOMContentLoaded', function() {
     capitalField.addEventListener('input', calculateTier);
     assetsField.addEventListener('input', calculateTier);
 });
+var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
 </script>
 
 <!--<script>
