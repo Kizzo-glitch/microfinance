@@ -1,0 +1,136 @@
+{% extends 'lender_base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between">
+                    <h5 class="mb-0">Upload Compliance Documents</h5>
+                    <span class="badge bg-light text-primary">{{ lender.get_cbl_tier_display }}</span>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="alert alert-info small">
+                            <i class="fas fa-info-circle me-1"></i> 
+                            Please upload PDF or scanned documents. Maximum size 5MB per file.
+                        </div>
+
+                        {% for field in form %}
+                          <div class="mb-4">
+                              <label class="form-label fw-bold">{{ field.label }}</label>
+                              
+                              <div class="drop-zone" onclick="document.getElementById('{{ field.id_for_label }}').click();" id="zone-{{ field.id_for_label }}">
+                                  <i class="fas fa-cloud-upload-alt"></i>
+                                  <p class="mb-1 small">Drag & drop your PDF here or <strong>click to browse</strong></p>
+                                  <span id="name-{{ field.id_for_label }}" class="badge bg-secondary">No file selected</span>
+                                  
+                                  {{ field }}
+                              </div>
+
+                              {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                              {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+                          </div>
+                      {% endfor %}
+
+                        <!--{% for field in form %}
+                            <div class="mb-4 p-3 border rounded bg-light">
+                                <label class="form-label fw-bold">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}
+                                    <div class="form-text">{{ field.help_text }}</div>
+                                {% endif %}
+                                {% for error in field.errors %}
+                                    <div class="text-danger small">{{ error }}</div>
+                                {% endfor %}
+                                
+                                {% if field.value %}
+                                    <div class="mt-2 small text-success">
+                                        <i class="fas fa-check-circle"></i> Currently uploaded: 
+                                        <a href="{{ field.value.url }}" target="_blank">View File</a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}-->
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success btn-lg">Save & Update Progress</button>
+                            <a href="{% url 'compliance:compliance_detail' lender.id %}" class="btn btn-link text-muted">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .drop-zone {
+        border: 2px dashed #ccc;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+        background-color: #fdfdfd;
+        cursor: pointer;
+    }
+    .drop-zone.drag-over {
+        border-color: #0d6efd;
+        background-color: #e8f0fe;
+    }
+    .drop-zone i {
+        font-size: 2rem;
+        color: #6c757d;
+        margin-bottom: 10px;
+    }
+    /* Hide the actual input but keep it functional */
+    .drop-zone input[type="file"] {
+        display: none;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dropZones = document.querySelectorAll('.drop-zone');
+
+    dropZones.forEach(zone => {
+        const input = zone.querySelector('input[type="file"]');
+        const nameSpan = zone.querySelector('span[id^="name-"]');
+
+        // Highlight zone on drag
+        zone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            zone.classList.add('drag-over');
+        });
+
+        ['dragleave', 'drop'].forEach(event => {
+            zone.addEventListener(event, () => zone.classList.remove('drag-over'));
+        });
+
+        // Handle Dropped File
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            if (e.dataTransfer.files.length) {
+                input.files = e.dataTransfer.files; // Attach file to input
+                updateFileName(input, nameSpan);
+            }
+        });
+
+        // Handle Manual Click Selection
+        input.addEventListener('change', () => {
+            updateFileName(input, nameSpan);
+        });
+    });
+
+    function updateFileName(input, span) {
+        if (input.files.length) {
+            span.textContent = input.files[0].name;
+            span.classList.replace('bg-secondary', 'bg-success');
+        }
+    }
+});
+</script>
+{% endblock %}
+

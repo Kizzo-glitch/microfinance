@@ -1,0 +1,128 @@
+{% extends 'lender_base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <div class="card shadow-sm mb-4">
+        <div class="card-body bg-light">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h4 class="mb-1">CBL Compliance Dashboard</h4>
+                    <p class="text-muted mb-0">Stage: <strong>{{ stats.current_stage }}</strong></p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar bg-success" style="width: {{ stats.progress }}%">
+                            {{ stats.progress }}% Complete
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4 border-left-primary">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Institutional Documents</h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% include 'doc_item.html' with label="AML/CFT Manual" file=compliance.aml_cft_manual %}
+                        {% include 'doc_item.html' with label="Complaints Procedure" file=compliance.complaints_procedure %}
+                        {% include 'doc_item.html' with label="Tax Clearance (Lender)" file=compliance.tax_clearance_institution %}
+                        
+                        {% if lender.cbl_tier in 'tier1,tier2' %}
+                            {% include 'doc_item.html' with label="Business Plan" file=compliance.business_plan %}
+                            {% include 'doc_item.html' with label="Audited Financials" file=compliance.audited_financials %}
+                        {% elif lender.cbl_tier == 'tier3' %}
+                            {% include 'doc_item.html' with label="Certified Financials" file=compliance.financial_statements_certified %}
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'compliance:compliance_update' lender.id %}" class="btn btn-primary btn-sm w-100">
+                        <i class="fas fa-upload me-1"></i> Upload/Update Documents
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Key Personnel (Directors & CEO)</h6>
+                    <a href="{% url 'compliance:personnel_add' compliance.lender.id %}" class="btn btn-success btn-sm">
+                        <i class="fas fa-user-plus me-1"></i> Add Member
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if personnel_list %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Personnel Name</th>
+                                    <th>Role</th>
+                                    <th>Status</th>
+                                    <th>Declarations</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in personnel_list %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">{{ p.full_name }}</div>
+                                        <small class="text-muted">Added on {{ p.created_at|date:"M d, Y" }}</small>
+                                    </td>
+                                    <td>{{ p.get_role_display }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ p.status.class }}">
+                                            {{ p.status.label }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if p.fit_proper_questionnaire_submitted %}
+                                            <i class="fas fa-check-circle text-success" title="Submitted"></i>
+                                        {% else %}
+                                            <i class="fas fa-clock text-muted" title="Pending"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'compliance:personnel_update' p.pk %}" class="btn btn-sm btn-outline-primary">
+                                            {% if p.status.label == 'Draft' %}Complete Form{% else %}Edit Profile{% endif %}
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-users fa-3x text-light mb-3"></i>
+                        <p class="text-muted">No personnel added. At least 1 (CEO) is required.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if stats.progress == 100 and compliance.current_stage == 'document_gathering' %}
+            <div class="alert alert-success mt-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="alert-heading">Application Ready!</h5>
+                    <p class="mb-0">All required documents and personnel files have been uploaded.</p>
+                </div>
+                <form method="POST" action="{% url 'compliance:submit_application' compliance.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-lg">Submit to CBL</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

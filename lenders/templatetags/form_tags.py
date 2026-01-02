@@ -35,3 +35,5 @@ def add_error_class(field):
 	if field.errors:
 		css_classes += ' is-invalid'
 	return field.as_widget(attrs={'class': css_classes})
+
+

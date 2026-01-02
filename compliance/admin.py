@@ -1,16 +1,9 @@
 from django.contrib import admin
-"""
-from .models import (
-    LenderComplianceRecord, CompanyInformation, 
-    Director, GovernanceSetup, ComplianceManuals, CBLSubmission)
+
+from .models import ComplianceProfile, PersonnelProfile, ComplianceDocument, ComplianceChecklistItem
 
 
-
-admin.site.register(LenderComplianceRecord)
-admin.site.register(CompanyInformation)
-admin.site.register(Director)
-admin.site.register(GovernanceSetup)
-admin.site.register(ComplianceManuals)
-admin.site.register(CBLSubmission)
-
-"""
+admin.site.register(ComplianceProfile)
+admin.site.register(PersonnelProfile)
+admin.site.register(ComplianceDocument)
+admin.site.register(ComplianceChecklistItem)

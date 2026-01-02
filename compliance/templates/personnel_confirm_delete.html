@@ -1,0 +1,23 @@
+{% extends 'Lender_base.html' %}
+
+{% block compliance_content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header bg-danger text-white">
+        <h5>Confirm Deletion</h5>
+      </div>
+      <div class="card-body">
+        <p>Are you sure you want to remove <strong>{{ object.full_name }}</strong> from compliance records?</p>
+        <p class="text-muted">This will delete their Fit & Proper data and documents.</p>
+        
+        <form method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Yes, Delete</button>
+          <a href="{% url 'compliance:personnel_list' lender.id %}" class="btn btn-secondary">Cancel</a>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -128,17 +128,17 @@ class LenderProfile(models.Model):
 	]
 	
 	# ============ CORE FIELDS ============
-	
 	user = models.OneToOneField(
 		User, 
 		on_delete=models.CASCADE, 
-		related_name='lender'
+		related_name='lender', null=True, blank=True
 	)
-	uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+	uuid = models.UUIDField(null=True, default=uuid.uuid4, editable=False, unique=True)
 	
 	# ============ COMPANY INFORMATION ============
 	
 	company_name = models.CharField(
+		null=True,
 		max_length=200, 
 		help_text="Registered company name"
 	)
@@ -172,10 +172,12 @@ class LenderProfile(models.Model):
 	# ============ CONTACT INFORMATION ============
 	
 	business_email = models.EmailField(
+		null=True,
 		max_length=254,
 		help_text="Primary business email address"
 	)
 	phone_number = models.CharField(
+		null=True,
 		max_length=20,
 		help_text="Primary contact number"
 	)
@@ -198,8 +200,8 @@ class LenderProfile(models.Model):
 	
 	# ============ LEADERSHIP ============
 	
-	ceo_first_name = models.CharField(max_length=100)
-	ceo_last_name = models.CharField(max_length=100)
+	ceo_first_name = models.CharField(null=True, max_length=100)
+	ceo_last_name = models.CharField(null=True, max_length=100)
 	ceo_email = models.EmailField(blank=True)
 	ceo_phone = models.CharField(max_length=20, blank=True)
 	
@@ -277,6 +279,7 @@ class LenderProfile(models.Model):
 		help_text="Available loan term options in months"
 	)
 	missed_payment_policy = models.CharField(
+		null=True,
 		max_length=20,
 		choices=MISSED_PAYMENT_POLICY_CHOICES,
 		default='standard'
@@ -360,7 +363,6 @@ class LenderProfile(models.Model):
 	notes = models.TextField(blank=True, help_text="Internal notes")
 	
 	objects = LenderProfileManager()
-
 	
 	
 	class Meta:
@@ -448,13 +450,15 @@ class LenderProfile(models.Model):
 		return int((completed / len(policies)) * 100)
 	
 	def determine_cbl_tier(self):
-		"""Auto-determine appropriate CBL tier based on capital and operations"""
 		if self.total_assets and self.total_assets >= Decimal('10000000'):
 			return 'tier2'
 		elif self.stated_capital and self.stated_capital >= Decimal('500000'):
 			return 'tier3'
-		else:
+		elif self.stated_capital and self.stated_capital >= Decimal('50000'):
 			return 'individual'
+		elif self.stated_capital and self.stated_capital >= Decimal('10000'):
+			return 'p2p'
+		return ''
 	
 	def can_accept_deposits(self):
 		"""Only Tier 1 can accept deposits"""
@@ -481,6 +485,15 @@ class LenderProfile(models.Model):
 		
 		if errors:
 			raise ValidationError(errors)
+		
+	def has_valid_board(self):
+		personnel = self.personnel.all()
+		has_ceo = personnel.filter(role='ceo').exists()
+		director_count = personnel.filter(role='director').count()
+		
+		if self.cbl_tier == 'tier1':
+			return has_ceo and director_count >= 5  # Example requirement
+		return has_ceo and director_count >= 1
 	
 	def save(self, *args, **kwargs):
 		# Auto-determine tier if not set
@@ -502,6 +515,7 @@ def create_profile(sender, instance, created, **kwargs):
 
 # Automate the profile thing
 post_save.connect(create_profile, sender=User)
+
 
 """
 class LenderProfile(models.Model):

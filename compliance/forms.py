@@ -1,144 +1,291 @@
-# forms.py
-
 from django import forms
-from django.core.validators import MinValueValidator, EmailValidator
 from django.core.exceptions import ValidationError
-from decimal import Decimal
-from .models import (
-     ComplianceDocument,
-     KeyPersonnel, CBLRegistration
-    
-)
-from .models import LenderProfile
+from .models import ComplianceProfile, PersonnelProfile
 
 
+# ================================
+# 1. INSTITUTIONAL COMPLIANCE FORM
+# (Maps to Schedule I, Schedule II, and Checklist)
+# ================================
 
-class ComplianceTierSelectionForm(forms.ModelForm):
+
+class ComplianceProfileForm(forms.ModelForm):
     class Meta:
-        model = CBLRegistration
-        fields = ['target_tier', 'proposed_capital']
+        model = ComplianceProfile
+        fields = [
+            # Application metadata
+            'cbl_application_reference',
+            
+            # Core documents
+            'schedule_i',
+            'schedule_ii',
+            'business_plan',
+            'audited_financials',
+            'financial_statements_certified',
+            'capital_commitment_letter',
+            'bank_statements_capital',
+            'tax_clearance_institution',
+            'memorandum_articles',
+            'home_supervisor_consent',
 
+            # Policies
+            'risk_management_manual',
+            'aml_cft_manual',
+            'complaints_procedure',
+
+            # Governance
+            'board_resolution_for_licensing',
+            'memorandum_articles',
+            'board_list_with_terms',
+            'credit_committee_terms',
+            'internal_audit_charter',
+
+            # Fees
+            'investigation_fee_paid',
+            'registration_fee_paid',
+
+            # Notes
+            'notes',
+        ]
         widgets = {
-            'target_tier': forms.RadioSelect,
-            'proposed_capital': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'e.g. 500000'
-            })
+            'notes': forms.Textarea(attrs={'rows': 4}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.lender = kwargs.pop('lender', None)
+        super().__init__(*args, **kwargs)
+        if not self.lender:
+            raise ValueError("Lender instance is required")
+
+        # Dynamically hide fields based on tier
+        tier = self.lender.cbl_tier
+
+        # Tier 3 does NOT need business plan, audited financials, or certain governance docs
+        if tier == 'tier3':
+            for field in ['business_plan', 'audited_financials', 'credit_committee_terms', 'internal_audit_charter']:
+                if field in self.fields:
+                    del self.fields[field]
+
+        # Tier 1/2 need risk manual; Tier 3 does not (per Checklist)
+        if tier == 'tier3':
+            del self.fields['risk_management_manual']
+
+        # Foreign institutions need home supervisor consent
+        # (Assume lender.is_foreign flag exists — if not, you may add it to LenderProfile)
+        # For now, we keep it visible but optional
+
+    def clean(self):
+        cleaned_data = super().clean()
+        tier = self.lender.cbl_tier
+
+        # Tier 1 & 2: business plan required
+        if tier in ['tier1', 'tier2']:
+            if not cleaned_data.get('business_plan'):
+                self.add_error('business_plan', 'Business plan is required for Tier 1 and Tier 2.')
+
+        # Tier 1 & 2: audited financials (if existing institution)
+        # We assume startup vs. existing is handled externally; make optional but warn if missing
+        # Tier 3: certified financials required
+        if tier == 'tier3':
+            if not cleaned_data.get('financial_statements_certified'):
+                self.add_error('financial_statements_certified', 'Certified financial statements (by accountant) are required for Tier 3.')
+
+        # All tiers: AML, complaints, tax clearance required
+        required_docs = {
+            'aml_cft_manual': 'AML/CFT Manual',
+            'complaints_procedure': 'Consumer Complaints Procedure',
+            'tax_clearance_institution': 'Institution Tax Clearance',
+        }
+        for field, label in required_docs.items():
+            if not cleaned_data.get(field):
+                self.add_error(field, f'{label} is required for all tiers.')
+
+        return cleaned_data
+
+
+
+# ================================
+# 2. UPDATE PROFILE FORM
+# ================================
+
+class ComplianceUpdateForm(forms.ModelForm):
+    class Meta:
+        model = ComplianceProfile
+        # List all possible upload fields
+        fields = [
+            'schedule_i', 'schedule_ii', 'tax_clearance_institution',
+            'business_plan', 'audited_financials', 'financial_statements_certified',
+            'capital_commitment_letter', 'bank_statements_capital',
+            'risk_management_manual', 'aml_cft_manual', 'complaints_procedure',
+            'memorandum_articles', 'board_resolution_for_licensing',
+            'board_list_with_terms', 'credit_committee_terms', 'internal_audit_charter'
+        ]
+
+    def __init__(self, *args, **kwargs):
+        # We pass the lender object during initialization in the view
+        self.lender = kwargs.pop('lender', None)
+        super().__init__(*args, **kwargs)
+
+        if self.lender:
+            tier = self.lender.cbl_tier
+
+            # 1. Logic for Tier 3 (Small Credit-Only)
+            if tier == 'tier3':
+                # Remove Tier 1 & 2 specific fields
+                high_tier_fields = [
+                    'business_plan', 'audited_financials', 
+                    'credit_committee_terms', 'internal_audit_charter'
+                ]
+                for field in high_tier_fields:
+                    if field in self.fields:
+                        del self.fields[field]
+
+            # 2. Logic for Tier 2 (Large Credit-Only)
+            elif tier == 'tier2':
+                # Remove Tier 1 and Tier 3 specific fields
+                excluded = ['credit_committee_terms', 'financial_statements_certified']
+                for field in excluded:
+                    if field in self.fields:
+                        del self.fields[field]
+
+            # 3. Logic for Tier 1 (Deposit-Taking)
+            elif tier == 'tier1':
+                # Tier 1 needs almost everything; just remove Tier 3 specific statements
+                if 'financial_statements_certified' in self.fields:
+                    del self.fields['financial_statements_certified']
+
+
+
+# ================================
+# 2. PERSONNEL PROFILE FORM
+# (Maps 1:1 to Fit & Proper Questionnaire + Schedule III)
+# ================================
+
+class PersonnelProfileForm(forms.ModelForm):
+    class Meta:
+        model = PersonnelProfile
+        exclude = ['lender', 'fit_proper_questionnaire_submitted', 'schedule_iii_submitted']
+        widgets = {
+            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+            'occupation_history': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Summarize your last 10 years...'}),
+            'employment_history_10_years': forms.Textarea(attrs={'rows': 4}),
+            'disqualification_details': forms.Textarea(attrs={'rows': 2}),
+            'legal_proceedings_details': forms.Textarea(attrs={'rows': 2}),
+            'criminal_conviction_details': forms.Textarea(attrs={'rows': 2}),
+            'bankruptcy_details': forms.Textarea(attrs={'rows': 2}),
+            'dismissal_details': forms.Textarea(attrs={'rows': 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Apply Bootstrap classes to all fields
+        for field in self.fields.values():
+            field.widget.attrs.update({'class': 'form-control'})
+        
+        # Checkbox specific styling
+        checkbox_fields = [
+            'ever_disqualified', 'legal_proceedings', 
+            'criminal_conviction', 'bankruptcy', 'dismissed_or_resigned'
+        ]
+        for field_name in checkbox_fields:
+            self.fields[field_name].widget.attrs.update({'class': 'form-check-input'})
+"""
+class PersonnelProfileForm(forms.ModelForm):
+    class Meta:
+        model = PersonnelProfile
+        fields = [
+            # Identification
+            'role',
+            'full_name',
+            'nationality',
+            'country_of_residence',
+            'date_of_birth',
+            'place_of_birth',
+            'id_or_passport_number',
+
+            # Addresses
+            'business_address',
+            'residential_address',
+
+            # Professional
+            'professional_qualifications',
+            'employment_history_10_years',
+
+            # Affiliations
+            'other_affiliations',
+            'family_business_affiliations',
+
+            # Declarations (booleans)
+            'ever_disqualified',
+            'legal_proceedings',
+            'criminal_conviction',
+            'bankruptcy',
+            'dismissed_or_resigned',
+
+            # Details (only shown if declaration is True — handled in UI)
+            'disqualification_details',
+            'legal_proceedings_details',
+            'criminal_conviction_details',
+            'bankruptcy_details',
+            'dismissal_details',
+
+            # Documents
+            'police_clearance',
+            'tax_clearance',
+            'assets_liabilities_statement',
+            'character_references',
+            'bank_references',
+            'id_copy',
+        ]
+        widgets = {
+            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
+            'employment_history_10_years': forms.Textarea(attrs={'rows': 4}),
+            'other_affiliations': forms.Textarea(attrs={'rows': 3}),
+            'family_business_affiliations': forms.Textarea(attrs={'rows': 3}),
         }
 
     def clean(self):
-        cleaned = super().clean()
-        tier = cleaned.get('target_tier')
-        capital = cleaned.get('proposed_capital')
+        cleaned_data = super().clean()
 
-        if tier in ['tier1', 'tier2'] and (not capital or capital < 10000000):
-            raise forms.ValidationError(
-                "Tier 1 & 2 require minimum capital of M10,000,000"
-            )
-
-        if tier == 'tier3' and capital and capital < 500000:
-            raise forms.ValidationError(
-                "Tier 3 requires minimum capital of M500,000"
-            )
-
-        return cleaned
-
-
-class ComplianceCompanyInfoForm(forms.ModelForm):
-    class Meta:
-        model = LenderProfile
-        fields = [
-            'company_name',
-            'trading_name',
-            'registration_number',
-            'tax_identification_number',
-            'date_of_establishment',
-            'ownership_type',
-            'physical_address',
-            'city',
-            'district',
+        # Validate that if a declaration is True, details must be provided
+        declarations = [
+            ('ever_disqualified', 'disqualification_details'),
+            ('legal_proceedings', 'legal_proceedings_details'),
+            ('criminal_conviction', 'criminal_conviction_details'),
+            ('bankruptcy', 'bankruptcy_details'),
+            ('dismissed_or_resigned', 'dismissal_details'),
         ]
 
-        widgets = {
-            'date_of_establishment': forms.DateInput(attrs={'type': 'date'}),
-            'physical_address': forms.Textarea(attrs={'rows': 3}),
+        for decl_field, detail_field in declarations:
+            if cleaned_data.get(decl_field) and not cleaned_data.get(detail_field):
+                self.add_error(detail_field, 'Details are required when declaration is "Yes".')
+
+        # Required documents (per Schedule III, Section 10)
+        required_docs = {
+            'police_clearance': 'Police Clearance',
+            'tax_clearance': 'Tax Clearance',
+            'assets_liabilities_statement': 'Certified Statement of Assets and Liabilities',
+            'character_references': 'Two Notarized Character References',
+            'bank_references': 'Two Bank Reference Letters',
+            'id_copy': 'Certified ID/Passport Copy',
         }
 
+        for field, label in required_docs.items():
+            if not cleaned_data.get(field):
+                self.add_error(field, f'{label} is mandatory per Schedule III.')
 
+        return cleaned_data
+"""
 
-class CapitalSourceForm(forms.ModelForm):
+# ================================
+# 3. PERSONNEL REGISTRATION FORM (Simplified for onboarding)
+# (e.g., for lender to add their CEO, directors, etc.)
+# ================================
+
+class AddPersonnelForm(forms.ModelForm):
     class Meta:
-        model = CBLRegistration
-        fields = [
-            'proposed_capital',
-            'capital_source_explanation'
-        ]
-
-        widgets = {
-            'capital_source_explanation': forms.Textarea(attrs={
-                'rows': 4,
-                'placeholder': 'Explain source of funds'
-            })
-        }
-
-
-
-class GovernanceSetupForm(forms.ModelForm):
-    class Meta:
-        model = CBLRegistration
-        fields = [
-            'board_size',
-            'has_audit_committee',
-            'has_credit_committee',
-            'has_risk_committee',
-            'has_finance_manager',
-            'has_compliance_officer',
-        ]
-
-    def clean_board_size(self):
-        board_size = self.cleaned_data['board_size']
-        if board_size < 3:
-            raise forms.ValidationError("Minimum board size is 3")
-        return board_size
-
-
-class KeyPersonnelForm(forms.ModelForm):
-    class Meta:
-        model = KeyPersonnel
-        exclude = ['registration', 'verified', 'verified_by']
-
+        model = PersonnelProfile
+        fields = ['role', 'full_name', 'nationality', 'date_of_birth', 'id_or_passport_number']
         widgets = {
             'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
-            'appointment_date': forms.DateInput(attrs={'type': 'date'}),
         }
-
-
-
-class ComplianceDocumentUploadForm(forms.ModelForm):
-    class Meta:
-        model = ComplianceDocument
-        fields = [
-            'category',
-            'document_type',
-            'title',
-            'file',
-            'issue_date',
-            'expiry_date',
-            'reference_number',
-        ]
-
-        widgets = {
-            'issue_date': forms.DateInput(attrs={'type': 'date'}),
-            'expiry_date': forms.DateInput(attrs={'type': 'date'}),
-        }
-
-
-class ComplianceReviewForm(forms.Form):
-    confirm_accuracy = forms.BooleanField(
-        label="I confirm all information is accurate"
-    )
-    agree_terms = forms.BooleanField(
-        label="I agree to CBL compliance requirements"
-    )
-
-

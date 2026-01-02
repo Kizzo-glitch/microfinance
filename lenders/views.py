@@ -2,7 +2,7 @@ import os
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 
-from compliance.models import CBLRegistrationManager
+from compliance.compliace_services import ComplianceDashboardService
 
 #from compliance.models import LenderComplianceRecord
 from .forms import LenderInfoForm, LoanApplicationStatusForm, LoanStatusForm, LenderDocumentsForm
@@ -47,7 +47,8 @@ from django.conf import settings
 from django.template.loader import render_to_string
 from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
 from django.http import HttpResponse
-from compliance.compliace_services import ComplianceDashboardService
+from compliance.models import ComplianceProfile, PersonnelProfile
+
 
 
 
@@ -55,6 +56,7 @@ from compliance.compliace_services import ComplianceDashboardService
 # ==================
 # Dashboard
 # ==================
+
 
 def lender_index(request):
 	if request.user.is_authenticated and request.user.is_lender():
@@ -105,10 +107,11 @@ def lender_index(request):
 			.annotate(total=Sum('amount'))
 			.order_by('month')
 		)
-		
-		compliance_service = ComplianceDashboardService(lender)
-		compliance = compliance_service.get_dashboard_data()
 
+		compliance_service = ComplianceDashboardService(lender)
+		compliance_data = compliance_service.get_dashboard_data()
+		
+		
 		context = {
 			'total_loans_disbursed': total_loans_disbursed,
 			'total_loans_recovered': total_recovered,
@@ -127,6 +130,11 @@ def lender_index(request):
 			'approved_percent': approved_percent,
 			'rejected_percent': rejected_percent,
 			'overdue_percent': overdue_percent,
+
+			'compliance': compliance_data,
+
+			#'compliance_progress': compliance_progress,
+			#'compliance_url': compliance_url,
 			
 			
 			'new_loan_applications': new_loan_applications,
@@ -144,7 +152,7 @@ def lender_index(request):
 			"high_risk_count": high_risk_count,
 			"mid_risk_count": mid_risk_count,
 			"late_payers_count": late_payers_count,
-			'compliance': compliance
+			
 		}
 
 		return render(request, 'lender_index.html', context)
@@ -223,6 +231,7 @@ def risk_customer_list(request, category):
 		"loans": loans,
 	}
 	return render(request, "risk_customer_list.html", context)
+
 
 
 def lender_profile(request):
@@ -346,16 +355,6 @@ def update_lender_documents(request):
 		'existing_documents': existing_documents,
 		'document_types': LenderDocs.DOCUMENT_TYPES
 	})
-
-
-@login_required
-def lender_list(request):
-	lenders = (LenderProfile.objects.filter(user__is_superuser=False, user__role='lender')
-		.annotate(average_rating=Avg('ratings__rating')))
-
-
-	return render(request, 'borrower_index.html', {'lenders': lenders})
-
 
 
 @method_decorator(staff_member_required, name='dispatch')
