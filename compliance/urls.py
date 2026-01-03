@@ -13,6 +13,10 @@ urlpatterns = [
 
     # Personnel
     path('<int:lender_id>/personnel/', views.PersonnelListView.as_view(), name='personnel_list'),
+    path('<int:pk>/submit/', views.submit_application, name='submit_application'),
+
+
+
     #path('<int:lender_id>/personnel/add/', views.PersonnelCreateView.as_view(), name='personnel_add'),
     path('personnel/<int:pk>/edit/', views.PersonnelUpdateView.as_view(), name='personnel_update'),
     path('personnel/<int:pk>/delete/', views.PersonnelDeleteView.as_view(), name='personnel_delete'),

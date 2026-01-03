@@ -15,7 +15,6 @@ from django.db.models.functions import Coalesce
 
 User = get_user_model()
 	
-
 class LenderProfileManager(models.Manager):
 	"""Enhanced manager for LenderProfile"""
 	def get_queryset(self):

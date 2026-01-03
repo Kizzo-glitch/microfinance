@@ -122,6 +122,25 @@ class PersonnelUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
         # than the separate personnel list.
         return reverse_lazy('compliance:compliance_detail', 
                             kwargs={'lender_id': self.object.lender.id})
+
+
+def submit_application(request, pk):
+    if request.method == 'POST':
+        # 1. Fetch the compliance profile
+        compliance = get_object_or_404(ComplianceProfile, pk=pk)
+        
+        # 2. Update the stage to 'submitted'
+        compliance.current_stage = 'submitted' # Or whatever your final status is
+        compliance.save()
+        
+        # 3. Add a success message
+        messages.success(request, "Application successfully submitted to the CBL. Your files are now under review.")
+        
+        # 4. Redirect back to the dashboard
+        return redirect('compliance:compliance_detail', lender_id=compliance.lender.id)
+    
+    return redirect('compliance:compliance_detail', lender_id=compliance.lender.id)
+
 """
 def personnel_update(request, pk):
     personnel = get_object_or_404(PersonnelProfile, pk=pk)
