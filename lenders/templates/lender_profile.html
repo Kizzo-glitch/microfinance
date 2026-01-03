@@ -3,6 +3,7 @@
 {% load static %}
 
 {% block content %}
+<link href="{% static 'lender/vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
 
 
 <div class="container py-4">
@@ -106,10 +107,10 @@
                         <i class="fas fa-info-circle text-primary" 
                         data-bs-toggle="tooltip" 
                         data-bs-placement="top" 
-                        title="This is the 'Paid-up Capital'. CBL requires a minimum amount depending on your Tier (e.g., M2M for Tier 1)."></i>
+                        title="This is the 'Paid-up Capital'. CBL requires a minimum amount depending on your Tier (e.g., 2 million  for Tier 1). For Tier 2, move over to Total Assets"></i>
                     </label>
                     {{ form.stated_capital }}
-                    <small class="text-muted">Min for Tier 3: M500,000</small>
+                    <small class="text-muted">Min for Tier 3: M500 000</small>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label fw-bold">
@@ -120,7 +121,7 @@
                         title="Includes your gross loan portfolio and cash. If this exceeds M10 Million, you are classified as Tier 2."></i>
                     </label>
                     {{ form.total_assets }}
-                    <small class="text-muted">Min for Tier 2: M10,000,000</small>
+                    <small class="text-muted">Min for Tier 2: M10 000 000</small>
                 </div>
             </div>
         </div>
@@ -224,23 +225,28 @@ document.addEventListener('DOMContentLoaded', function() {
         if (assets >= 10000000 || capital >= 10000000) {
             tierValue = 'tier2'; 
             tierLabel = 'Tier 2 (Large Credit-Only)';
-        } 
-        // 2. Tier 3 (M500,000)
+        }
+        // 2. Tier 1 (M200,0000)
+        else if (capital >= 2000000) {
+            tierValue = 'tier1';
+            tierLabel = 'Tier 1 (Deposit-Taking)';
+        }  
+        // 3. Tier 3 (M500,000)
         else if (capital >= 500000) {
             tierValue = 'tier3';
             tierLabel = 'Tier 3 (Small Credit-Only)';
         } 
-        // 3. Individual (M50,000)
+        // 4. Individual (M50,000)
         else if (capital >= 50000) {
             tierValue = 'individual';
             tierLabel = 'Individual Lender';
         } 
-        // 4. P2P (M10,000)
+        // 5. P2P (M10,000)
         else if (capital >= 10000) {
             tierValue = 'p2p';
             tierLabel = 'Peer-to-Peer';
         } 
-        // 5. Default/Not Determined
+        // 6. Default/Not Determined
         else {
             tierValue = '';
             tierLabel = 'Capital below minimum requirements';

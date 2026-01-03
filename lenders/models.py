@@ -451,6 +451,8 @@ class LenderProfile(models.Model):
 	def determine_cbl_tier(self):
 		if self.total_assets and self.total_assets >= Decimal('10000000'):
 			return 'tier2'
+		elif self.stated_capital and self.stated_capital >= Decimal('2000000'):
+			return 'tier1'		
 		elif self.stated_capital and self.stated_capital >= Decimal('500000'):
 			return 'tier3'
 		elif self.stated_capital and self.stated_capital >= Decimal('50000'):
