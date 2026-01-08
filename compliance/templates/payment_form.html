@@ -1,0 +1,37 @@
+{% extends 'lender_base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Investigation Fee Payment</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6>Bank Details:</h6>
+                        <p class="small mb-0">
+                            <strong>Bank:</strong> Central Bank of Lesotho<br>
+                            <strong>Account:</strong> 123456789<br>
+                            <strong>Reference:</strong> {{ lender.company_name }}
+                        </p>
+                    </div>
+                    
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label class="form-label">Upload Proof of Payment (PDF or Image)</label>
+                            <input type="file" name="payment_proof" class="form-control" required>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">Submit Payment Proof</button>
+                            <a href="{% url 'compliance:compliance_detail' lender.id %}" class="btn btn-link text-muted">Back to Dashboard</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

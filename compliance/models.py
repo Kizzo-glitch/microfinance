@@ -73,6 +73,13 @@ class ComplianceProfile(models.Model):
 
     # CBL Fee Payment (Optional tracking)
     investigation_fee_paid = models.BooleanField(default=False)
+    investigation_fee_proof = models.FileField(
+        upload_to='compliance/payments/', 
+        null=True, 
+        blank=True,
+        help_text="Upload the bank transfer/deposit slip"
+    )
+    date_paid = models.DateTimeField(null=True, blank=True)
     registration_fee_paid = models.BooleanField(default=False)
 
     # Metadata
@@ -99,6 +106,8 @@ class ComplianceProfile(models.Model):
         # so we don't automate that here.
 
         self.save(update_fields=['current_stage'])
+    
+    
     """
     def update_stage(self):
         

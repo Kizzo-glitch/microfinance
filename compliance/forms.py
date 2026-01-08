@@ -122,6 +122,44 @@ class ComplianceUpdateForm(forms.ModelForm):
         ]
 
     def __init__(self, *args, **kwargs):
+        # We pass the lender object into the form via kwargs in the view
+        self.lender = kwargs.pop('lender', None)
+        super().__init__(*args, **kwargs)
+
+        if self.lender:
+            # 1. Define the allowed list for this specific tier
+            allowed_fields = ['aml_cft_manual', 'complaints_procedure', 'schedule_i']
+            tier = self.lender.cbl_tier
+
+            if tier in ['tier1', 'tier2']:
+                allowed_fields += [
+                    'tax_clearance_institution', 'memorandum_articles', 'business_plan', 
+                    'audited_financials', 'risk_management_manual', 'board_list_with_terms', 
+                    'internal_audit_charter'
+                ]
+                if tier == 'tier1':
+                    allowed_fields.append('credit_committee_terms')
+            
+            elif tier == 'tier3':
+                allowed_fields += [
+                    'tax_clearance_institution', 'memorandum_articles', 
+                    'financial_statements_certified'
+                ]
+
+            elif tier in ['individual', 'p2p']:
+                allowed_fields
+                # Individuals/P2P have a light load, but it's NOT zero
+                # We already have core docs, maybe add one specific to individual platforms
+                pass 
+
+            # 2. Remove any field NOT in the allowed list
+            for field_name in list(self.fields.keys()):
+                if field_name not in allowed_fields:
+                    self.fields.pop(field_name)
+
+
+    """
+    def __init__(self, *args, **kwargs):
         # We pass the lender object during initialization in the view
         self.lender = kwargs.pop('lender', None)
         super().__init__(*args, **kwargs)
@@ -153,6 +191,9 @@ class ComplianceUpdateForm(forms.ModelForm):
                 # Tier 1 needs almost everything; just remove Tier 3 specific statements
                 if 'financial_statements_certified' in self.fields:
                     del self.fields['financial_statements_certified']
+
+    """
+
 
 
 

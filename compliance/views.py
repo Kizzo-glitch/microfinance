@@ -2,11 +2,13 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.urls import reverse_lazy
+from django.urls import reverse
 from django.views.generic import (
     DetailView, CreateView, UpdateView, DeleteView, ListView
 )
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
+from django.utils import timezone
 
 from compliance.compliace_services import ComplianceDashboardService
 from lenders.models import LenderProfile
@@ -20,7 +22,43 @@ from .forms import ComplianceProfileForm, ComplianceUpdateForm, PersonnelProfile
 # MIXIN: Lender Ownership Check
 # ================================
 
+
 class LenderOwnerMixin:
+    """
+    Ensures only the lender (or admin) can access their compliance data.
+    Works for both /lender/20/... and /personnel/4/edit/
+    """
+    def get_lender(self):
+        # Case A: URL has 'lender_id' (e.g., Dashboard or Create Personnel)
+        if 'lender_id' in self.kwargs:
+            return get_object_or_404(LenderProfile, pk=self.kwargs['lender_id'])
+        
+        # Case B: URL has 'pk' (e.g., Update/Delete Personnel)
+        if 'pk' in self.kwargs:
+            # We fetch the actual object (Personnel, ComplianceProfile, etc.)
+            # and get the lender from it.
+            obj = get_object_or_404(self.model, pk=self.kwargs['pk'])
+            
+            # If the object is the LenderProfile itself
+            if isinstance(obj, LenderProfile):
+                return obj
+            # If the object is Personnel or ComplianceProfile (which have .lender)
+            if hasattr(obj, 'lender'):
+                return obj.lender
+        
+        return None
+
+    def dispatch(self, request, *args, **kwargs):
+        lender = self.get_lender()
+        
+        # Security Check: Compare logged-in user with lender owner
+        if lender and request.user != lender.user and not request.user.is_staff:
+            raise PermissionDenied
+            
+        return super().dispatch(request, *args, **kwargs)
+    
+
+class LenderOwnerMixin2:
     """
     Ensures only the lender (or admin) can access their compliance data.
     """
@@ -71,6 +109,13 @@ class ComplianceUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
     def get_object(self):
         return ComplianceProfile.objects.get(lender__id=self.kwargs['lender_id'])
 
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        # Pass the lender to the form so it can filter the fields
+        kwargs['lender'] = self.get_object().lender
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['lender'] = self.get_lender()
@@ -89,6 +134,34 @@ class ComplianceUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
 # ================================
 # 2. PERSONNEL VIEWS
 # ================================
+
+class PersonnelCreateView(LoginRequiredMixin, CreateView):
+    model = PersonnelProfile
+    form_class = PersonnelProfileForm
+    template_name = 'personnel_form.html'
+    #fields = ['full_name', 'role', 'id_number', 'email', 'phone'] # Adjust based on your model
+
+    def form_valid(self, form):
+        # 1. Get the lender based on the ID in the URL
+        lender = get_object_or_404(LenderProfile, id=self.kwargs['lender_id'])
+        
+        # 2. Attach this lender to the personnel instance before saving
+        form.instance.lender = lender
+        
+        # 3. Save and return response
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Pass lender to template for the "Back" button or header
+        context['lender'] = get_object_or_404(LenderProfile, id=self.kwargs['lender_id'])
+        return context
+
+    def get_success_url(self):
+        # Redirect back to the compliance dashboard
+        return reverse('compliance:compliance_detail', kwargs={'lender_id': self.kwargs['lender_id']})
+
+
 
 class PersonnelUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
     model = PersonnelProfile
@@ -122,6 +195,45 @@ class PersonnelUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
         # than the separate personnel list.
         return reverse_lazy('compliance:compliance_detail', 
                             kwargs={'lender_id': self.object.lender.id})
+
+
+
+# ================================
+# 2. PERSONNEL VIEWS
+# ================================
+
+class PayInvestigationFeeView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
+    model = ComplianceProfile
+    template_name = 'payment_form.html'
+    fields = ['investigation_fee_paid', 'payment_reference'] 
+   
+    def get_object(self):
+        # We find the profile using the lender_id from the URL
+        return get_object_or_404(ComplianceProfile, lender__id=self.kwargs['lender_id'])
+  
+    def get_success_url(self):
+        return reverse('compliance:compliance_detail', kwargs={'lender_id': self.kwargs['lender_id']})
+    
+
+def pay_investigation_fee(request, lender_id):
+    lender = get_object_or_404(LenderProfile, id=lender_id)
+    compliance = lender.compliance
+    
+    if request.method == 'POST':
+        proof = request.FILES.get('payment_proof')
+        if proof:
+            compliance.investigation_fee_proof = proof
+            compliance.investigation_fee_paid = True
+            compliance.date_paid = timezone.now()
+            compliance.save()
+            
+            messages.success(request, "Payment proof uploaded successfully. Your application status has been updated.")
+            return redirect('compliance:compliance_detail', lender_id=lender.id)
+        else:
+            messages.error(request, "Please select a file to upload.")
+
+    return render(request, 'payment_form.html', {'lender': lender})
+
 
 
 def submit_application(request, pk):
@@ -221,28 +333,3 @@ class PersonnelDeleteView(LoginRequiredMixin, LenderOwnerMixin, DeleteView):
         return context
 
 
-# ================================
-# 3. QUICK ADD PERSONNEL (for onboarding flow)
-# ================================
-
-@login_required
-def add_personnel_quick(request, lender_id):
-    lender = get_object_or_404(LenderProfile, pk=lender_id)
-    if request.user != lender.user and not request.user.is_staff:
-        raise PermissionDenied
-
-    if request.method == 'POST':
-        form = AddPersonnelForm(request.POST)
-        if form.is_valid():
-            personnel = form.save(commit=False)
-            personnel.lender = lender
-            personnel.save()
-            # Redirect to full form to complete declarations/docs
-            return redirect('compliance:personnel_update', pk=personnel.pk, lender_id=lender_id)
-    else:
-        form = AddPersonnelForm()
-
-    return render(request, 'add_personnel_quick.html', {
-        'form': form,
-        'lender': lender
-    })

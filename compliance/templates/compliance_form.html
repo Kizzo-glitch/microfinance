@@ -35,26 +35,6 @@
                           </div>
                       {% endfor %}
 
-                        <!--{% for field in form %}
-                            <div class="mb-4 p-3 border rounded bg-light">
-                                <label class="form-label fw-bold">{{ field.label }}</label>
-                                {{ field }}
-                                {% if field.help_text %}
-                                    <div class="form-text">{{ field.help_text }}</div>
-                                {% endif %}
-                                {% for error in field.errors %}
-                                    <div class="text-danger small">{{ error }}</div>
-                                {% endfor %}
-                                
-                                {% if field.value %}
-                                    <div class="mt-2 small text-success">
-                                        <i class="fas fa-check-circle"></i> Currently uploaded: 
-                                        <a href="{{ field.value.url }}" target="_blank">View File</a>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% endfor %}-->
-
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-success btn-lg">Save & Update Progress</button>
                             <a href="{% url 'compliance:compliance_detail' lender.id %}" class="btn btn-link text-muted">Cancel</a>

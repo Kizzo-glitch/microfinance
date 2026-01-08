@@ -388,7 +388,9 @@ class LenderProfile(models.Model):
 	
 	@property
 	def requires_cbl_license(self):
-		return self.cbl_tier in ['tier1', 'tier2', 'tier3']
+		# Now includes individuals and P2P under the regulated umbrella
+		regulated_tiers = ['tier1', 'tier2', 'tier3', 'individual', 'p2p']
+		return self.cbl_tier in regulated_tiers
 	
 	@property
 	def minimum_capital_requirement(self):
@@ -497,6 +499,7 @@ class LenderProfile(models.Model):
 		return has_ceo and director_count >= 1
 	
 	def save(self, *args, **kwargs):
+		is_new = self.pk is None
 		# Auto-determine tier if not set
 		if not self.cbl_tier and (self.stated_capital or self.total_assets):
 			self.cbl_tier = self.determine_cbl_tier()

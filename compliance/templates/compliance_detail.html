@@ -29,33 +29,54 @@
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
+                        {# CORE DOCS - Common to all #}
                         {% include 'doc_item.html' with label="AML/CFT Manual" file=compliance.aml_cft_manual %}
                         {% include 'doc_item.html' with label="Complaints Procedure" file=compliance.complaints_procedure %}
-                        {% include 'doc_item.html' with label="Tax Clearance (Lender)" file=compliance.tax_clearance_institution %}
-                        
-                        {% if lender.cbl_tier in 'tier1,tier2' %}
-                            {% include 'doc_item.html' with label="Business Plan" file=compliance.business_plan %}
-                            {% include 'doc_item.html' with label="Audited Financials" file=compliance.audited_financials %}
-                        {% elif lender.cbl_tier == 'tier3' %}
-                            {% include 'doc_item.html' with label="Certified Financials" file=compliance.financial_statements_certified %}
+                        {% include 'doc_item.html' with label="Schedule I Form" file=compliance.schedule_i %}
+
+                        {# TIER 1, 2, 3 (Institutional) #}
+                        {% if lender.cbl_tier == 'tier1' or lender.cbl_tier == 'tier2' or lender.cbl_tier == 'tier3' %}
+                            {% include 'doc_item.html' with label="Memorandum & Articles" file=compliance.memorandum_articles %}
+                            
+                            {% if lender.cbl_tier == 'tier1' or lender.cbl_tier == 'tier2' %}
+                                {% include 'doc_item.html' with label="Audited Financials" file=compliance.audited_financials %}
+                                {% if lender.cbl_tier == 'tier1' %}
+                                    {% include 'doc_item.html' with label="Credit Committee Terms" file=compliance.credit_committee_terms %}
+                                {% endif %}
+                            {% else %}
+                                {% include 'doc_item.html' with label="Certified Financials" file=compliance.financial_statements_certified %}
+                            {% endif %}
+                        {% endif %}
+
+                        {# INDIVIDUAL / P2P #}
+                        {% if lender.cbl_tier == 'individual' or lender.cbl_tier == 'p2p' %}
+                            <div class="list-group-item small text-muted italic">
+                                Standard individual lender requirements apply.
+                            </div>
                         {% endif %}
                     </div>
+                    
                 </div>
                 <div class="card-footer">
                     <a href="{% url 'compliance:compliance_update' lender.id %}" class="btn btn-primary btn-sm w-100">
                         <i class="fas fa-upload me-1"></i> Upload/Update Documents
                     </a>
+                    
                 </div>
             </div>
         </div>
+
 
         <div class="col-md-8">
             <div class="card shadow-sm">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">Key Personnel (Directors & CEO)</h6>
-                    <a href="{% url 'compliance:personnel_update' compliance.lender.id %}" class="btn btn-success btn-sm">
+                    <a href="{% url 'compliance:personnel_create' lender.id %}" class="btn btn-success btn-sm">
                         <i class="fas fa-user-plus me-1"></i> Add Member
                     </a>
+                    <!--<a href="{% url 'compliance:personnel_update' compliance.lender.id %}" class="btn btn-success btn-sm">
+                        <i class="fas fa-user-plus me-1"></i> Edit Member
+                    </a>-->
                 </div>
                 <div class="card-body">
                     {% if personnel_list %}
@@ -92,7 +113,7 @@
                                     </td>
                                     <td>
                                         <a href="{% url 'compliance:personnel_update' p.pk %}" class="btn btn-sm btn-outline-primary">
-                                            {% if p.status.label == 'Draft' %}Complete Form{% else %}Edit Profile{% endif %}
+                                            {% if p.status.label == 'Draft' %}Review Form{% else %}Edit Profile{% endif %}
                                         </a>
                                     </td>
                                 </tr>
@@ -110,18 +131,58 @@
                 </div>
             </div>
 
-            {% if stats.progress == 100 and compliance.current_stage == 'document_gathering' %}
+            <!--{# 1. Update the Submission Form #}
+            <form method="POST" action="{% url 'compliance:submit_application' lender.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-success btn-lg px-4 shadow">
+                    Submit to CBL <i class="fas fa-paper-plane ms-2"></i>
+                </button>
+            </form>
+
+            {# 2. Update the Payment Form #}
+            {# Note: If this button should take them to a payment page, use an <a> tag instead of a POST form #}
             <div class="alert alert-success mt-4 d-flex justify-content-between align-items-center">
                 <div>
-                    <h5 class="alert-heading">Application Ready!</h5>
+                    <h5 class="alert-heading">Ready For Payment!</h5>
                     <p class="mb-0">All required documents and personnel files have been uploaded.</p>
                 </div>
-                <form method="POST" action="{% url 'compliance:submit_application' compliance.id %}">
+                <a href="{% url 'compliance:pay_investigation_fee' lender.id %}" class="btn btn-success btn-lg">
+                    Pay Investigation Fee
+                </a>
+            </div>-->
+
+
+            {# We check the next_action string rather than the stage name #}
+            {% if stats.next_action == "Submit to CBL" %}
+                <div class="alert alert-success mt-4 d-flex justify-content-between align-items-center border-left-success shadow-sm">
+                    <div>
+                        <h5 class="alert-heading fw-bold text-success">
+                            <i class="fas fa-check-circle me-2"></i>Application Ready!
+                        </h5>
+                        <p class="mb-0 text-muted">All required documents, personnel files, and payments have been verified.</p>
+                    </div>
+                    <form method="POST" action="{% url 'compliance:submit_application' compliance.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-lg px-4 shadow">
+                            Submit to CBL <i class="fas fa-paper-plane ms-2"></i>
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+
+            {% if stats.next_action == "Pay Investigation Fee" %}
+            <div class="alert alert-success mt-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="alert-heading">Ready For Payment!</h5>
+                    <p class="mb-0">All required documents and personnel files have been uploaded.</p>
+                </div>
+                <form method="POST" action="{% url 'compliance:pay_investigation_fee' lender.id %}">
                     {% csrf_token %}
-                    <button type="submit" class="btn btn-success btn-lg">Submit to CBL</button>
+                    <button type="submit" class="btn btn-success btn-lg">Pay Investigation Fee</button>
                 </form>
             </div>
             {% endif %}
+
         </div>
     </div>
 </div>

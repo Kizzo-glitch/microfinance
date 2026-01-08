@@ -15,12 +15,14 @@ urlpatterns = [
     path('<int:lender_id>/personnel/', views.PersonnelListView.as_view(), name='personnel_list'),
     path('<int:pk>/submit/', views.submit_application, name='submit_application'),
 
+    #path('<int:lender_id>/pay-fee/', views.PayInvestigationFeeView.as_view(), name='pay_investigation_fee'),
 
+    path('<int:lender_id>/pay-fee/', views.pay_investigation_fee, name='pay_investigation_fee'),
 
     #path('<int:lender_id>/personnel/add/', views.PersonnelCreateView.as_view(), name='personnel_add'),
+    path('<int:lender_id>/personnel/add/', views.PersonnelCreateView.as_view(), name='personnel_create'),
     path('personnel/<int:pk>/edit/', views.PersonnelUpdateView.as_view(), name='personnel_update'),
     path('personnel/<int:pk>/delete/', views.PersonnelDeleteView.as_view(), name='personnel_delete'),
 
-    # Quick add (optional)
-    path('<int:lender_id>/personnel/quick-add/', views.add_personnel_quick, name='personnel_quick_add'),
+   
 ]
