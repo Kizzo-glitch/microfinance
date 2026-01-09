@@ -13,7 +13,7 @@ urlpatterns = [
 
     # Personnel
     path('<int:lender_id>/personnel/', views.PersonnelListView.as_view(), name='personnel_list'),
-    path('<int:pk>/submit/', views.submit_application, name='submit_application'),
+    path('<int:lender_id>/submit/', views.submit_application, name='submit_application'),
 
     #path('<int:lender_id>/pay-fee/', views.PayInvestigationFeeView.as_view(), name='pay_investigation_fee'),
 

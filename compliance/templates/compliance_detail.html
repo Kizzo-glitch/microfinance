@@ -71,6 +71,10 @@
             <div class="card shadow-sm">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">Key Personnel (Directors & CEO)</h6>
+                    
+                    <span class="badge {% if stats.completed_personnel >= stats.required_personnel %}bg-success{% else %}bg-warning{% endif %}">
+                        {{ stats.completed_personnel }} / {{ stats.required_personnel }} Added
+                    </span>
                     <a href="{% url 'compliance:personnel_create' lender.id %}" class="btn btn-success btn-sm">
                         <i class="fas fa-user-plus me-1"></i> Add Member
                     </a>
@@ -113,7 +117,7 @@
                                     </td>
                                     <td>
                                         <a href="{% url 'compliance:personnel_update' p.pk %}" class="btn btn-sm btn-outline-primary">
-                                            {% if p.status.label == 'Draft' %}Review Form{% else %}Edit Profile{% endif %}
+                                            {% if p.status.label == 'Draft' %}Review and Submit Details{% else %}Edit Profile{% endif %}
                                         </a>
                                     </td>
                                 </tr>
@@ -151,6 +155,60 @@
                 </a>
             </div>-->
 
+            {% if stats.next_action %}
+<div class="alert alert-info mt-4 d-flex justify-content-between align-items-center border-left-info shadow-sm">
+    <div>
+        <h5 class="alert-heading fw-bold">Next Step</h5>
+        <p class="mb-0 text-muted">{{ stats.status_message }}</p>
+    </div>
+    
+    {% if stats.next_action == "Submit to CBL" %}
+        {# SUBMIT requires a Form for the POST request #}
+        <form method="POST" action="{{ stats.url }}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success btn-lg px-4 shadow">
+                Submit to CBL <i class="fas fa-paper-plane ms-2"></i>
+            </button>
+        </form>
+    {% else %}
+        {# Other steps (Upload/Pay) can remain links #}
+        <a href="{{ stats.url }}" class="btn btn-primary btn-lg px-4">
+            {{ stats.next_action }} <i class="fas fa-arrow-right ms-2"></i>
+        </a>
+    {% endif %}
+</div>
+{% endif %}
+
+            <!--{% if stats.next_action %}
+<div class="alert alert-info mt-4 d-flex justify-content-between align-items-center">
+    <div>
+        <h5 class="alert-heading">Next Step</h5>
+        <p class="mb-0">Action: <strong>{{ stats.next_action }}</strong></p>
+    </div>
+    <a href="{{ stats.url }}" class="btn btn-primary btn-lg">
+        {{ stats.next_action }} <i class="fas fa-arrow-right ms-2"></i>
+    </a>
+</div>
+{% elif profile.current_stage == 'under_review' %}
+<div class="alert alert-warning mt-4 text-center">
+    <i class="fas fa-clock fa-2x mb-3"></i>
+    <h5>Application Under Review</h5>
+    <p>Your compliance documents are currently being verified by the CBL. You will be notified of any further requirements.</p>
+</div>
+{% endif %}-->
+
+            <!--{% if stats.next_action == "Pay Investigation Fee" %}
+            <div class="alert alert-success mt-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="alert-heading">Ready For Payment!</h5>
+                    <p class="mb-0">All required documents and personnel files have been uploaded.</p>
+                </div>
+                <form method="POST" action="{% url 'compliance:pay_investigation_fee' lender.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-success btn-lg">Pay Investigation Fee</button>
+                </form>
+            </div>
+            {% endif %}
 
             {# We check the next_action string rather than the stage name #}
             {% if stats.next_action == "Submit to CBL" %}
@@ -168,20 +226,9 @@
                         </button>
                     </form>
                 </div>
-            {% endif %}
+            {% endif %}-->
 
-            {% if stats.next_action == "Pay Investigation Fee" %}
-            <div class="alert alert-success mt-4 d-flex justify-content-between align-items-center">
-                <div>
-                    <h5 class="alert-heading">Ready For Payment!</h5>
-                    <p class="mb-0">All required documents and personnel files have been uploaded.</p>
-                </div>
-                <form method="POST" action="{% url 'compliance:pay_investigation_fee' lender.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-success btn-lg">Pay Investigation Fee</button>
-                </form>
-            </div>
-            {% endif %}
+            
 
         </div>
     </div>

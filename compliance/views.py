@@ -177,7 +177,6 @@ class PersonnelUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
         self.object = form.save(commit=False)
         
         # 2. Check if the "Submit Final" button was pressed
-        # This is the logic that was missing!
         if 'submit_final' in self.request.POST:
             self.object.fit_proper_questionnaire_submitted = True
             self.object.schedule_iii_submitted = True
@@ -236,7 +235,42 @@ def pay_investigation_fee(request, lender_id):
 
 
 
-def submit_application(request, pk):
+def submit_application(request, lender_id): # Ensure this matches your URL parameter
+    # 1. Look up by lender_id to stay consistent with your other views
+    profile = get_object_or_404(ComplianceProfile, lender__id=lender_id)
+    
+    if request.method == 'POST':
+        # 2. Update the stage
+        profile.current_stage = 'under_review'
+        profile.submission_date = timezone.now()
+        profile.save()
+        
+        # 3. Add a success message
+        messages.success(request, "Application submitted successfully! It is now under review.")
+        
+        # 4. ALWAYS return a redirect after a successful POST
+        return redirect('compliance:compliance_detail', lender_id=lender_id)
+
+    # 5. FALLBACK: If someone accidentally navigates here via GET, 
+    # just send them back to the dashboard.
+    return redirect('compliance:compliance_detail', lender_id=lender_id)
+
+
+def submit_application2(request, pk):
+    profile = get_object_or_404(ComplianceProfile, pk=pk)
+    
+    if request.method == 'POST':
+        # Change the stage to 'under_review'
+        profile.current_stage = 'under_review'
+        profile.submission_date = timezone.now()
+        profile.save()
+        
+        messages.success(request, "Application submitted successfully! The CBL will now begin the review process.")
+        return redirect('compliance:compliance_detail', lender_id=profile.lender.id)
+    return redirect('compliance:compliance_detail', lender_id=pk)
+
+
+def submit_application2(request, pk):
     if request.method == 'POST':
         # 1. Fetch the compliance profile
         compliance = get_object_or_404(ComplianceProfile, pk=pk)

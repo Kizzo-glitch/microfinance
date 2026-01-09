@@ -62,9 +62,22 @@ class ComplianceDashboardService:
             fit_proper_questionnaire_submitted=True
         ).count()
 
-        # 5. Final Calculation
-        total_tasks = len(all_required_docs) + required_personnel
+        # Return stats (Use the updated math from previous turn)
+        total_tasks = len(all_required_docs) + required_personnel + 1
         done_tasks = len(completed_docs) + min(completed_personnel, required_personnel)
+        if self.profile.investigation_fee_paid: done_tasks += 1
+        
+        progress_pct = 100 if self.profile.current_stage == 'under_review' else int((done_tasks / total_tasks) * 100)
+
+        # 5. Final Calculation
+        #total_tasks = len(all_required_docs) + required_personnel
+        #done_tasks = len(completed_docs) + min(completed_personnel, required_personnel)
+
+        # Add 1 to done tasks if fee is paid
+        #if self.profile.investigation_fee_paid:
+        #    done_tasks += 1
+
+        #progress_pct = int((done_tasks / total_tasks) * 100) if total_tasks > 0 else 0
         
         # Safety: Ensure division by zero doesn't happen and empty lists don't result in 100%
         if total_tasks > 0:
@@ -72,19 +85,76 @@ class ComplianceDashboardService:
         else:
             progress_pct = 0
 
-        # 5. Determine Next Action
-        if missing_docs:
+
+        # Determine the status based on progress
+        if self.profile.current_stage == 'under_review':
+            next_action = None
+            action_url = None
+            status_message = "Your application is currently being processed."
+        
+        elif missing_docs:
+            # SYNC STAGE: If docs are missing, we are in gathering
+            if self.profile.current_stage != 'document_gathering':
+                self.profile.current_stage = 'document_gathering'
+                self.profile.save()
             next_action = f"Upload {missing_docs[0].replace('_', ' ').title()}"
             action_url = reverse('compliance:compliance_detail', kwargs={'lender_id': self.lender.pk})
+            status_message = "Institutional documentation is incomplete."
+
         elif completed_personnel < required_personnel:
-            next_action = "Add Personnel & Complete Fit & Proper"
+            # SYNC STAGE: If docs done but personnel missing
+            if self.profile.current_stage != 'Adding Personnel':
+                self.profile.current_stage = 'Adding Personnel'
+                self.profile.save()
+            remainder = required_personnel - completed_personnel
+            next_action = f"Add Personnel (Need {remainder} more)"
             action_url = reverse('compliance:personnel_create', kwargs={'lender_id': self.lender.pk})
+            status_message = f"Personnel requirement: {required_personnel} members."
+
+        elif not self.profile.investigation_fee_paid:
+            # SYNC STAGE: If docs/personnel done but no payment
+            if self.profile.current_stage != 'payment_pending':
+                self.profile.current_stage = 'payment_pending'
+                self.profile.save()
+            next_action = "Pay Investigation Fee"
+            action_url = reverse('compliance:pay_investigation_fee', kwargs={'lender_id': self.lender.pk})
+            status_message = "Please upload proof of payment to proceed."
+
+        else:
+            # SYNC STAGE: Everything done
+            next_action = "Submit to CBL"
+            action_url = reverse('compliance:submit_application', kwargs={'lender_id': self.lender.pk})
+            status_message = "All requirements met. Ready for submission."
+
+        
+        
+        """
+        if self.profile.current_stage in ['under_review', 'approved', 'rejected']:
+            next_action = None # This hides the primary action button
+            action_url = None
+            status_message = "Your application is currently being processed by CBL."
+
+        elif missing_docs:
+            next_action = f"Upload {missing_docs[0].replace('_', ' ').title()}"
+            action_url = reverse('compliance:compliance_detail', kwargs={'lender_id': self.lender.pk})
+            status_message = "Institutional documentation is incomplete."
+        elif completed_personnel < required_personnel:
+            # Calculate how many more are needed for the UI
+            remainder = required_personnel - completed_personnel
+            next_action = f"Add Personnel (Need {remainder} more)"
+            #next_action = "Add Personnel & Complete Fit & Proper"
+            action_url = reverse('compliance:personnel_create', kwargs={'lender_id': self.lender.pk})
+            status_message = f"You must register at least {required_personnel} key personnel."
         elif not self.profile.investigation_fee_paid:
             next_action = "Pay Investigation Fee"
             action_url = reverse('compliance:pay_investigation_fee', kwargs={'lender_id': self.lender.pk})
+            status_message = "All documents verified. Please proceed to payment."
         else:
             next_action = "Submit to CBL"
-            action_url = reverse('compliance:submit_application', kwargs={'pk': self.profile.pk})
+            
+            status_message = "Application ready for final submission."
+            action_url = reverse('compliance:submit_application', kwargs={'lender_id': self.lender.pk})
+            """
 
         return {
             'is_regulated': True,
@@ -97,7 +167,9 @@ class ComplianceDashboardService:
 
             'next_action': next_action,
             'url': action_url,
+            'status_message': status_message,
         }
+
 
 
 class ComplianceDashboardService3:
