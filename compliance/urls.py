@@ -12,12 +12,17 @@ urlpatterns = [
     #path('<int:pk>/personnel-update/', views.personnel_update, name='personnel_update'),
 
     # Personnel
-    path('<int:lender_id>/personnel/', views.PersonnelListView.as_view(), name='personnel_list'),
-    path('<int:lender_id>/submit/', views.submit_application, name='submit_application'),
+    path('<int:lender_id>/personnel/', views.PersonnelListView.as_view(), name='personnel_list'), 
+    #path('<int:lender_id>/pay-fee/', views.pay_investigation_fee, name='pay_investigation_fee'),
+    path('<int:lender_id>/pay-fee/', views.PayInvestigationFeeView.as_view(), name='pay_investigation_fee'),
+    #path('<int:lender_id>/submit/', views.submit_application, name='submit_application'),
+    path('<int:lender_id>/submit/', views.SubmitApplicationView.as_view(), name='submit_application'),
+
+    path('<int:lender_id>/receit/', views.submission_receipt, name='submission_receipt'),
 
     #path('<int:lender_id>/pay-fee/', views.PayInvestigationFeeView.as_view(), name='pay_investigation_fee'),
 
-    path('<int:lender_id>/pay-fee/', views.pay_investigation_fee, name='pay_investigation_fee'),
+    
 
     #path('<int:lender_id>/personnel/add/', views.PersonnelCreateView.as_view(), name='personnel_add'),
     path('<int:lender_id>/personnel/add/', views.PersonnelCreateView.as_view(), name='personnel_create'),

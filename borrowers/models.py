@@ -16,7 +16,9 @@ class BorrowerProfileManager(models.Manager):
 	def get_queryset(self):
 		return super().get_queryset().filter(user__role='borrower', user__is_superuser=False)
 
-
+def get_upload_path(instance, filename):
+    ext = filename.split('.')[-1]
+    return f"Borrower-photos/{instance.user.username}.{ext}"
 
 User = get_user_model()
 
@@ -107,6 +109,12 @@ class BorrowerProfile(models.Model):
 		help_text="Day of the month you usually receive your salary (1–31).",
 		null=True, blank=True
 	)
+	passport_photo = models.ImageField(
+        upload_to=get_upload_path, 
+        null=True, 
+        blank=True,
+        help_text="Standard KYC passport-sized photo required for identification."
+    )
 	#monthly_expenses = models.CharField(max_length=100, choices=MONTHLY_EXPENSES_CHOICES, null=True, blank=True)
 	existing_debts = models.CharField(max_length=100, choices=EXISTING_DEBTS_CHOICES, null=True, blank=True)
 	
@@ -125,9 +133,6 @@ class BorrowerProfile(models.Model):
 	def __str__(self):
 		return self.user.username
 	
-
-
-
 
 
 def upload_to(instance, filename):

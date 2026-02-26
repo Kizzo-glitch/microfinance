@@ -1,5 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
+
+from compliance.compliace_services import ComplianceDashboardService
 from .models import ComplianceProfile, PersonnelProfile
 
 
@@ -108,6 +110,20 @@ class ComplianceProfileForm(forms.ModelForm):
 # 2. UPDATE PROFILE FORM
 # ================================
 
+class ComplianceUpdateForm2(forms.ModelForm):
+    def __init__(self, *args, lender=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if lender:
+            # Determine which fields to show for this tier
+            service = ComplianceDashboardService(lender)
+            required_fields = service._get_required_docs()
+
+            # Remove fields not required for this tier
+            for field_name in list(self.fields.keys()):
+                if field_name not in required_fields:
+                    self.fields.pop(field_name)
+
+
 class ComplianceUpdateForm(forms.ModelForm):
     class Meta:
         model = ComplianceProfile
@@ -121,78 +137,17 @@ class ComplianceUpdateForm(forms.ModelForm):
             'board_list_with_terms', 'credit_committee_terms', 'internal_audit_charter'
         ]
 
-    def __init__(self, *args, **kwargs):
-        # We pass the lender object into the form via kwargs in the view
-        self.lender = kwargs.pop('lender', None)
+    def __init__(self, *args, lender=None, **kwargs):
         super().__init__(*args, **kwargs)
+        if lender:
+            # Determine which fields to show for this tier
+            service = ComplianceDashboardService(lender)
+            required_fields = service._get_required_docs()
 
-        if self.lender:
-            # 1. Define the allowed list for this specific tier
-            allowed_fields = ['aml_cft_manual', 'complaints_procedure', 'schedule_i']
-            tier = self.lender.cbl_tier
-
-            if tier in ['tier1', 'tier2']:
-                allowed_fields += [
-                    'tax_clearance_institution', 'memorandum_articles', 'business_plan', 
-                    'audited_financials', 'risk_management_manual', 'board_list_with_terms', 
-                    'internal_audit_charter'
-                ]
-                if tier == 'tier1':
-                    allowed_fields.append('credit_committee_terms')
-            
-            elif tier == 'tier3':
-                allowed_fields += [
-                    'tax_clearance_institution', 'memorandum_articles', 
-                    'financial_statements_certified'
-                ]
-
-            elif tier in ['individual', 'p2p']:
-                allowed_fields
-                # Individuals/P2P have a light load, but it's NOT zero
-                # We already have core docs, maybe add one specific to individual platforms
-                pass 
-
-            # 2. Remove any field NOT in the allowed list
+            # Remove fields not required for this tier
             for field_name in list(self.fields.keys()):
-                if field_name not in allowed_fields:
+                if field_name not in required_fields:
                     self.fields.pop(field_name)
-
-
-    """
-    def __init__(self, *args, **kwargs):
-        # We pass the lender object during initialization in the view
-        self.lender = kwargs.pop('lender', None)
-        super().__init__(*args, **kwargs)
-
-        if self.lender:
-            tier = self.lender.cbl_tier
-
-            # 1. Logic for Tier 3 (Small Credit-Only)
-            if tier == 'tier3':
-                # Remove Tier 1 & 2 specific fields
-                high_tier_fields = [
-                    'business_plan', 'audited_financials', 
-                    'credit_committee_terms', 'internal_audit_charter'
-                ]
-                for field in high_tier_fields:
-                    if field in self.fields:
-                        del self.fields[field]
-
-            # 2. Logic for Tier 2 (Large Credit-Only)
-            elif tier == 'tier2':
-                # Remove Tier 1 and Tier 3 specific fields
-                excluded = ['credit_committee_terms', 'financial_statements_certified']
-                for field in excluded:
-                    if field in self.fields:
-                        del self.fields[field]
-
-            # 3. Logic for Tier 1 (Deposit-Taking)
-            elif tier == 'tier1':
-                # Tier 1 needs almost everything; just remove Tier 3 specific statements
-                if 'financial_statements_certified' in self.fields:
-                    del self.fields['financial_statements_certified']
-
-    """
 
 
 
@@ -230,6 +185,9 @@ class PersonnelProfileForm(forms.ModelForm):
         ]
         for field_name in checkbox_fields:
             self.fields[field_name].widget.attrs.update({'class': 'form-check-input'})
+
+
+
 """
 class PersonnelProfileForm(forms.ModelForm):
     class Meta:

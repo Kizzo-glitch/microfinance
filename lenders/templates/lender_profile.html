@@ -6,10 +6,11 @@
 <link href="{% static 'lender/vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
 
 
+
 <div class="container py-4">
     <h1 class="mb-4">My Profile Information</h1>
 
-    <form method="POST" action="{% url 'lenders:lender_profile' %}">
+    <form method="POST" action="{% url 'lenders:lender_profile' %}" enctype="multipart/form-data">
         {% csrf_token %}
 
         {% if form.non_field_errors %}
@@ -18,8 +19,38 @@
             </div>
         {% endif %}
 
+        <div class="border p-4 mb-4 shadow-sm">
+            <h4 class="text-center mb-3">Business Leadership (CEO)</h4>
+            <div class="col-md-3 text-center">
+                <label>CEO Passport-Sized Photo</label>
+                <div id="drop-zone" class="upload-container border-dashed p-3" onclick="document.getElementById('id_passport_photo').click()">
+                    {% if form.instance.passport_photo %}
+                        <img id="preview" src="{{ form.instance.passport_photo.url }}" class="img-fluid rounded shadow-sm">
+                    {% else %}
+                        <div id="placeholder">
+                            <i class="fas fa-user-circle fa-4x text-secondary mb-2"></i>
+                            <p class="small text-muted mb-0">Drag & Drop or Click</p>
+                        </div>
+                        <img id="preview" src="" class="img-fluid rounded shadow-sm d-none">
+                    {% endif %}
+                </div>
+                <div class="d-none">
+                    {{ form.passport_photo }}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3"><label>First Name</label>{{ form.ceo_first_name }}</div>
+                <div class="col-md-3"><label>Last Name</label>{{ form.ceo_last_name }}</div>
+                <div class="col-md-3"><label>Email</label>{{ form.ceo_email }}</div>
+                <div class="col-md-3"><label>Phone</label>{{ form.ceo_phone }}</div>
+            </div>
+        </div>
+
+
         <div class="border p-4 mb-4 shadow-sm bg-light">
             <h4 class="text-center mb-3">Business Information & Contact</h4>
+
+            
             <div class="row mb-3">
                 <div class="col-md-4">
                     <label>Company Name</label>
@@ -55,17 +86,6 @@
             </div>
         </div>
         
-        <div class="border p-4 mb-4 shadow-sm">
-            <h4 class="text-center mb-3">Leadership (CEO)</h4>
-            <div class="row">
-                <div class="col-md-3"><label>First Name</label>{{ form.ceo_first_name }}</div>
-                <div class="col-md-3"><label>Last Name</label>{{ form.ceo_last_name }}</div>
-                <div class="col-md-3"><label>Email</label>{{ form.ceo_email }}</div>
-                <div class="col-md-3"><label>Phone</label>{{ form.ceo_phone }}</div>
-            </div>
-        </div>
-
-        
 
         <div class="border p-4 mb-4 shadow-sm">
             <h4 class="text-center mb-3">Lending Parameters</h4>
@@ -96,7 +116,156 @@
             </div>
         </div>
 
+        <div class="border p-4 mb-4 shadow-sm">
+            <h4 class="text-center mb-3">CBL Tier Classification</h4>
+
+            <div class="alert alert-info small mb-4">
+                <i class="fas fa-info-circle me-1"></i>
+                Your tier determines which CBL regulations apply to your institution.
+                <strong>Tier 1</strong> requires a deposit-taking licence declaration.
+                <strong>Tiers 2 & 3</strong> are determined by your total assets.
+                Use the fields below and the indicator will guide your selection.
+            </div>
+
+            <div class="row mb-4">
+                {# Assets & Capital (input fields) #}
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">
+                        Total Assets (M)
+                        <i class="fas fa-info-circle text-primary ms-1"
+                        data-bs-toggle="tooltip"
+                        title="Your gross loan portfolio + cash on hand + property. Assets ≥ M10,000,000 qualifies as Tier 2.">
+                        </i>
+                    </label>
+                    {{ form.total_assets }}
+                    <div class="form-text">Tier 2 threshold: M10,000,000</div>
+                    {{ form.total_assets.errors }}
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label fw-bold">
+                        Stated Capital (M)
+                        <i class="fas fa-info-circle text-primary ms-1"
+                        data-bs-toggle="tooltip"
+                        title="Total capital invested by shareholders. Used as a minimum threshold indicator — not the sole basis for tier.">
+                        </i>
+                    </label>
+                    {{ form.stated_capital }}
+                    <div class="form-text">Minimum for Tier 3: M500,000</div>
+                    {{ form.stated_capital.errors }}
+                </div>
+
+                {# Live Tier Indicator #}
+                <div class="col-md-4 d-flex align-items-center">
+                    <div id="tier-indicator" class="w-100 p-3 rounded border text-center" style="min-height: 80px;">
+                        <div id="tier-icon" class="mb-1"><i class="fas fa-question-circle fa-2x text-muted"></i></div>
+                        <div id="tier-label" class="small text-muted">Enter assets to see suggested tier</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                {# CBL Tier (regulated entities only) #}
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">CBL Regulatory Tier</label>
+                    <div class="form-text text-muted mb-2">
+                        For institutions applying for or holding a CBL licence.
+                        Select <strong>Tier 1</strong> only if you intend to accept deposits.
+                    </div>
+                    {{ form.cbl_tier }}
+                    {{ form.cbl_tier.errors }}
+
+                    {# Deposit-taking warning — shown only when Tier 1 is selected #}
+                    <div id="tier1-warning" class="alert alert-warning small mt-2 d-none">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <strong>Tier 1 (Deposit-Taking)</strong> requires a separate CBL deposit-taking
+                        licence and carries the highest compliance requirements including:
+                        board minimum of 5, Audit Committee, Board Credit Committee,
+                        and 15% liquidity ratio maintenance at all times.
+                    </div>
+                </div>
+
+                {# Platform Tier (non-CBL entities) #}
+                <div class="col-md-6">
+                    <label class="form-label fw-bold">Platform Classification</label>
+                    <div class="form-text text-muted mb-2">
+                        For individual lenders or P2P participants operating under
+                        the Fedha-Grow platform umbrella. Leave blank if you have a CBL tier.
+                    </div>
+                    {{ form.platform_tier }}
+                    {{ form.platform_tier.errors }}
+                </div>
+            </div>
+
+            {# Mutual exclusivity notice #}
+            <div id="both-tiers-warning" class="alert alert-danger small mt-3 d-none">
+                <i class="fas fa-times-circle me-1"></i>
+                A lender cannot have both a CBL tier and a platform classification at the same time.
+                Please clear one of the two fields.
+            </div>
+
+            {# Operating under umbrella #}
+            <div class="form-check mt-3">
+                {{ form.operating_under_platform }}
+                <label class="form-check-label" for="{{ form.operating_under_platform.id_for_label }}">
+                    This institution operates under the Fedha-Grow platform umbrella licence
+                </label>
+            </div>
+        </div>
+
+        {# CBL Licence Status (read-only display, authoritative in ComplianceProfile) #}
         <div class="border p-4 mb-4 shadow-sm bg-light">
+            <h4 class="text-center mb-3">CBL Licence Status</h4>
+            <div class="alert alert-secondary small">
+                <i class="fas fa-lock me-1"></i>
+                Licence details are managed through your
+                {# Fix: only render the link when the lender actually exists #}
+                
+                {% if profile and profile.pk %}
+                    <a href="{% url 'compliance:compliance_detail' profile.pk %}">Compliance Dashboard</a>
+                {% else %}
+                    <span class="text-muted">Available after saving your profile</span>
+                {% endif %}
+
+                and updated by CBL administrators. They are shown here for reference only.
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label text-muted small">CBL Licence Number</label>
+                    <div class="form-control-plaintext fw-bold">
+                        {{ lender.cbl_license_number|default:"Not yet issued" }}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-muted small">Licence Expiry Date</label>
+                    <div class="form-control-plaintext {% if lender.license_expiry_warning %}text-danger fw-bold{% endif %}">
+                        {% if lender.cbl_license_expiry %}
+                            {{ lender.cbl_license_expiry|date:"d M Y" }}
+                            {% if lender.license_expiry_warning %}
+                                <span class="badge bg-danger ms-2">Expiring Soon</span>
+                            {% endif %}
+                        {% else %}
+                            Not yet issued
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-muted small">Verification Status</label>
+                    <div>
+                        <span class="badge 
+                            {% if lender.verification_status == 'licensed' %}bg-success
+                            {% elif lender.verification_status == 'under_review' %}bg-info
+                            {% elif lender.verification_status == 'suspended' %}bg-danger
+                            {% elif lender.verification_status == 'rejected' %}bg-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ lender.get_verification_status_display }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--<div class="border p-4 mb-4 shadow-sm bg-light">
             <h4 class="text-center mb-3">Legal & Financial Status</h4>
             <div class="row">
                 <div class="col-md-3"><label>Registration Number</label>{{ form.registration_number }}</div>
@@ -145,7 +314,7 @@
                 {{ form.operating_under_platform }}
                 <label class="form-check-label">{{ form.operating_under_platform.label }}</label>
             </div>
-        </div>
+        </div>-->
 
         <div class="border p-4 mb-4 shadow-sm">
             <h4 class="text-center mb-3">Regulatory & Association Membership</h4>
@@ -206,7 +375,163 @@
     </form>
 </div>
 
+
 <script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ── Tier Indicator ───────────────────────────────────────────────
+    const assetsField = document.getElementById('id_total_assets');
+    const capitalField = document.getElementById('id_stated_capital');
+    const cblTierField = document.getElementById('id_cbl_tier');
+    const platformField = document.getElementById('id_platform_tier');
+
+    const tierIcon = document.getElementById('tier-icon');
+    const tierLabel = document.getElementById('tier-label');
+    const indicator = document.getElementById('tier-indicator');
+    const tier1Warning = document.getElementById('tier1-warning');
+    const bothWarning = document.getElementById('both-tiers-warning');
+
+    const TIER_CONFIGS = {
+        tier2: {
+            icon:    'fas fa-building fa-2x text-primary',
+            label:   'Suggested: <strong>Tier 2</strong> — Credit-Only (Large)',
+            hint:    'Total assets meet the M10,000,000 threshold.',
+            border:  'border-primary',
+            bg:      'bg-white',
+        },
+        tier3: {
+            icon:    'fas fa-store fa-2x text-success',
+            label:   'Suggested: <strong>Tier 3</strong> — Credit-Only (Small)',
+            hint:    'Assets below M10,000,000 — credit-only entity.',
+            border:  'border-success',
+            bg:      'bg-white',
+        },
+        low: {
+            icon:    'fas fa-exclamation-circle fa-2x text-warning',
+            label:   'Capital below minimum',
+            hint:    'Tier 3 minimum is M500,000 in stated capital.',
+            border:  'border-warning',
+            bg:      'bg-white',
+        },
+        empty: {
+            icon:    'fas fa-question-circle fa-2x text-muted',
+            label:   'Enter assets to see suggested tier',
+            hint:    '',
+            border:  'border',
+            bg:      '',
+        },
+    };
+
+    function updateIndicator() {
+        const assets = parseFloat(assetsField.value)  || 0;
+        const capital = parseFloat(capitalField.value) || 0;
+
+        // Remove all border classes
+        indicator.className = 'w-100 p-3 rounded text-center';
+
+        let config;
+        if (assets >= 10_000_000) {
+            config = TIER_CONFIGS.tier2;
+        } else if (assets > 0 || capital >= 500_000) {
+            // Any assets present, or capital meets Tier 3 minimum
+            config = TIER_CONFIGS.tier3;
+        } else if (capital > 0) {
+            config = TIER_CONFIGS.low;
+        } else {
+            config = TIER_CONFIGS.empty;
+        }
+
+        indicator.classList.add(config.border, config.bg);
+        tierIcon.innerHTML  = `<i class="${config.icon}"></i>`;
+        tierLabel.innerHTML = `${config.label}${config.hint ? `<div class="text-muted mt-1" style="font-size:0.75rem">${config.hint}</div>` : ''}`;
+
+        // NOTE: We do NOT set cblTierField.value here.
+        // The indicator suggests — the user decides.
+    }
+
+    if (assetsField)  assetsField.addEventListener('input', updateIndicator);
+    if (capitalField) capitalField.addEventListener('input', updateIndicator);
+    updateIndicator(); // Run once on page load
+
+    // ── Tier 1 deposit-taking warning ────────────────────────────────
+    if (cblTierField && tier1Warning) {
+        function checkTier1() {
+            if (cblTierField.value === 'tier1') {
+                tier1Warning.classList.remove('d-none');
+            } else {
+                tier1Warning.classList.add('d-none');
+            }
+        }
+        cblTierField.addEventListener('change', checkTier1);
+        checkTier1(); // Run on load for edit forms
+    }
+
+    // ── Mutual exclusivity: cbl_tier + platform_tier ─────────────────
+    if (cblTierField && platformField && bothWarning) {
+        function checkMutualExclusivity() {
+            const hasCbl = cblTierField.value !== '';
+            const hasPlatform = platformField.value !== '';
+            if (hasCbl && hasPlatform) {
+                bothWarning.classList.remove('d-none');
+            } else {
+                bothWarning.classList.add('d-none');
+            }
+        }
+        cblTierField.addEventListener('change', checkMutualExclusivity);
+        platformField.addEventListener('change', checkMutualExclusivity);
+        checkMutualExclusivity(); // Run on load
+    }
+
+    // ── Passport photo drag & drop ────────────────────────────────────
+    /*const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('id_passport_photo');
+    const preview = document.getElementById('preview');
+    const placeholder = document.getElementById('placeholder');
+
+    if (dropZone && fileInput) {
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropZone.addEventListener(evt, e => {
+                e.preventDefault();
+                dropZone.classList.add('border-primary', 'bg-white', 'shadow-sm');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(evt => {
+            dropZone.addEventListener(evt, e => {
+                e.preventDefault();
+                dropZone.classList.remove('border-primary', 'bg-white', 'shadow-sm');
+            });
+        });
+
+        dropZone.addEventListener('drop', e => {
+            fileInput.files = e.dataTransfer.files;
+            showPreview(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', function () {
+            showPreview(this.files);
+        });
+
+        function showPreview(files) {
+            if (!files.length) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                preview.src = e.target.result;
+                preview.classList.remove('d-none');
+                if (placeholder) placeholder.classList.add('d-none');
+            };
+            reader.readAsDataURL(files[0]);
+        }
+    } */
+
+    // ── Bootstrap tooltips ────────────────────────────────────────────
+    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+        new bootstrap.Tooltip(el);
+    });
+});
+</script>
+
+<!--<script>
 document.addEventListener('DOMContentLoaded', function() {
     const capitalField = document.querySelector('#id_stated_capital');
     const assetsField = document.querySelector('#id_total_assets');
@@ -272,48 +597,60 @@ var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggl
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
       return new bootstrap.Tooltip(tooltipTriggerEl)
     })
+
+
+    
+</script>-->
+
+<script>
+   document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('drop-zone');
+    // Specifically target the passport_photo input
+    const fileInput = document.getElementById('id_passport_photo') || document.querySelector('input[name="passport_photo"]');
+    const preview = document.getElementById('preview');
+    const placeholder = document.getElementById('placeholder');
+
+    if (!fileInput || !dropZone) return; 
+
+    // Highlight drop zone on drag
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-primary', 'bg-white shadow-sm');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-primary', 'bg-white shadow-sm');
+        }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        fileInput.files = dt.files;
+        handleFiles(dt.files);
+    });
+
+    fileInput.addEventListener('change', function() {
+        handleFiles(this.files);
+    });
+
+    function handleFiles(files) {
+        if (files.length > 0) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.classList.remove('d-none');
+                if (placeholder) placeholder.classList.add('d-none');
+            }
+            reader.readAsDataURL(files[0]);
+        }
+    }
+});
 </script>
 
-<!--<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const capitalField = document.querySelector('#id_stated_capital');
-    const assetsField = document.querySelector('#id_total_assets');
-    const tierField = document.querySelector('#id_cbl_tier');
-    const msgDiv = document.getElementById('tier_msg');
-
-    function calculateTier() {
-        const capital = parseFloat(capitalField.value) || 0;
-        const assets = parseFloat(assetsField.value) || 0;
-        
-        let tierValue = 'individual';
-        let color = '#6c757d'; // Gray
-
-        if (assets >= 10000000) {
-            tierValue = 'tier2';
-            color = '#0d6efd'; // Blue
-        } else if (capital >= 500000) {
-            tierValue = 'tier3';
-            color = '#198754'; // Green
-        } else if (capital >= 50000) {
-            tierValue = 'individual';
-            color = '#6c757d';
-        } else if (capital >= 10000) {
-            tierValue = 'p2p';
-        }
-
-        tierField.value = tierValue;
-        msgDiv.innerHTML = `Auto-selected based on financials.`;
-        msgDiv.style.color = color;
-        
-        // Highlight the field briefly
-        tierField.style.backgroundColor = '#e8f0fe';
-        setTimeout(() => { tierField.style.backgroundColor = ''; }, 500);
-    }
-
-    capitalField.addEventListener('input', calculateTier);
-    assetsField.addEventListener('input', calculateTier);
-});
-</script>-->
 
 <style>
     #id_cbl_tier.is-valid {
@@ -333,6 +670,32 @@ document.addEventListener('DOMContentLoaded', function() {
     .form-control:focus { border-color: #0d6efd; box-shadow: 0 0 0 0.2rem rgba(13,110,253,.15); }
     .term-box { background: #fff; border: 1px solid #dee2e6; padding: 5px 10px; border-radius: 5px; }
     .text-danger { font-size: 0.8rem; display: block; }
+
+    .border-dashed {
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.border-dashed:hover {
+    border-color: #0d6efd;
+    background-color: #f8f9fa;
+}
+
+.upload-container img {
+    max-height: 140px;
+    width: auto;
+}
+
+.upload-container #placeholder i {
+    opacity: 0.5;
+}
 </style>
 
 {% endblock %}

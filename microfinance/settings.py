@@ -44,7 +44,9 @@ INSTALLED_APPS = [
     'crispy_forms',
     'crispy_bootstrap4',
     'django.contrib.humanize',
-    'compliance'
+    'compliance',
+    'regulation',
+    'widget_tweaks',
     #'drf-yasg', 
 ]
 
@@ -58,6 +60,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'micro.middleware.PasswordChangeMiddleware',
 ]
 
 ROOT_URLCONF = 'microfinance.urls'
@@ -183,7 +186,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = '/redirect/'  # Calls the role-based redirect view
 LOGOUT_REDIRECT_URL = '/'  # Redirect to landing page after logout
 
+
 AUTH_USER_MODEL = 'micro.User'
+
+SITE_URL = "http://127.0.0.1:8000"
 
 # Twilio
 TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')

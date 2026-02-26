@@ -16,6 +16,54 @@ user = settings.AUTH_USER_MODEL
 # ================================
 
 class ComplianceProfile(models.Model):
+
+    # Application Stage
+    STAGE_CHOICES = [
+        # --- Pre-submission ---
+        ('not_started',              'Not Started'),
+        ('document_gathering',       'Gathering Institutional Documents'),
+        ('fit_proper_pending',       'Fit & Proper — Personnel Incomplete'),
+        ('investigation_fee_pending','Awaiting Investigation Fee Payment'),
+
+        # --- Submitted ---
+        ('submitted',                'Submitted to CBL'),
+        ('under_review',             'Under CBL Review'),
+
+        # --- Post-approval ---
+        ('registration_fee_pending', 'Awaiting Registration Fee Payment'),
+        ('license_fee_pending',      'Awaiting Licence Fee Payment'),
+        ('licensed',                 'Licensed'),
+
+        # --- Ongoing (post-licensing) ---
+        ('renewal_fee_pending',      'Awaiting Annual Renewal Fee'),
+        ('renewal_under_review',     'Renewal Under CBL Review'),
+
+        # --- Terminal ---
+        ('rejected',                 'Rejected'),
+        ('suspended',                'Suspended'),
+        ('revoked',                  'Licence Revoked'),
+    ]
+
+    DOCUMENT_LABELS = {
+        'schedule_i':                    'Schedule I — Application Form',
+        'schedule_ii':                   'Schedule II — Information Sheet',
+        'tax_clearance_institution':     'Company Tax Clearance Certificate',
+        'business_plan':                 'Detailed Business Plan',
+        'audited_financials':            'Audited Financial Statements (2 years)',
+        'financial_statements_certified':'Financial Statements by Certified Accountant',
+        'capital_commitment_letter':     'Capital Commitment Letter',
+        'bank_statements_capital':       'Bank Statements (Capital Evidence)',
+        'risk_management_manual':        'Risk Management Manual',
+        'aml_cft_manual':               'AML/CFT Policy Manual',
+        'complaints_procedure':          'Consumer Complaints & Redress Procedure',
+        'memorandum_articles':           'Memorandum & Articles of Association',
+        'home_supervisor_consent':       'Home Country Supervisor Consent',
+        'board_resolution_for_licensing':'Board Resolution for Licensing',
+        'board_list_with_terms':         'Board of Directors List with Terms',
+        'credit_committee_terms':        'Board Credit Committee Terms (Tier 1)',
+        'internal_audit_charter':        'Internal Audit Charter',
+    }
+
     """
     Top-level compliance record for a lender.
     Tracks licensing status, CBL reference, and overall progress.
@@ -29,24 +77,12 @@ class ComplianceProfile(models.Model):
     cbl_license_number = models.CharField(max_length=100, blank=True)
     cbl_license_expiry = models.DateField(null=True, blank=True)
 
-    # Application Stage
-    STAGE_CHOICES = [
-        ('not_started', 'Not Started'),
-        ('document_gathering', 'Gathering Documents'),
-        ('fit_proper_pending', 'Fit & Proper Pending'),
-        ('submitted', 'Submitted to CBL'),
-        ('under_review', 'CBL Under Review'),
-        ('licensed', 'Licensed'),
-        ('rejected', 'Rejected'),
-        ('suspended', 'Suspended'),
-    ]
     current_stage = models.CharField(max_length=30, choices=STAGE_CHOICES, default='not_started')
 
     # Required Institutional Documents (Per Checklist)
     schedule_i = models.FileField(upload_to='compliance/schedule/', blank=True, null=True)
     schedule_ii = models.FileField(upload_to='compliance/schedule/', blank=True, null=True)  
-    tax_clearance_institution = models.FileField(upload_to='compliance/tax/', blank=True, null=True)
-   
+    tax_clearance_institution = models.FileField(upload_to='compliance/tax/', blank=True, null=True)   
 
     # Business Plan & Financials
     business_plan = models.FileField(upload_to='compliance/business_plans/', blank=True, null=True, help_text="Required for Tier 1 & 2")
@@ -72,19 +108,33 @@ class ComplianceProfile(models.Model):
     internal_audit_charter = models.FileField(upload_to='compliance/audit/', blank=True, null=True, help_text="Tier 1 & 2")
 
     # CBL Fee Payment (Optional tracking)
-    investigation_fee_paid = models.BooleanField(default=False)
-    investigation_fee_proof = models.FileField(
-        upload_to='compliance/payments/', 
-        null=True, 
-        blank=True,
-        help_text="Upload the bank transfer/deposit slip"
+    # --- Investigation Fee (paid before submission) ---
+    investigation_fee_paid   = models.BooleanField(default=False)
+    investigation_fee_proof  = models.FileField(upload_to='compliance/payments/investigation/',null=True, blank=True,
+        help_text="Bank transfer slip or deposit confirmation"
     )
-    date_paid = models.DateTimeField(null=True, blank=True)
+    investigation_fee_paid_at = models.DateTimeField(null=True, blank=True)
+
+    # --- Registration Fee (paid after CBL approves application) ---
     registration_fee_paid = models.BooleanField(default=False)
+    registration_fee_proof = models.FileField(upload_to='compliance/payments/registration/', null=True, blank=True)
+    registration_fee_paid_at = models.DateTimeField(null=True, blank=True)
+
+    # --- Licence Fee (paid to receive the actual licence) ---
+    license_fee_paid = models.BooleanField(default=False)
+    license_fee_proof = models.FileField(upload_to='compliance/payments/license/', null=True, blank=True)
+    license_fee_paid_at = models.DateTimeField(null=True, blank=True)
+
+    # --- Annual Renewal Fee ---
+    renewal_fee_paid = models.BooleanField(default=False)
+    renewal_fee_proof = models.FileField(upload_to='compliance/payments/renewal/', null=True, blank=True)
+    renewal_fee_paid_at = models.DateTimeField(null=True, blank=True)
+    renewal_year = models.PositiveIntegerField(null=True, blank=True, help_text="The year this renewal fee covers")
 
     # Metadata
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    submission_date = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def update_stage(self):
@@ -106,30 +156,6 @@ class ComplianceProfile(models.Model):
         # so we don't automate that here.
 
         self.save(update_fields=['current_stage'])
-    
-    
-    """
-    def update_stage(self):
-        
-        # 1. If we have at least one document but aren't finished
-        if self.current_stage == 'not_started':
-            self.current_stage = 'document_gathering'
-        
-        # 2. If all core docs are in, but personnel is missing (Fit & Proper)
-        # This logic matches your service progress logic
-        core_docs_submitted = all([self.aml_cft_manual, self.complaints_procedure, self.tax_clearance_institution])
-        
-        if core_docs_submitted and self.current_stage == 'document_gathering':
-            # Check if they have at least 1 personnel member
-            if self.lender.personnel.exists():
-                self.current_stage = 'fit_proper_pending'
-            else:
-                # Still gathering institutional docs or waiting for first personnel
-                pass
-
-        self.save(update_fields=['current_stage'])
-    """
-
 
     def __str__(self):
         return f"Compliance: {self.lender.company_name}"
@@ -207,11 +233,27 @@ class PersonnelProfile(models.Model):
 
     # Required Documents (as per Schedule III)
     police_clearance = models.FileField(upload_to='compliance/personnel/police/', blank=True, null=True)
-    tax_clearance = models.FileField(upload_to='compliance/personnel/tax/', blank=True, null=True)
-    assets_liabilities_statement = models.FileField(upload_to='compliance/personnel/financials/', blank=True, null=True)
-    character_references = models.FileField(upload_to='compliance/personnel/references/', blank=True, null=True, help_text="Two notarized letters")
-    bank_references = models.FileField(upload_to='compliance/personnel/bank_refs/', blank=True, null=True, help_text="Two bank reference letters")
+    #tax_clearance = models.FileField(upload_to='compliance/personnel/tax/', blank=True, null=True)
+    #assets_liabilities_statement = models.FileField(upload_to='compliance/personnel/financials/', blank=True, null=True)
+    #character_references = models.FileField(upload_to='compliance/personnel/references/', blank=True, null=True, help_text="Two notarized letters")
+    #bank_references = models.FileField(upload_to='compliance/personnel/bank_refs/', blank=True, null=True, help_text="Two bank reference letters")
     id_copy = models.FileField(upload_to='compliance/personnel/id/', blank=True, null=True, help_text="Certified copy of ID or passport")
+
+    fit_proper_form = models.FileField(upload_to='compliance/personnel/forms/', null=True, blank=True)
+    curriculum_vitae = models.FileField(upload_to='compliance/personnel/cvs/', null=True, blank=True)
+    
+    tax_clearance_individual = models.FileField(upload_to='compliance/personnel/tax/', null=True, blank=True)
+    
+    statement_assets_liabilities = models.FileField(upload_to='compliance/personnel/financials/', null=True, blank=True)
+    
+    # References are special (CBL wants 2 of each)
+    character_ref_1 = models.FileField(upload_to='compliance/personnel/refs/', null=True, blank=True)
+    character_ref_2 = models.FileField(upload_to='compliance/personnel/refs/', null=True, blank=True)
+    financial_ref_1 = models.FileField(upload_to='compliance/personnel/refs/', null=True, blank=True)
+    financial_ref_2 = models.FileField(upload_to='compliance/personnel/refs/', null=True, blank=True)
+
+    is_chairman = models.BooleanField(default=False, help_text="Is this person the board chairman?")
+    is_non_executive = models.BooleanField(default=False, help_text="Is this director non-executive?")
 
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
@@ -221,8 +263,9 @@ class PersonnelProfile(models.Model):
     def is_complete(self):
         """Checks if all mandatory files and declarations are present."""
         required_files = [
-            self.police_clearance, self.tax_clearance, self.id_copy,
-            self.assets_liabilities_statement, self.character_references, self.bank_references
+            self.police_clearance, self.tax_clearance_individual, self.id_copy,
+            self.statement_assets_liabilities, self.character_ref_1, 
+            self.character_ref_2, self.financial_ref_1, self.financial_ref_2
         ]
         # Check if all files exist and both questionnaires are marked as submitted
         files_ok = all(bool(f) for f in required_files)
@@ -232,7 +275,7 @@ class PersonnelProfile(models.Model):
         return f"{self.full_name} ({self.get_role_display()}) - {self.lender.company_name}"
     
     @property
-    def status(self):
+    def status2(self):
         """Returns a dict with status label and a CSS class for badges."""
         if self.fit_proper_questionnaire_submitted and self.schedule_iii_submitted:
             # Check if they also uploaded all documents
@@ -242,6 +285,44 @@ class PersonnelProfile(models.Model):
             return {'label': 'Questionnaire Done (Docs Pending)', 'class': 'info'}
         
         return {'label': 'Draft', 'class': 'warning'}
+    
+
+    @property
+    def status(self):
+        if self.fit_proper_questionnaire_submitted and self.schedule_iii_submitted:
+            # Both questionnaires submitted
+            required_files = [self.police_clearance, self.tax_clearance_individual, self.id_copy]
+            if all(bool(f) for f in required_files):
+                return {'label': 'Complete', 'class': 'success'}
+            return {'label': 'Questionnaire Done (Docs Pending)', 'class': 'info'}
+        
+        # Check if they've uploaded documents even without final submission
+        if self.is_fully_verified():
+            return {'label': 'Documents Ready (Needs Final Submit)', 'class': 'warning'}
+        
+        return {'label': 'Draft', 'class': 'secondary'}
+
+
+    def get_missing_items(self):
+        """Returns a list of human-readable names for missing documents."""
+        checklist = [
+            (self.fit_proper_form, "Fit & Proper Form"),
+            (self.curriculum_vitae, "Detailed CV"),
+            (self.police_clearance, "Police Clearance"),
+            (self.tax_clearance_individual, "Personal Tax Clearance"),
+            (self.id_copy, "Certified ID"),
+            (self.statement_assets_liabilities, "Statement of Assets/Liabilities"),
+            (self.character_ref_1, "Character Reference 1"),
+            (self.character_ref_2, "Character Reference 2"),
+            (self.financial_ref_1, "Financial Reference 1"),
+            (self.financial_ref_2, "Financial Reference 2"),
+        ]
+        # Return the names of the fields that are empty (None or '')
+        return [name for field, name in checklist if not field]
+
+    def is_fully_verified(self):
+        return len(self.get_missing_items()) == 0
+
 
 
 # ================================

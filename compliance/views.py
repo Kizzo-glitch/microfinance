@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.urls import reverse_lazy
 from django.urls import reverse
 from django.views.generic import (
-    DetailView, CreateView, UpdateView, DeleteView, ListView
+    DetailView, CreateView, UpdateView, DeleteView, ListView, View
 )
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
@@ -24,10 +24,7 @@ from .forms import ComplianceProfileForm, ComplianceUpdateForm, PersonnelProfile
 
 
 class LenderOwnerMixin:
-    """
-    Ensures only the lender (or admin) can access their compliance data.
-    Works for both /lender/20/... and /personnel/4/edit/
-    """
+
     def get_lender(self):
         # Case A: URL has 'lender_id' (e.g., Dashboard or Create Personnel)
         if 'lender_id' in self.kwargs:
@@ -58,21 +55,6 @@ class LenderOwnerMixin:
         return super().dispatch(request, *args, **kwargs)
     
 
-class LenderOwnerMixin2:
-    """
-    Ensures only the lender (or admin) can access their compliance data.
-    """
-    def get_lender(self):
-        return get_object_or_404(LenderProfile, pk=self.kwargs['lender_id'])
-
-    def dispatch(self, request, *args, **kwargs):
-        lender = self.get_lender()
-        if request.user != lender.user and not request.user.is_staff:
-            raise PermissionDenied
-        return super().dispatch(request, *args, **kwargs)
-
-
-
 # ================================
 # 1. INSTITUTIONAL COMPLIANCE VIEWS
 # ================================
@@ -88,6 +70,37 @@ class ComplianceProfileDetailView(LoginRequiredMixin, LenderOwnerMixin, DetailVi
         compliance, _ = ComplianceProfile.objects.get_or_create(lender=lender)
         return compliance
    
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        lender = self.object.lender
+        context['lender'] = lender
+        context['compliance'] = self.object
+        context['personnel_list'] = lender.personnel.all()
+
+        service = ComplianceDashboardService(lender)
+        context['stats'] = service.get_dashboard_data()
+
+        # Build the doc dict for only this tier's required fields
+        required_fields = service._get_required_docs()
+        context['compliance_docs'] = {
+            field: ComplianceProfile.DOCUMENT_LABELS[field]
+            for field in required_fields
+            if field in ComplianceProfile.DOCUMENT_LABELS
+        }
+        return context
+    
+    """
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['lender'] = self.object.lender
+        context['compliance'] = self.object          # explicit, matches context_object_name
+        context['personnel_list'] = self.object.lender.personnel.all()
+        service = ComplianceDashboardService(self.object.lender)
+        context['stats'] = service.get_dashboard_data()
+        return context
+
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Use the lender attached to the compliance profile object
@@ -98,7 +111,7 @@ class ComplianceProfileDetailView(LoginRequiredMixin, LenderOwnerMixin, DetailVi
         service = ComplianceDashboardService(self.object.lender)
         context['stats'] = service.get_dashboard_data()
         
-        return context
+        return context"""
 
 
 class ComplianceUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
@@ -122,10 +135,16 @@ class ComplianceUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
         return context
     
     def form_valid(self, form):
+        # Just save — the dashboard service recalculates stage on next read.
+        # Do not call update_stage() — that method is now deprecated.
+        return super().form_valid(form)
+    
+    """
+    def form_valid(self, form):
         response = super().form_valid(form)
         # Trigger the stage update after documents are saved
         self.object.update_stage()
-        return response
+        return response """
 
     def get_success_url(self):
         return reverse_lazy('compliance:compliance_detail', kwargs={'lender_id': self.object.lender.id})
@@ -135,7 +154,26 @@ class ComplianceUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
 # 2. PERSONNEL VIEWS
 # ================================
 
-class PersonnelCreateView(LoginRequiredMixin, CreateView):
+class PersonnelCreateView(LoginRequiredMixin, LenderOwnerMixin, CreateView):
+    model = PersonnelProfile
+    form_class = PersonnelProfileForm
+    template_name = 'personnel_form.html'
+
+    def form_valid(self, form):
+        form.instance.lender = self.get_lender()
+        return super().form_valid(form)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['lender'] = self.get_lender()
+        return context
+
+    def get_success_url(self):
+        return reverse('compliance:compliance_detail',
+                       kwargs={'lender_id': self.kwargs['lender_id']})
+    
+
+class PersonnelCreateView2(LoginRequiredMixin, CreateView):
     model = PersonnelProfile
     form_class = PersonnelProfileForm
     template_name = 'personnel_form.html'
@@ -171,22 +209,13 @@ class PersonnelUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
     def get_queryset(self):
         lender = self.get_lender()
         return PersonnelProfile.objects.filter(lender=lender)
-
+    
     def form_valid(self, form):
-        # 1. Save the form but don't commit to DB yet
-        self.object = form.save(commit=False)
-        
-        # 2. Check if the "Submit Final" button was pressed
         if 'submit_final' in self.request.POST:
-            self.object.fit_proper_questionnaire_submitted = True
-            self.object.schedule_iii_submitted = True
-        
-        # 3. Save the object
-        self.object.save()
-        
-        # 4. Trigger the stage update on the compliance profile
-        self.object.lender.compliance.update_stage()
-        
+            form.instance.fit_proper_questionnaire_submitted = True
+            form.instance.schedule_iii_submitted = True
+
+        # Let super() do the single save — don't call form.save() manually
         return super().form_valid(form)
 
     def get_success_url(self):
@@ -197,24 +226,60 @@ class PersonnelUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
 
 
 
-# ================================
-# 2. PERSONNEL VIEWS
-# ================================
 
-class PayInvestigationFeeView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
-    model = ComplianceProfile
-    template_name = 'payment_form.html'
-    fields = ['investigation_fee_paid', 'payment_reference'] 
-   
-    def get_object(self):
-        # We find the profile using the lender_id from the URL
-        return get_object_or_404(ComplianceProfile, lender__id=self.kwargs['lender_id'])
-  
-    def get_success_url(self):
-        return reverse('compliance:compliance_detail', kwargs={'lender_id': self.kwargs['lender_id']})
+class PersonnelListView(LoginRequiredMixin, LenderOwnerMixin, ListView):
+    model = PersonnelProfile
+    template_name = 'personnel_list.html'
+    context_object_name = 'personnel_list'
+
+    def get_queryset(self):
+        lender = self.get_lender()
+        return PersonnelProfile.objects.filter(lender=lender)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['lender'] = self.get_lender()
+        return context
     
 
-def pay_investigation_fee(request, lender_id):
+# ================================
+# 2. PAYMENT and SUBMISSIONS
+# ================================    
+
+class PayInvestigationFeeView(LoginRequiredMixin, LenderOwnerMixin, View):
+    template_name = 'payment_form.html'
+
+    def get(self, request, lender_id):
+        lender = self.get_lender()
+        return render(request, self.template_name, {'lender': lender})
+
+    def post(self, request, lender_id):
+        lender = self.get_lender()
+        compliance = lender.compliance
+        proof = request.FILES.get('payment_proof')
+
+        if not proof:
+            messages.error(request, "Please select a file to upload.")
+            return render(request, self.template_name, {'lender': lender})
+
+        compliance.investigation_fee_proof  = proof
+        compliance.investigation_fee_paid   = True
+        compliance.investigation_fee_paid_at = timezone.now()
+        compliance.save(update_fields=[
+            'investigation_fee_proof',
+            'investigation_fee_paid',
+            'investigation_fee_paid_at',
+        ])
+
+        # Explicitly advance stage now that fee is paid
+        service = ComplianceDashboardService(lender)
+        service.advance_stage('investigation_fee_pending')
+
+        messages.success(request, "Payment proof uploaded. Your application is ready for submission.")
+        return redirect('compliance:compliance_detail', lender_id=lender.id)
+
+
+def pay_investigation_fee2(request, lender_id):
     lender = get_object_or_404(LenderProfile, id=lender_id)
     compliance = lender.compliance
     
@@ -235,7 +300,36 @@ def pay_investigation_fee(request, lender_id):
 
 
 
-def submit_application(request, lender_id): # Ensure this matches your URL parameter
+class SubmitApplicationView(LoginRequiredMixin, LenderOwnerMixin, View):
+
+    def post(self, request, lender_id):
+        lender = self.get_lender()
+        service = ComplianceDashboardService(lender)
+
+        # Guard: only allow submission if all pre-submission gates are met
+        data = service.get_dashboard_data()
+        if data['progress'] < 100:
+            messages.error(
+                request,
+                "Your application is not yet complete. "
+                f"Please resolve: {data['status_message']}"
+            )
+            return redirect('compliance:compliance_detail', lender_id=lender_id)
+
+        service.advance_stage('submitted')
+        lender.compliance.submission_date = timezone.now()
+        lender.compliance.save(update_fields=['submission_date'])
+
+        messages.success(request, "Application submitted to CBL successfully.")
+        return redirect('compliance:compliance_detail', lender_id=lender_id)
+
+    def get(self, request, lender_id):
+        # Never render on GET — always redirect
+        return redirect('compliance:compliance_detail', lender_id=lender_id)
+    
+
+
+def submit_application2(request, lender_id): # Ensure this matches your URL parameter
     # 1. Look up by lender_id to stay consistent with your other views
     profile = get_object_or_404(ComplianceProfile, lender__id=lender_id)
     
@@ -256,98 +350,18 @@ def submit_application(request, lender_id): # Ensure this matches your URL param
     return redirect('compliance:compliance_detail', lender_id=lender_id)
 
 
-def submit_application2(request, pk):
-    profile = get_object_or_404(ComplianceProfile, pk=pk)
+def submission_receipt(request, lender_id):
+    profile = get_object_or_404(ComplianceProfile, lender__id=lender_id)
     
-    if request.method == 'POST':
-        # Change the stage to 'under_review'
-        profile.current_stage = 'under_review'
-        profile.submission_date = timezone.now()
-        profile.save()
+    if profile.current_stage != 'under_review':
+        messages.error(request, "Receipt only available after submission.")
+        return redirect('compliance:compliance_detail', lender_id=lender_id)
         
-        messages.success(request, "Application submitted successfully! The CBL will now begin the review process.")
-        return redirect('compliance:compliance_detail', lender_id=profile.lender.id)
-    return redirect('compliance:compliance_detail', lender_id=pk)
+    return render(request, 'receipt.html', {
+        'profile': profile,
+        'lender': profile.lender
+    })
 
-
-def submit_application2(request, pk):
-    if request.method == 'POST':
-        # 1. Fetch the compliance profile
-        compliance = get_object_or_404(ComplianceProfile, pk=pk)
-        
-        # 2. Update the stage to 'submitted'
-        compliance.current_stage = 'submitted' # Or whatever your final status is
-        compliance.save()
-        
-        # 3. Add a success message
-        messages.success(request, "Application successfully submitted to the CBL. Your files are now under review.")
-        
-        # 4. Redirect back to the dashboard
-        return redirect('compliance:compliance_detail', lender_id=compliance.lender.id)
-    
-    return redirect('compliance:compliance_detail', lender_id=compliance.lender.id)
-
-"""
-def personnel_update(request, pk):
-    personnel = get_object_or_404(PersonnelProfile, pk=pk)
-    
-    if request.method == 'POST':
-        form = PersonnelProfileForm(request.POST, request.FILES, instance=personnel)
-        if form.is_valid():
-            instance = form.save(commit=False)
-            
-            # Check which button was clicked
-            if 'submit_final' in request.POST:
-                instance.fit_proper_questionnaire_submitted = True
-                instance.schedule_iii_submitted = True
-            
-            instance.save()
-            
-            # Update the Stage on the main Compliance Profile
-            personnel.lender.compliance.update_stage()
-            
-            messages.success(request, f"Profile for {instance.full_name} updated.")
-            return redirect('compliance:compliance_detail', lender_id=personnel.lender.id)
-    else:
-        form = PersonnelProfileForm(instance=personnel)
-        
-    return render(request, 'personnel_form.html', {'form': form})
-"""
-
-class PersonnelListView(LoginRequiredMixin, LenderOwnerMixin, ListView):
-    model = PersonnelProfile
-    template_name = 'personnel_list.html'
-    context_object_name = 'personnel_list'
-
-    def get_queryset(self):
-        lender = self.get_lender()
-        return PersonnelProfile.objects.filter(lender=lender)
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['lender'] = self.get_lender()
-        return context
-
-
-"""
-class PersonnelUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):
-    model = PersonnelProfile
-    form_class = PersonnelProfileForm
-    template_name = 'personnel_form.html'
-
-    def get_queryset(self):
-        lender = self.get_lender()
-        return PersonnelProfile.objects.filter(lender=lender)
-
-    def get_success_url(self):
-        messages.success(self.request, "Personnel updated successfully.")
-        return reverse_lazy('compliance:personnel_list', kwargs={'lender_id': self.get_lender().pk})
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['lender'] = self.get_lender()
-        return context
-"""
 
 class PersonnelDeleteView(LoginRequiredMixin, LenderOwnerMixin, DeleteView):
     model = PersonnelProfile

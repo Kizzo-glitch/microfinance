@@ -92,7 +92,8 @@ class BorrowerProfileForm(forms.ModelForm):
 			'marital_status', 
 			'phone_number', 
 			'email_address', 
-			'employer_name', 
+			'employer_name',
+			'passport_photo', 
 			
 			#'employment_position',
 			'income',

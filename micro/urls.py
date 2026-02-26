@@ -3,7 +3,7 @@ from django.urls import path
 from .views import (
 		landing, register, CustomLoginView, 
 		role_based_redirect, lender_compliance,
-		logout_user
+		logout_user, RegulatorPasswordChangeView
     )
 from django.contrib.auth import views as auth_views 
 
@@ -18,6 +18,12 @@ urlpatterns = [
 	path('register/', register, name='register'),
 	path('login/', CustomLoginView.as_view(), name='login'),
 	path('redirect/', role_based_redirect, name='role_based_redirect'),
+    
+	#path('force-password-change/', CustomPasswordChangeView.as_view(), name='password_change'),
+    path('setup-password/', RegulatorPasswordChangeView.as_view(), name='password_change'),
+    path('setup-password/done/', auth_views.PasswordChangeDoneView.as_view(
+        template_name='password_change_done.html'
+    ), name='password_change_done'),
 
 	path('password-reset/', 
 		auth_views.PasswordResetView.as_view(

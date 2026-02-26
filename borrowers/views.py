@@ -82,13 +82,13 @@ def borrower_profile(request):
 		}
 
 	# Get borrower's outstanding and overdue loans
-	outstanding_loans = Loan.objects.filter(borrower=request.user.borrower, outstanding_balance__gt=0).count()
-	overdue_loans = Loan.objects.filter(borrower=request.user.borrower, due_date__lt=date.today(), outstanding_balance__gt=0).count()
-	total_debt = Loan.objects.filter(borrower=request.user.borrower).aggregate(total=Sum('outstanding_balance'))['total'] or 0
+	outstanding_loans = Loan.objects.filter(borrower__user=request.user, outstanding_balance__gt=0).count()
+	overdue_loans = Loan.objects.filter(borrower__user=request.user, due_date__lt=date.today(), outstanding_balance__gt=0).count()
+	total_debt = Loan.objects.filter(borrower__user=request.user).aggregate(total=Sum('outstanding_balance'))['total'] or 0
 
 	if request.method == 'POST':
 		# Pass the instance to update an existing profile or create a new one
-		form = BorrowerProfileForm(request.POST, instance=current_user)
+		form = BorrowerProfileForm(request.POST, request.FILES, instance=current_user)
 		if form.is_valid():
 			profile = form.save(commit=False)
 			profile.user = request.user
@@ -569,7 +569,7 @@ def send_otp(request):
 	from_email = settings.EMAIL_HOST_USER
 	to_email = [borrower.email_address]
 
-	#send_mail(subject, message, from_email, to_email, fail_silently=False, )
+	send_mail(subject, message, from_email, to_email, fail_silently=False, )
 
 	return redirect('borrowers:verify_otp')
 

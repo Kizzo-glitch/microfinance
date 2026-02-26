@@ -1,5 +1,6 @@
 {% extends 'lender_base.html' %}
 {% load static %}
+{% load model_helpers %}
 
 {% block content %}
 <div class="container">
@@ -21,6 +22,7 @@
         </div>
     </div>
 
+
     <div class="row">
         <div class="col-md-4">
             <div class="card shadow-sm mb-4 border-left-primary">
@@ -29,34 +31,15 @@
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
-                        {# CORE DOCS - Common to all #}
-                        {% include 'doc_item.html' with label="AML/CFT Manual" file=compliance.aml_cft_manual %}
-                        {% include 'doc_item.html' with label="Complaints Procedure" file=compliance.complaints_procedure %}
-                        {% include 'doc_item.html' with label="Schedule I Form" file=compliance.schedule_i %}
-
-                        {# TIER 1, 2, 3 (Institutional) #}
-                        {% if lender.cbl_tier == 'tier1' or lender.cbl_tier == 'tier2' or lender.cbl_tier == 'tier3' %}
-                            {% include 'doc_item.html' with label="Memorandum & Articles" file=compliance.memorandum_articles %}
-                            
-                            {% if lender.cbl_tier == 'tier1' or lender.cbl_tier == 'tier2' %}
-                                {% include 'doc_item.html' with label="Audited Financials" file=compliance.audited_financials %}
-                                {% if lender.cbl_tier == 'tier1' %}
-                                    {% include 'doc_item.html' with label="Credit Committee Terms" file=compliance.credit_committee_terms %}
-                                {% endif %}
-                            {% else %}
-                                {% include 'doc_item.html' with label="Certified Financials" file=compliance.financial_statements_certified %}
-                            {% endif %}
-                        {% endif %}
-
-                        {# INDIVIDUAL / P2P #}
-                        {% if lender.cbl_tier == 'individual' or lender.cbl_tier == 'p2p' %}
-                            <div class="list-group-item small text-muted italic">
-                                Standard individual lender requirements apply.
-                            </div>
-                        {% endif %}
+                        {% for field_name, label in compliance_docs.items %}
+                            {% with file=compliance|getattr_filter:field_name %}
+                                {% include 'doc_item.html' with label=label file=file field=field_name lender=lender %}
+                            {% endwith %}
+                        {% endfor %}
                     </div>
-                    
                 </div>
+
+
                 <div class="card-footer">
                     <a href="{% url 'compliance:compliance_update' lender.id %}" class="btn btn-primary btn-sm w-100">
                         <i class="fas fa-upload me-1"></i> Upload/Update Documents
@@ -78,9 +61,6 @@
                     <a href="{% url 'compliance:personnel_create' lender.id %}" class="btn btn-success btn-sm">
                         <i class="fas fa-user-plus me-1"></i> Add Member
                     </a>
-                    <!--<a href="{% url 'compliance:personnel_update' compliance.lender.id %}" class="btn btn-success btn-sm">
-                        <i class="fas fa-user-plus me-1"></i> Edit Member
-                    </a>-->
                 </div>
                 <div class="card-body">
                     {% if personnel_list %}
@@ -88,41 +68,47 @@
                         <table class="table table-hover align-middle">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Personnel Name</th>
+                                    <th>Name</th>
                                     <th>Role</th>
                                     <th>Status</th>
-                                    <th>Declarations</th>
+                                    <th>Missing Items</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for p in personnel_list %}
                                 <tr>
-                                    <td>
-                                        <div class="fw-bold">{{ p.full_name }}</div>
-                                        <small class="text-muted">Added on {{ p.created_at|date:"M d, Y" }}</small>
-                                    </td>
+                                    <td><strong>{{ p.full_name }}</strong></td>
                                     <td>{{ p.get_role_display }}</td>
                                     <td>
-                                        <span class="badge bg-{{ p.status.class }}">
-                                            {{ p.status.label }}
-                                        </span>
+                                        <span class="badge bg-{{ p.status.class }}">{{ p.status.label }}</span>
                                     </td>
                                     <td>
-                                        {% if p.fit_proper_questionnaire_submitted %}
-                                            <i class="fas fa-check-circle text-success" title="Submitted"></i>
+                                        {% if not p.is_fully_verified %}
+                                            <div class="d-flex flex-wrap gap-1">
+                                                {% for item in p.get_missing_items %}
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle"
+                                                        style="font-size:0.7rem;">{{ item }}</span>
+                                                {% endfor %}
+                                            </div>
                                         {% else %}
-                                            <i class="fas fa-clock text-muted" title="Pending"></i>
+                                            <span class="text-success"><i class="fas fa-check-circle"></i> All documents submitted</span>
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <a href="{% url 'compliance:personnel_update' p.pk %}" class="btn btn-sm btn-outline-primary">
-                                            {% if p.status.label == 'Draft' %}Review and Submit Details{% else %}Edit Profile{% endif %}
+                                        <a href="{% url 'compliance:personnel_update' p.id %}"
+                                        class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-upload me-1"></i> Update
+                                        </a>
+                                        <a href="{% url 'compliance:personnel_delete' p.id %}"
+                                        class="btn btn-sm btn-outline-danger ms-1">
+                                            <i class="fas fa-trash"></i>
                                         </a>
                                     </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
+                            
                         </table>
                         
                     </div>
@@ -135,99 +121,42 @@
                 </div>
             </div>
 
-            <!--{# 1. Update the Submission Form #}
-            <form method="POST" action="{% url 'compliance:submit_application' lender.id %}">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-success btn-lg px-4 shadow">
-                    Submit to CBL <i class="fas fa-paper-plane ms-2"></i>
-                </button>
-            </form>
 
-            {# 2. Update the Payment Form #}
-            {# Note: If this button should take them to a payment page, use an <a> tag instead of a POST form #}
-            <div class="alert alert-success mt-4 d-flex justify-content-between align-items-center">
-                <div>
-                    <h5 class="alert-heading">Ready For Payment!</h5>
-                    <p class="mb-0">All required documents and personnel files have been uploaded.</p>
-                </div>
-                <a href="{% url 'compliance:pay_investigation_fee' lender.id %}" class="btn btn-success btn-lg">
-                    Pay Investigation Fee
-                </a>
-            </div>-->
-
-            {% if stats.next_action %}
-<div class="alert alert-info mt-4 d-flex justify-content-between align-items-center border-left-info shadow-sm">
-    <div>
-        <h5 class="alert-heading fw-bold">Next Step</h5>
-        <p class="mb-0 text-muted">{{ stats.status_message }}</p>
-    </div>
-    
-    {% if stats.next_action == "Submit to CBL" %}
-        {# SUBMIT requires a Form for the POST request #}
-        <form method="POST" action="{{ stats.url }}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-success btn-lg px-4 shadow">
-                Submit to CBL <i class="fas fa-paper-plane ms-2"></i>
-            </button>
-        </form>
-    {% else %}
-        {# Other steps (Upload/Pay) can remain links #}
-        <a href="{{ stats.url }}" class="btn btn-primary btn-lg px-4">
-            {{ stats.next_action }} <i class="fas fa-arrow-right ms-2"></i>
-        </a>
-    {% endif %}
-</div>
-{% endif %}
-
-            <!--{% if stats.next_action %}
-<div class="alert alert-info mt-4 d-flex justify-content-between align-items-center">
-    <div>
-        <h5 class="alert-heading">Next Step</h5>
-        <p class="mb-0">Action: <strong>{{ stats.next_action }}</strong></p>
-    </div>
-    <a href="{{ stats.url }}" class="btn btn-primary btn-lg">
-        {{ stats.next_action }} <i class="fas fa-arrow-right ms-2"></i>
-    </a>
-</div>
-{% elif profile.current_stage == 'under_review' %}
-<div class="alert alert-warning mt-4 text-center">
-    <i class="fas fa-clock fa-2x mb-3"></i>
-    <h5>Application Under Review</h5>
-    <p>Your compliance documents are currently being verified by the CBL. You will be notified of any further requirements.</p>
-</div>
-{% endif %}-->
-
-            <!--{% if stats.next_action == "Pay Investigation Fee" %}
-            <div class="alert alert-success mt-4 d-flex justify-content-between align-items-center">
-                <div>
-                    <h5 class="alert-heading">Ready For Payment!</h5>
-                    <p class="mb-0">All required documents and personnel files have been uploaded.</p>
-                </div>
-                <form method="POST" action="{% url 'compliance:pay_investigation_fee' lender.id %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-success btn-lg">Pay Investigation Fee</button>
-                </form>
-            </div>
-            {% endif %}
-
-            {# We check the next_action string rather than the stage name #}
-            {% if stats.next_action == "Submit to CBL" %}
-                <div class="alert alert-success mt-4 d-flex justify-content-between align-items-center border-left-success shadow-sm">
-                    <div>
-                        <h5 class="alert-heading fw-bold text-success">
-                            <i class="fas fa-check-circle me-2"></i>Application Ready!
-                        </h5>
-                        <p class="mb-0 text-muted">All required documents, personnel files, and payments have been verified.</p>
+            <div class="mt-4">
+                {% if stats.next_action %}
+                    <div class="alert alert-info d-flex justify-content-between align-items-center shadow-sm">
+                        <div>
+                            <h5 class="alert-heading fw-bold mb-1">Next Step</h5>
+                            <p class="mb-0 text-muted">{{ stats.status_message }}</p>
+                        </div>
+                        
+                        {% if stats.next_action == "Submit to CBL" %}
+                            <form method="POST" action="{{ stats.url }}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-success btn-lg px-4 shadow">
+                                    Submit to CBL <i class="fas fa-paper-plane ms-2"></i>
+                                </button>
+                            </form>
+                        {% else %}
+                            <a href="{{ stats.url }}" class="btn btn-primary btn-lg px-4">
+                                {{ stats.next_action }} <i class="fas fa-arrow-right ms-2"></i>
+                            </a>
+                        {% endif %}
                     </div>
-                    <form method="POST" action="{% url 'compliance:submit_application' compliance.id %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-success btn-lg px-4 shadow">
-                            Submit to CBL <i class="fas fa-paper-plane ms-2"></i>
-                        </button>
-                    </form>
-                </div>
-            {% endif %}-->
 
+                {% elif stats.stage_key == 'under_review' %}
+                    <div class="card border-success bg-light shadow-sm">
+                        <div class="card-body text-center py-4">
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <h4 class="fw-bold">Application Submitted</h4>
+                            <p>Submitted on: <strong>{{ compliance.submission_date|date:"d M Y" }}</strong></p>
+                            <a href="{% url 'compliance:submission_receipt' lender.id %}" class="btn btn-outline-dark mt-2">
+                                <i class="fas fa-file-download me-2"></i>Download Submission Receipt
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
             
 
         </div>

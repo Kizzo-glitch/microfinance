@@ -1,0 +1,77 @@
+{% extends 'micro_base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-dark text-white p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">Complete Your Official Profile</h4>
+                        {% if user.regulator_profile.is_master %}
+                            <span class="badge bg-warning text-dark">MASTER REGULATOR</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body p-5">
+                    <p class="text-muted mb-4">Please verify your details. This information will be used for official communications and audit trails within the CBL system.</p>
+                    
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">First Name</label>
+                                {{ form.first_name }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Last Name</label>
+                                {{ form.last_name }}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Official Email</label>
+                            {{ form.email }}
+                            <small class="text-muted">Email cannot be changed on this screen.</small>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Employee ID / Number</label>
+                                {{ form.employee_id }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Department</label>
+                                {{ form.department }}
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Phone Number</label>
+                                {{ form.phone_number }}
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Job Title</label>
+                                {{ form.job_title }}
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">Finalize Profile & Enter Dashboard</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card { border-radius: 15px; overflow: hidden; }
+    .form-control:focus { border-color: #0d6efd; box-shadow: 0 0 0 0.25rem rgba(13,110,253,.1); }
+</style>
+{% endblock %}

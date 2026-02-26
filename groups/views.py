@@ -62,7 +62,7 @@ def register_group_admin(request):
 
 
 def group_borrower_profile(request):
-	if request.user.is_borrower():
+	if request.user.is_borrower:
 		user = request.user
 		try:
 			current_user = BorrowerProfile.objects.get(user=request.user)

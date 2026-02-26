@@ -1,0 +1,229 @@
+{% extends 'lender_base.html' %}
+{% load static form_helpers %}
+
+<!-- Personnel Form Page (personnel_form.html)-->
+{% block content %}
+<div class="container py-4">
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+
+        {% if form.errors %}
+            <div class="alert alert-danger shadow-sm">
+                <h6 class="fw-bold"><i class="fas fa-exclamation-triangle me-2"></i> Please correct the following errors:</h6>
+                <ul class="mb-0">
+                    {% for field, errors in form.errors.items %}
+                        <li><strong>{{ field|title }}:</strong> {{ errors|striptags }}</li>
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+        
+        <div class="card shadow mb-5">
+            <div class="card-header bg-dark text-white d-flex justify-content-between">
+                <h5 class="mb-0">Fit & Proper Questionnaire (Schedule III)</h5>
+                <span>Role: {{ form.instance.get_role_display|default:"New Member" }}</span>
+            </div>
+            
+            <div class="card-body">
+                <div class="mb-5">
+                    <h6 class="text-primary border-bottom pb-2 mb-3"><i class="fas fa-user me-2"></i>1. Personal Identification</h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">{{ form.full_name.label_tag }}{{ form.full_name }}</div>
+                        <div class="col-md-3">{{ form.role.label_tag }}{{ form.role }}</div>
+                        <div class="col-md-3">{{ form.nationality.label_tag }}{{ form.nationality }}</div>
+                        <div class="col-md-3">{{ form.country_of_residence.label_tag }}{{ form.country_of_residence }}</div>
+                        <div class="col-md-4">{{ form.date_of_birth.label_tag }}{{ form.date_of_birth }}</div>
+                        <div class="col-md-4">{{ form.place_of_birth.label_tag }}{{ form.place_of_birth }}</div>
+                        <div class="col-md-4">{{ form.id_or_passport_number.label_tag }}{{ form.id_or_passport_number }}</div>
+                    </div>
+                </div> 
+
+                <div class="mb-5">
+                    <h6 class="text-primary border-bottom pb-2 mb-3"><i class="fas fa-briefcase me-2"></i>2. Professional Experience (Last 10 Years)</h6>
+                    <div class="mb-3">{{ form.professional_qualifications.label_tag }}{{ form.professional_qualifications }}</div>
+                    <div class="mb-3">{{ form.employment_history_10_years.label_tag }}{{ form.employment_history_10_years }}</div>
+                </div>
+
+                <div class="mb-5">
+                    <h6 class="text-primary border-bottom pb-2 mb-3"><i class="fas fa-gavel me-2"></i>3. Statutory Declarations</h6>
+                    <div class="alert alert-warning small">If you answer "Yes" to any of the following, tick and provide full details.</div>
+                    
+                    {% comment %} Define the pairs manually to avoid complex template filters {% endcomment %}
+                    
+                    <div class="row align-items-center mb-4 p-2 border-bottom">
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                {{ form.ever_disqualified }}
+                                <label class="form-check-label fw-bold" for="{{ form.ever_disqualified.id_for_label }}">
+                                    {{ form.ever_disqualified.label }}
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            {{ form.disqualification_details }}
+                            <small class="text-muted">Provide details if "Yes"</small>
+                        </div>
+                    </div>
+
+                    <div class="row align-items-center mb-4 p-2 border-bottom">
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                {{ form.legal_proceedings }}
+                                <label class="form-check-label fw-bold" for="{{ form.legal_proceedings.id_for_label }}">
+                                    {{ form.legal_proceedings.label }}
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            {{ form.legal_proceedings_details }}
+                        </div>
+                    </div>
+
+                    <div class="row align-items-center mb-4 p-2 border-bottom">
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                {{ form.criminal_conviction }}
+                                <label class="form-check-label fw-bold" for="{{ form.criminal_conviction.id_for_label }}">
+                                    {{ form.criminal_conviction.label }}
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            {{ form.criminal_conviction_details }}
+                        </div>
+                    </div>
+
+                    <div class="row align-items-center mb-4 p-2 border-bottom">
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                {{ form.bankruptcy }}
+                                <label class="form-check-label fw-bold" for="{{ form.bankruptcy.id_for_label }}">
+                                    {{ form.bankruptcy.label }}
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            {{ form.bankruptcy_details }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <h6 class="text-primary border-bottom pb-2 mb-3"><i class="fas fa-file-upload me-2"></i>4. Required Certified Documents</h6>
+                    <!--<div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="small fw-bold">Police Clearance</label>
+                            {{ form.police_clearance }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small fw-bold">Tax Clearance (Personal)</label>
+                            {{ form.tax_clearance }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small fw-bold">Notarized Character References</label>
+                            {{ form.character_references }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="small fw-bold">Certified ID Copy</label>
+                            {{ form.id_copy }}
+                        </div>
+                    </div>-->
+
+                    <div class="row">
+                    <div class="col-md-6 border-end">
+                        <h5 class="text-muted border-bottom pb-2 mb-3">1. Identity & Background</h5>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Fit & Proper Questionnaire (Schedule III)</label>
+                            {{ form.fit_proper_form }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Detailed CV</label>
+                            {{ form.curriculum_vitae }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Police Clearance Certificate</label>
+                            {{ form.police_clearance }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Certified ID/Passport Copy</label>
+                            {{ form.id_copy }}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <h5 class="text-muted border-bottom pb-2 mb-3">2. Financials & References</h5>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Personal Tax Clearance</label>
+                            {{ form.tax_clearance_individual }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Statement of Assets & Liabilities</label>
+                            {{ form.statement_assets_liabilities }}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-6">
+                                <label class="small fw-bold">Character Ref 1</label>
+                                {{ form.character_ref_1 }}
+                            </div>
+                            <div class="col-6">
+                                <label class="small fw-bold">Character Ref 2</label>
+                                {{ form.character_ref_2 }}
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-6">
+                                <label class="small fw-bold">Financial Ref 1 (Bank)</label>
+                                {{ form.financial_ref_1 }}
+                            </div>
+                            <div class="col-6">
+                                <label class="small fw-bold">Financial Ref 2 (Bank)</label>
+                                {{ form.financial_ref_2 }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+
+                </div>
+
+            </div>
+
+            <div class="card-footer bg-light p-4 text-center">
+                <button type="submit" name="save_draft" class="btn btn-secondary px-5 me-2">Save Draft</button>
+                <button type="submit" name="submit_final" class="btn btn-success px-5">Submit & Certify Accuracy</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Add this to your script block
+document.addEventListener('DOMContentLoaded', function() {
+    const declarations = [
+        {bool: 'id_ever_disqualified', text: 'id_disqualification_details'},
+        {bool: 'id_legal_proceedings', text: 'id_legal_proceedings_details'},
+        {bool: 'id_criminal_conviction', text: 'id_criminal_conviction_details'},
+        {bool: 'id_bankruptcy', text: 'id_bankruptcy_details'}
+    ];
+
+    declarations.forEach(pair => {
+        const checkbox = document.getElementById(pair.bool);
+        const textField = document.getElementById(pair.text);
+        
+        // Initial state
+        textField.style.display = checkbox.checked ? 'block' : 'none';
+
+        checkbox.addEventListener('change', () => {
+            textField.style.display = checkbox.checked ? 'block' : 'none';
+        });
+    });
+});
+</script>
+{% endblock %}

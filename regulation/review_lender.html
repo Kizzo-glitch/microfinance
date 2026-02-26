@@ -1,0 +1,83 @@
+{% extends 'micro_base.html' %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'regulator:dashboard' %}">Dashboard</a></li>
+            <li class="breadcrumb-item active">Review: {{ lender.company_name }}</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card shadow mb-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0">Institutional Profile Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-4 text-center">
+                            <label class="small text-muted d-block">CEO Photo</label>
+                            {% if lender.passport_photo %}
+                                <img src="{{ lender.passport_photo.url }}" class="img-thumbnail" style="max-height: 200px;">
+                            {% else %}
+                                <div class="bg-light py-5">No Image</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-8">
+                            <h3>{{ lender.company_name }}</h3>
+                            <p class="text-muted">Trading as: {{ lender.trading_name|default:"N/A" }}</p>
+                            <span class="badge bg-info text-dark">Tier: {{ lender.get_cbl_tier_display }}</span>
+                        </div>
+                    </div>
+
+                    <table class="table table-sm">
+                        <tr><th width="30%">Registration No:</th><td>{{ lender.registration_number }}</td></tr>
+                        <tr><th>Stated Capital:</th><td><strong>M {{ lender.stated_capital }}</strong></td></tr>
+                        <tr><th>Total Assets:</th><td>M {{ lender.total_assets }}</td></tr>
+                        <tr><th>License No:</th><td>{{ lender.cbl_license_number }}</td></tr>
+                        <tr><th>Compliance:</th>
+                            <td>
+                                {% if lender.has_kyc_policy %}<span class="badge bg-success">KYC</span>{% endif %}
+                                {% if lender.has_aml_policy %}<span class="badge bg-success">AML</span>{% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow border-primary mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Regulatory Decision</h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 mb-4">
+                            <button type="submit" name="action" value="approve" class="btn btn-success btn-lg" onclick="return confirm('Confirm authorization for this institution?')">
+                                <i class="fas fa-check-circle me-2"></i> Approve & Authorize
+                            </button>
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-danger fw-bold">Rejection Reason</label>
+                            <textarea name="rejection_reason" class="form-control" rows="4" placeholder="Explain what needs to be corrected..."></textarea>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" name="action" value="reject" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to reject this application?')">
+                                <i class="fas fa-times-circle me-2"></i> Decline Application
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

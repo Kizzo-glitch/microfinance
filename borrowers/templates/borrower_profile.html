@@ -6,14 +6,53 @@
         <h1>My Profile</h1>
        
 
-        <form method="POST" action="{% url 'borrowers:borrower_profile' %}">
+        <form method="POST" action="{% url 'borrowers:borrower_profile' %}" enctype="multipart/form-data">
             {% csrf_token %}
             <div class="border">
                 <center>
             <h4>Personal Information</h4>
             </center>
 
-                <div class="row mb-3" style="padding: 0 20px;">
+            <div class="border p-4 mb-4 bg-light">
+                    <div class="row align-items-center">
+                        <div class="col-md-3 text-center">
+                            <label>Passport-Sized Photo</label>
+                            <div id="drop-zone" class="upload-container border-dashed p-3" onclick="document.getElementById('id_passport_photo').click()">
+                                {% if form.instance.passport_photo %}
+                                    <img id="preview" src="{{ form.instance.passport_photo.url }}" class="img-fluid rounded shadow-sm">
+                                {% else %}
+                                    <div id="placeholder">
+                                        <i class="fas fa-user-circle fa-4x text-secondary mb-2"></i>
+                                        <p class="small text-muted mb-0">Drag & Drop or Click</p>
+                                    </div>
+                                    <img id="preview" src="" class="img-fluid rounded shadow-sm d-none">
+                                {% endif %}
+                            </div>
+                            <div class="d-none">
+                                {{ form.passport_photo }}
+                            </div>
+                        </div>
+
+                        <div class="col-md-9">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label for="id_full_name">Full Name</label>
+                                    {{ form.full_name }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="id_gender">Gender</label>
+                                    {{ form.gender }}
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="id_title">Title</label>
+                                    {{ form.title }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!--<div class="row mb-3" style="padding: 0 20px;">
                     <div class="col-md-4">
                        
                         <label for="id_full_name">Full Name</label>
@@ -30,7 +69,7 @@
                         {{ form.title }}
      
                     </div>
-                </div>
+                </div>-->
 
                 <div class="row mb-3" style="padding: 0 20px;">
                     <div class="col-md-4">
@@ -173,6 +212,84 @@
             margin-bottom: 5px;
             font-weight: bold;
         }
+
+        .border-dashed {
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.border-dashed:hover {
+    border-color: #0d6efd;
+    background-color: #f8f9fa;
+}
+
+.upload-container img {
+    max-height: 140px;
+    width: auto;
+}
+
+.upload-container #placeholder i {
+    opacity: 0.5;
+}
     </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.querySelector('input[type="file"]'); // Finds your passport_photo field
+    const preview = document.getElementById('preview');
+    const placeholder = document.getElementById('placeholder');
+
+    // Sync input name (Django usually calls it 'passport_photo')
+    if (fileInput) fileInput.id = "id_passport_photo";
+
+    // Highlight drop zone on drag
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-primary', 'bg-white');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-primary', 'bg-white');
+        }, false);
+    });
+
+    // Handle dropped files
+    dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        fileInput.files = files;
+        handleFiles(files);
+    });
+
+    // Handle click-to-select files
+    fileInput.addEventListener('change', function() {
+        handleFiles(this.files);
+    });
+
+    function handleFiles(files) {
+        if (files.length > 0) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.classList.remove('d-none');
+                if (placeholder) placeholder.classList.add('d-none');
+            }
+            reader.readAsDataURL(files[0]);
+        }
+    }
+});
+    </script>
 
     {% endblock %}

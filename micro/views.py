@@ -12,6 +12,10 @@ from lenders.models import LenderProfile
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
 
+from django.contrib.auth.views import PasswordChangeView
+from django.urls import reverse_lazy
+
+
 
 
 def landing(request):	
@@ -52,99 +56,42 @@ def register(request):
 	
 
 
-"""def borrower_registration(request):
-	borrower_form = BorrowerRegistrationForm()
-	if request.method == 'POST':
-		borrower_form = BorrowerRegistrationForm(request.POST)
-		if borrower_form.is_valid():
-			borrower_form.save()
-			username = borrower_form.cleaned_data['username']
-			password = borrower_form.cleaned_data['password1']
+class RegulatorPasswordChangeView(PasswordChangeView):
+    template_name = 'password_setup.html'
+    
+    def get_success_url(self):
+        # Redirect to the profile update page after success
+        return reverse_lazy('regulator:regulator_profile')
 
-			user = authenticate(username=username, password=password)
-			login(request, user)
-			messages.success(request, ('You have created your Username Successfully - Please complete the form below'))
-			return redirect('borrower_login')
+    def form_valid(self, form):
+        user = self.request.user
+        user.must_change_password = False
+        user.save()
+        return super().form_valid(form)
 
-		else:
-			messages.success(request, ('Whhops, there was a problem registering'))
-			return redirect('borrower_registration')
-	else:
-		return render(request, 'borrower_registration.html', {'borrower_form':borrower_form})"""
+"""
+class CustomPasswordChangeView(PasswordChangeView):
+    template_name = 'password_change_form.html'
+    success_url = reverse_lazy('regulator:regulator_dashboard') # Redirect after change
 
-
-
-"""def lender_registration(request):
-	lender_form = LenderRegistrationForm()
-	if request.method == 'POST':
-		lender_form = LenderRegistrationForm(request.POST)
-		if lender_form.is_valid():
-			lender_form.save()
-			username = lender_form.cleaned_data['username']
-			password = lender_form.cleaned_data['password1']
-
-			user = authenticate(username=username, password=password)
-			login(request, user)
-			messages.success(request, ('You have created your Username Successfully - Please complete the form below'))
-			return redirect('lender_login')
-
-		else:
-			messages.success(request, ('Whhops, there was a problem registering'))
-			return redirect('lender_registration')
-	else:
-		return render(request, 'lender_registration.html', {'lender_form':lender_form})"""
+    def form_valid(self, form):
+        # When they successfully change the password, flip the flag to False
+        self.request.user.must_change_password = False
+        self.request.user.save()
+        return super().form_valid(form)
 
 
+class RegulatorPasswordChangeView(PasswordChangeView):
+    template_name = 'password_setup.html'
+    success_url = reverse_lazy('password_change_done')
 
-"""def borrower_login(request):
-	if request.method == "POST":
-		username = request.POST['username']
-		password = request.POST['password']
-		user = authenticate(request, username=username, password=password)
-		if user is not None:
-			login(request, user)
-
-			# Ensure the Profile exists for the user
-			profile, created = BorrowerProfile.objects.get_or_create(user=user)
-
-
-			messages.success(request, ('You have been logged in'))
-			return redirect('borrowers:borrower_index')
-		else:
-			messages.success(request, ('There was an Error, please try again'))
-			return redirect('login')
-
-	else:
-		messages.success(request, ('There was an Error, please try again'))
-		return render(request, 'login.html', {})
-
-
-
-def lender_login(request):
-	if request.method == "POST":
-		username = request.POST['username']
-		password = request.POST['password']
-		user = authenticate(request, username=username, password=password)
-		if user is not None:
-			login(request, user)
-
-			# Ensure the Profile exists for the user
-			profile, created = LenderProfile.objects.get_or_create(user=user)
-
-			messages.success(request, ('You have been logged in'))
-			return redirect('lender_index')
-		else:
-			messages.success(request, ('There was an Error, please try again'))
-			return redirect('login')
-
-
-	else:
-		messages.success(request, ('There was an Error, please try again'))
-		return render(request, 'login.html', {})"""
-
-
-
-
+    def form_valid(self, form):
+        # Once the password is changed, they are no longer forced to change it
+        user = self.request.user
+        user.must_change_password = False
+        user.save()
+        return super().form_valid(form)
+"""
 
 def logout_user(request):
 	logout(request)
@@ -161,9 +108,9 @@ class CustomLoginView(LoginView):
 
 @login_required
 def role_based_redirect(request):
-	if request.user.is_lender():
+	if request.user.is_lender:
 		return redirect('lenders:lender_index')  # To lender dashboard 
-	elif request.user.is_borrower():
+	elif request.user.is_borrower:
 		return redirect('borrowers:borrower_index')  # To borrower dashboard 
 	return redirect('landing')  # Default fallback
 

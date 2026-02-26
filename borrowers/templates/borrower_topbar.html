@@ -185,8 +185,18 @@
                     <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <span class="mr-2 d-none d-lg-inline text-gray-600 small">{{ user.borrower.full_name }}</span>
-                        <img class="img-profile rounded-circle"
-                            src="{% static 'lender/img/undraw_profile.svg' %}">
+                        {% if user.borrower and user.borrower.passport_photo %}
+                        <img class="img-profile rounded-circle" 
+                            src="{{ user.borrower.passport_photo.url }}" 
+                            style="width: 32px; height: 32px; object-fit: cover;">
+                            
+                        {% else %}
+                            <img class="img-profile rounded-circle" 
+                                src="{% static 'lender/img/undraw_profile.svg' %}" 
+                                style="width: 32px;">
+                        {% endif %}
+                        <!--<img class="img-profile rounded-circle"
+                            src="{% static 'lender/img/undraw_profile.svg' %}">-->
                     </a>
                     <!-- Dropdown - User Information -->
                     <div class="dropdown-menu dropdown-menu-right shadow animated--grow-in"

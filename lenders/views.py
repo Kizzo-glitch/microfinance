@@ -59,7 +59,7 @@ from compliance.models import ComplianceProfile, PersonnelProfile
 
 
 def lender_index(request):
-	if request.user.is_authenticated and request.user.is_lender():
+	if request.user.is_authenticated and request.user.is_lender:
 		lender = request.user.lender
 		loans = Loan.objects.filter(lender=lender)
 
@@ -216,7 +216,6 @@ def lender_repayment_data(request):
 	})
 
 
-
 def risk_customer_list(request, category):
 	loans = get_loans_by_risk_category(category)
 	category_title = {
@@ -234,13 +233,13 @@ def risk_customer_list(request, category):
 
 
 
-def lender_profile(request):
-	if request.user.is_lender():
+def lender_profile2(request):
+	if request.user.is_lender:
 		# Get Current User
-		current_user, created = LenderProfile.objects.get_or_create(user__id=request.user.id)	
+		current_user, created = LenderProfile.objects.get_or_create(user=request.user)	
 		
 		# Get original User Form
-		form = LenderInfoForm(request.POST or None, instance=current_user)
+		form = LenderInfoForm(request.POST or None, request.FILES, instance=current_user)
 						
 		if form.is_valid():
 			# Save original form
@@ -253,6 +252,25 @@ def lender_profile(request):
 		messages.success(request, "You Must Be Logged In To Access That Page!!")
 		return redirect('landing')
 
+
+def lender_profile(request):
+	# 1. Get the existing profile for the logged-in user
+	# Use related_name='lender_profile' as defined in your model
+	profile, created = LenderProfile.objects.get_or_create(user=request.user)
+	
+	if request.method == 'POST':
+		# 2. Pass request.FILES and the instance so it updates the EXISTING record
+		form = LenderInfoForm(request.POST, request.FILES, instance=profile)
+		if form.is_valid():
+			form.save()
+			# 3. Redirect to the same page to "refresh" the data (PRG pattern)
+			messages.success(request, "Your Info Has Been Updated!!")
+			return redirect('lenders:lender_index')
+	else:
+		# 4. On a GET request, pass the instance so the fields are pre-filled
+		form = LenderInfoForm(instance=profile)
+		
+	return render(request, 'lender_profile.html', {'form': form})
 
 # ==================
 # Soon to be replaced by Comliance registration

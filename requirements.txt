@@ -16,6 +16,7 @@ gunicorn==23.0.0
 inflection==0.5.1
 kombu==5.4.2
 packaging==24.2
+pillow==12.1.0
 prompt_toolkit==3.0.48
 psycopg==3.2.6
 PyJWT==2.10.0

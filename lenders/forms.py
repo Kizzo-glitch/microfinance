@@ -68,6 +68,7 @@ class LenderInfoForm(forms.ModelForm):
 		required=False
 	)
 	cbl_tier = forms.ChoiceField(label="", choices=LenderProfile.CBL_TIER_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}), required=False) # New
+	platform_tier = forms.ChoiceField(label="", choices=LenderProfile.PLATFORM_TIER_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}), required=False) # New
 	operating_under_platform = forms.BooleanField(label="Operating under Platform License?", widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}), required=False) # New
 
 	# 7. CAPITAL
@@ -114,8 +115,8 @@ class LenderInfoForm(forms.ModelForm):
 			'has_code_of_ethics', 'has_complaints_procedure', 'has_risk_management_policy',
 			'participates_in_benchmarking', 'submits_regulatory_reports',
 			'regulatory_body_name', 'regulatory_body_membership_number', 
-			'association_name', 'association_membership_number',
-			'agrees_to_terms', 'agrees_to_credit_conditions', 'agrees_to_cbl_compliance'
+			'association_name', 'association_membership_number', 'platform_tier',
+			'agrees_to_terms', 'agrees_to_credit_conditions', 'agrees_to_cbl_compliance', 'passport_photo',
 		]
 		
 	def __init__(self, *args, **kwargs):
@@ -144,147 +145,6 @@ class LenderInfoForm(forms.ModelForm):
 		return cleaned_data
 
 
-
-
-"""
-class LenderInfoForm(forms.ModelForm):
-	
-	ceo_first_name = forms.CharField(label="", widget=forms.TextInput(attrs={'placeholder':'CEO First Name'}), required=True)
-	ceo_last_name = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'CEO Last Name'}), required=True)
-	company_name = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Company Name'}), required=True)
-	registration_no = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Registration Number'}), required=True)
-	office_address = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Office Address'}), required=True)
-	min_loan = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Minimun Loan Amount'}), required=True)
-	max_loan = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Maximum Loan Amount'}), required=True)
-	interest_rate = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Interest Rate'}), required=True)  
-	phone_number = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Phone'}), required=True)
-
-
-	date_of_stablishment = forms.DateField(
-		widget=forms.DateInput(
-			attrs={
-				'type': 'date',  # This makes the input render as an HTML date picker
-				'class': 'form-control',  # Add the Bootstrap class for styling
-				'id': 'date',  # Matches the id from your HTML example
-			}
-		),
-		label="Date of Establishment",  # Label for the field
-	)
-	business_email_ddress = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Business Email Address'}), required=True)
-	#ownership = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Ownership'}), required=True)
-	ownership = forms.Select(attrs={'class': 'form-control'})
-	licence_no = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'License Number'}), required=True)
-	regulatory_body_name = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Regulatory Authority'}), required=True)
-	regulatory_body_no = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Regulatory Body Number'}), required=True)
-	
-	kyc_policy_implementation = forms.Select(attrs={'class': 'form-control'})
-	aml_policy_implementation = forms.Select(attrs={'class': 'form-control'})
-	data_protection_policy_implementation = forms.Select(attrs={'class': 'form-control'})
-	tax_number = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Tax Number'}), required=True)
-	
-	code_of_ethics = forms.Select(attrs={'class': 'form-control'})
-
-	association_name = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Association Name'}), required=True)
-	membership_no = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'Membership Number'}), required=True)
-	
-	benchmarking = forms.Select(attrs={'class': 'form-control'})
-	reporting = forms.Select(attrs={'class': 'form-control'})
-
-	missed_payment_policy = forms.Select(attrs={'class': 'form-control'})
-	loan_terms = forms.MultipleChoiceField(
-		choices=[
-			(1, "1 month"),
-			(3, "3 months"),
-			(6, "6 months"),
-			(9, "9 months"),
-			(12, "12 months"),
-			(24, "24 months"),
-			(36, "36 months"),
-		],
-		widget=forms.CheckboxSelectMultiple,
-		required=True,
-		label="Available Loan Terms"
-	)
-
-	agrees_to_terms = forms.BooleanField(widget=forms.CheckboxInput(
-		attrs={'class': 'form-check-input'}), required=True,)
-	agrees_to_credit_conditions = forms.BooleanField(widget=forms.CheckboxInput(
-		attrs={'class': 'form-check-input'}), required=True,)
-
-
-	class Meta:
-		model = LenderProfile
-		fields = (
-
-				'ceo_first_name', 
-				'ceo_last_name', 
-				'company_name', 
-				'registration_no', 
-				'office_address', 
-				'min_loan', 
-				'max_loan', 
-				'interest_rate', 
-				'phone_number', 
-				
-				'date_of_stablishment',
-				'business_email_ddress',
-				'ownership',
-				'licence_no',
-				'regulatory_body_name',
-				'regulatory_body_no',
-				'kyc_policy_implementation',
-				'aml_policy_implementation',
-				'data_protection_policy_implementation',
-				'tax_number',
-				'code_of_ethics',
-				'association_name',
-				'membership_no',
-				'benchmarking',
-				'reporting',
-				'missed_payment_policy',
-				'loan_terms'
-			)
-		widgets = {
-			'loan_terms': forms.CheckboxSelectMultiple(  # ✅ render as checkboxes
-				attrs={'class': 'form-check-input'}
-			),
-		}
-
-		
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		
-		# Apply form-control to all fields
-		for field_name, field in self.fields.items():
-			existing_classes = field.widget.attrs.get('class', '')
-			field.widget.attrs['class'] = f'{existing_classes} form-control'.strip()
-
-
-	def clean(self):
-		cleaned_data = super().clean()
-		min_loan = cleaned_data.get("min_loan")
-		max_loan = cleaned_data.get("max_loan")
-
-		# Check if both fields have values before comparing
-		if min_loan is not None and max_loan is not None:
-			if min_loan > max_loan:
-				# Raise a ValidationError to prevent form submission
-				raise forms.ValidationError(
-					"The minimum loan amount cannot be greater than the maximum loan amount."
-				)
-
-		# Always return the cleaned_data dictionary
-		return cleaned_data
-
-
-
-class VerificationStatusForm(forms.ModelForm):
-	verification_status = forms.Select(attrs={'class': 'form-control'})
-	class Meta:
-		model = LenderProfile
-		fields = ['verification_status']
-
-"""
 
 class LenderDocumentsForm(forms.ModelForm):
 	company_registration = forms.FileField(required=True)

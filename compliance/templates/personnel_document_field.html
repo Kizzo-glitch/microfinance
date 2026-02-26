@@ -1,0 +1,60 @@
+{# personnel_document_field.html #}
+{% load widget_tweaks %}
+<div class="mb-3 document-field">
+    <label class="form-label {% if required %}fw-bold{% endif %}">
+        {{ label }}
+        {% if required %}<span class="text-danger">*</span>{% endif %}
+    </label>
+    
+    {# Existing file preview #}
+    {% if field.value %}
+        <div class="mb-2">
+            <div class="d-flex align-items-center gap-2 p-2 bg-light rounded border">
+                <i class="fas fa-file-pdf text-success"></i>
+                <div class="flex-grow-1">
+                    <a href="{{ field.value.url }}" target="_blank" class="text-decoration-none">
+                        <small class="text-success">Current: {{ field.value.name|default:"Uploaded file" }}</small>
+                    </a>
+                    {% if expiry_warning %}
+                        <div class="text-warning mt-1" style="font-size: 0.7rem;">
+                            <i class="fas fa-exclamation-triangle"></i> Verify expiry date is current
+                        </div>
+                    {% endif %}
+                </div>
+                <small class="text-muted">Replace:</small>
+            </div>
+        </div>
+    {% endif %}
+    
+    {# File input #}
+    <div class="file-upload-wrapper {% if compact %}compact{% endif %}">
+        {{ field }}
+        <div class="form-text">
+            {% if not compact %}
+                PDF format, max 5MB
+                {% if expiry_warning %} — Must be current/unexpired{% endif %}
+            {% endif %}
+        </div>
+    </div>
+    
+    {# Field errors #}
+    {% if field.errors %}
+        {% for error in field.errors %}
+            <div class="text-danger small mt-1">{{ error }}</div>
+        {% endfor %}
+    {% endif %}
+
+    {# In personnel_document_field.html #}
+    <div class="file-upload-wrapper {% if compact %}compact{% endif %}">
+        {% if field.value %}
+            {{ field|add_class:"form-control" }}
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.getElementById('{{ field.id_for_label }}').dataset.hasFile = 'true';
+                });
+            </script>
+        {% else %}
+            {{ field }}
+        {% endif %}
+    </div>
+</div>

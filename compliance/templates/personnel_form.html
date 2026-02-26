@@ -6,7 +6,7 @@
     <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         
-
+        {# Error Display #}
         {% if form.errors %}
             <div class="alert alert-danger shadow-sm">
                 <h6 class="fw-bold"><i class="fas fa-exclamation-triangle me-2"></i> Please correct the following errors:</h6>
@@ -21,149 +21,518 @@
             </div>
         {% endif %}
         
-        <div class="card shadow mb-5">
-            <div class="card-header bg-dark text-white d-flex justify-content-between">
-                <h5 class="mb-0">Fit & Proper Questionnaire (Schedule III)</h5>
-                <span>Role: {{ form.instance.get_role_display|default:"New Member" }}</span>
+        {# Header Card #}
+        <div class="card shadow mb-4">
+            <div class="card-header bg-dark text-white">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h5 class="mb-0">CBL Fit & Proper Assessment — Schedule III</h5>
+                        <small class="text-light">
+                            {% if lender %}
+                                {{ lender.company_name }} — {{ lender.get_cbl_tier_display }}
+                            {% endif %}
+                        </small>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge bg-light text-dark px-3 py-2">
+                            Role: {{ form.instance.get_role_display|default:"New Member" }}
+                        </span>
+                    </div>
+                </div>
             </div>
             
             <div class="card-body">
+                {# Section 1: Personal Identification #}
                 <div class="mb-5">
-                    <h6 class="text-primary border-bottom pb-2 mb-3"><i class="fas fa-user me-2"></i>1. Personal Identification</h6>
+                    <h6 class="text-primary border-bottom pb-2 mb-4">
+                        <i class="fas fa-user me-2"></i>1. Personal Identification
+                    </h6>
                     <div class="row g-3">
-                        <div class="col-md-6">{{ form.full_name.label_tag }}{{ form.full_name }}</div>
-                        <div class="col-md-3">{{ form.role.label_tag }}{{ form.role }}</div>
-                        <div class="col-md-3">{{ form.nationality.label_tag }}{{ form.nationality }}</div>
-                        <div class="col-md-3">{{ form.country_of_residence.label_tag }}{{ form.country_of_residence }}</div>
-                        <div class="col-md-4">{{ form.date_of_birth.label_tag }}{{ form.date_of_birth }}</div>
-                        <div class="col-md-4">{{ form.place_of_birth.label_tag }}{{ form.place_of_birth }}</div>
-                        <div class="col-md-4">{{ form.id_or_passport_number.label_tag }}{{ form.id_or_passport_number }}</div>
+                        <div class="col-md-6">
+                            {{ form.full_name.label_tag }}
+                            {{ form.full_name }}
+                            <div class="form-text">Full legal name as on ID document</div>
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.role.label_tag }}
+                            {{ form.role }}
+                        </div>
+                        <div class="col-md-3">
+                            {{ form.nationality.label_tag }}
+                            {{ form.nationality }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.country_of_residence.label_tag }}
+                            {{ form.country_of_residence }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.date_of_birth.label_tag }}
+                            {{ form.date_of_birth }}
+                        </div>
+                        <div class="col-md-4">
+                            {{ form.place_of_birth.label_tag }}
+                            {{ form.place_of_birth }}
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.id_or_passport_number.label_tag }}
+                            {{ form.id_or_passport_number }}
+                        </div>
+                        
+                        {# Board-specific fields for directors #}
+                        {% if form.instance.role == 'director' and lender.cbl_tier in 'tier1,tier2' %}
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-4">
+                                {{ form.is_chairman }}
+                                <label class="form-check-label fw-bold" for="{{ form.is_chairman.id_for_label }}">
+                                    Board Chairman
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-check form-switch mt-4">
+                                {{ form.is_non_executive }}
+                                <label class="form-check-label fw-bold" for="{{ form.is_non_executive.id_for_label }}">
+                                    Non-Executive
+                                </label>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
-                </div> 
-
-                <div class="mb-5">
-                    <h6 class="text-primary border-bottom pb-2 mb-3"><i class="fas fa-briefcase me-2"></i>2. Professional Experience (Last 10 Years)</h6>
-                    <div class="mb-3">{{ form.professional_qualifications.label_tag }}{{ form.professional_qualifications }}</div>
-                    <div class="mb-3">{{ form.employment_history_10_years.label_tag }}{{ form.employment_history_10_years }}</div>
                 </div>
 
+                {# Section 2: Contact Information #}
                 <div class="mb-5">
-                    <h6 class="text-primary border-bottom pb-2 mb-3"><i class="fas fa-gavel me-2"></i>3. Statutory Declarations</h6>
-                    <div class="alert alert-warning small">If you answer "Yes" to any of the following, tick and provide full details.</div>
-                    
-                    {% comment %} Define the pairs manually to avoid complex template filters {% endcomment %}
-                    
-                    <div class="row align-items-center mb-4 p-2 border-bottom">
-                        <div class="col-md-4">
-                            <div class="form-check form-switch">
-                                {{ form.ever_disqualified }}
-                                <label class="form-check-label fw-bold" for="{{ form.ever_disqualified.id_for_label }}">
-                                    {{ form.ever_disqualified.label }}
-                                </label>
-                            </div>
+                    <h6 class="text-primary border-bottom pb-2 mb-4">
+                        <i class="fas fa-address-card me-2"></i>2. Contact Information
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            {{ form.business_address.label_tag }}
+                            {{ form.business_address }}
                         </div>
-                        <div class="col-md-8">
-                            {{ form.disqualification_details }}
-                            <small class="text-muted">Provide details if "Yes"</small>
-                        </div>
-                    </div>
-
-                    <div class="row align-items-center mb-4 p-2 border-bottom">
-                        <div class="col-md-4">
-                            <div class="form-check form-switch">
-                                {{ form.legal_proceedings }}
-                                <label class="form-check-label fw-bold" for="{{ form.legal_proceedings.id_for_label }}">
-                                    {{ form.legal_proceedings.label }}
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-md-8">
-                            {{ form.legal_proceedings_details }}
-                        </div>
-                    </div>
-
-                    <div class="row align-items-center mb-4 p-2 border-bottom">
-                        <div class="col-md-4">
-                            <div class="form-check form-switch">
-                                {{ form.criminal_conviction }}
-                                <label class="form-check-label fw-bold" for="{{ form.criminal_conviction.id_for_label }}">
-                                    {{ form.criminal_conviction.label }}
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-md-8">
-                            {{ form.criminal_conviction_details }}
-                        </div>
-                    </div>
-
-                    <div class="row align-items-center mb-4 p-2 border-bottom">
-                        <div class="col-md-4">
-                            <div class="form-check form-switch">
-                                {{ form.bankruptcy }}
-                                <label class="form-check-label fw-bold" for="{{ form.bankruptcy.id_for_label }}">
-                                    {{ form.bankruptcy.label }}
-                                </label>
-                            </div>
-                        </div>
-                        <div class="col-md-8">
-                            {{ form.bankruptcy_details }}
+                        <div class="col-md-6">
+                            {{ form.residential_address.label_tag }}
+                            {{ form.residential_address }}
                         </div>
                     </div>
                 </div>
 
+                {# Section 3: Professional Experience #}
+                <div class="mb-5">
+                    <h6 class="text-primary border-bottom pb-2 mb-4">
+                        <i class="fas fa-briefcase me-2"></i>3. Professional Experience & Qualifications
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            {{ form.professional_qualifications.label_tag }}
+                            {{ form.professional_qualifications }}
+                            <div class="form-text">Include degrees, certificates, professional memberships</div>
+                        </div>
+                        <div class="col-12">
+                            {{ form.employment_history_10_years.label_tag }}
+                            {{ form.employment_history_10_years }}
+                            <div class="form-text">Last 10 years of employment with reasons for leaving each position</div>
+                        </div>
+                    </div>
+                </div>
+
+                {# Section 4: Business Affiliations #}
+                <div class="mb-5">
+                    <h6 class="text-primary border-bottom pb-2 mb-4">
+                        <i class="fas fa-building me-2"></i>4. Business Affiliations & Interests
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            {{ form.other_affiliations.label_tag }}
+                            {{ form.other_affiliations }}
+                            <div class="form-text">Directorships, partnerships, shareholdings >5%</div>
+                        </div>
+                        <div class="col-md-6">
+                            {{ form.family_business_affiliations.label_tag }}
+                            {{ form.family_business_affiliations }}
+                            <div class="form-text">Spouse, children, parents, siblings business interests</div>
+                        </div>
+                    </div>
+                </div>
+
+                {# Section 5: Statutory Declarations #}
+                <div class="mb-5">
+                    <h6 class="text-primary border-bottom pb-2 mb-4">
+                        <i class="fas fa-gavel me-2"></i>5. Statutory Declarations
+                    </h6>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        <strong>Important:</strong> If you answer "Yes" to any declaration below, 
+                        you must provide complete details. False declarations may result in application rejection.
+                    </div>
+                    
+                    {# Declaration pairs with conditional details #}
+                    <div class="declaration-section">
+                        <div class="row align-items-center mb-4 p-3 border rounded">
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    {{ form.ever_disqualified }}
+                                    <label class="form-check-label fw-bold" for="{{ form.ever_disqualified.id_for_label }}">
+                                        {{ form.ever_disqualified.label }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="details-field" id="details-ever_disqualified" style="display: none;">
+                                    {{ form.disqualification_details }}
+                                    <div class="form-text text-danger">Provide full details including dates, reasons, and current status</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row align-items-center mb-4 p-3 border rounded">
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    {{ form.legal_proceedings }}
+                                    <label class="form-check-label fw-bold" for="{{ form.legal_proceedings.id_for_label }}">
+                                        {{ form.legal_proceedings.label }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="details-field" id="details-legal_proceedings" style="display: none;">
+                                    {{ form.legal_proceedings_details }}
+                                    <div class="form-text text-danger">Include case numbers, courts, outcomes, and dates</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row align-items-center mb-4 p-3 border rounded">
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    {{ form.criminal_conviction }}
+                                    <label class="form-check-label fw-bold" for="{{ form.criminal_conviction.id_for_label }}">
+                                        {{ form.criminal_conviction.label }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="details-field" id="details-criminal_conviction" style="display: none;">
+                                    {{ form.criminal_conviction_details }}
+                                    <div class="form-text text-danger">Include charges, sentences, and rehabilitation details</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row align-items-center mb-4 p-3 border rounded">
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    {{ form.bankruptcy }}
+                                    <label class="form-check-label fw-bold" for="{{ form.bankruptcy.id_for_label }}">
+                                        {{ form.bankruptcy.label }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="details-field" id="details-bankruptcy" style="display: none;">
+                                    {{ form.bankruptcy_details }}
+                                    <div class="form-text text-danger">Include bankruptcy type, discharge date, and current financial status</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row align-items-center mb-4 p-3 border rounded">
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    {{ form.dismissed_or_resigned }}
+                                    <label class="form-check-label fw-bold" for="{{ form.dismissed_or_resigned.id_for_label }}">
+                                        {{ form.dismissed_or_resigned.label }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="details-field" id="details-dismissed_or_resigned" style="display: none;">
+                                    {{ form.dismissal_details }}
+                                    <div class="form-text text-danger">Include employer, reasons, and circumstances</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {# Section 6: Required Documents #}
                 <div class="mb-4">
-                    <h6 class="text-primary border-bottom pb-2 mb-3"><i class="fas fa-file-upload me-2"></i>4. Required Certified Documents</h6>
-                    <div class="row g-4">
-                        <div class="col-md-6">
-                            <label class="small fw-bold">Police Clearance</label>
-                            {{ form.police_clearance }}
+                    <h6 class="text-primary border-bottom pb-2 mb-4">
+                        <i class="fas fa-file-upload me-2"></i>6. Required Supporting Documents
+                    </h6>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>File Requirements:</strong> PDF format preferred. Maximum 5MB per file. 
+                        All certificates must be current and certified true copies.
+                    </div>
+
+                    <div class="row">
+                        {# Identity & Background Documents #}
+                        <div class="col-lg-6 border-end">
+                            <h6 class="text-secondary border-bottom pb-2 mb-4">
+                                <i class="fas fa-id-card me-1"></i>Identity & Background
+                            </h6>
+                            
+                            {% include 'personnel_document_field.html' with field=form.fit_proper_form label='Completed Fit & Proper Questionnaire' required=True %}
+                            {% include 'personnel_document_field.html' with field=form.curriculum_vitae label='Detailed Curriculum Vitae' required=True %}
+                            {% include 'personnel_document_field.html' with field=form.police_clearance label='Police Clearance Certificate' required=True expiry_warning=True %}
+                            {% include 'personnel_document_field.html' with field=form.id_copy label='Certified ID/Passport Copy' required=True %}
                         </div>
-                        <div class="col-md-6">
-                            <label class="small fw-bold">Tax Clearance (Personal)</label>
-                            {{ form.tax_clearance }}
+
+                        {# Financial & References Documents #}
+                        <div class="col-lg-6">
+                            <h6 class="text-secondary border-bottom pb-2 mb-4">
+                                <i class="fas fa-money-check me-1"></i>Financial & References
+                            </h6>
+                            
+                            {% include 'personnel_document_field.html' with field=form.tax_clearance_individual label='Personal Tax Clearance Certificate' required=True expiry_warning=True %}
+                            {% include 'personnel_document_field.html' with field=form.statement_assets_liabilities label='Statement of Assets & Liabilities' required=True %}
+                            
+                            {# Character References #}
+                            <div class="mb-4">
+                                <label class="form-label fw-bold text-decoration-underline">Character References (2 Required)</label>
+                                <div class="row">
+                                    <div class="col-6">
+                                        {% include 'personnel_document_field.html' with field=form.character_ref_1 label='Reference 1' compact=True %}
+                                    </div>
+                                    <div class="col-6">
+                                        {% include 'personnel_document_field.html' with field=form.character_ref_2 label='Reference 2' compact=True %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {# Financial References #}
+                            <div class="mb-4">
+                                <label class="form-label fw-bold text-decoration-underline">Bank References (2 Required)</label>
+                                <div class="row">
+                                    <div class="col-6">
+                                        {% include 'personnel_document_field.html' with field=form.financial_ref_1 label='Bank Reference 1' compact=True %}
+                                    </div>
+                                    <div class="col-6">
+                                        {% include 'personnel_document_field.html' with field=form.financial_ref_2 label='Bank Reference 2' compact=True %}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="small fw-bold">Notarized Character References</label>
-                            {{ form.character_references }}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="small fw-bold">Certified ID Copy</label>
-                            {{ form.id_copy }}
+                    </div>
+
+                    {# Document Completion Summary #}
+                    <div id="document-summary" class="alert alert-secondary mt-4">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <strong>Document Upload Progress:</strong>
+                                <span id="doc-count">0 of 10</span> documents uploaded
+                            </div>
+                            <div class="col-auto">
+                                <div class="progress" style="width: 120px; height: 8px;">
+                                    <div id="doc-progress" class="progress-bar" style="width: 0%"></div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-
             </div>
 
-            <div class="card-footer bg-light p-4 text-center">
-                <button type="submit" name="save_draft" class="btn btn-secondary px-5 me-2">Save Draft</button>
-                <button type="submit" name="submit_final" class="btn btn-success px-5">Submit & Certify Accuracy</button>
+            {# Action Buttons #}
+            <div class="card-footer bg-light p-4">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="accuracy-certification" required>
+                            <label class="form-check-label text-muted" for="accuracy-certification">
+                                I certify that all information provided is true, complete, and accurate to the best of my knowledge.
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="btn-group gap-2">
+                            <button type="submit" name="save_draft" class="btn btn-outline-secondary px-4">
+                                <i class="fas fa-save me-1"></i>Save Draft
+                            </button>
+                            <button type="submit" name="submit_final" class="btn btn-success px-4" id="submit-final-btn" disabled>
+                                <i class="fas fa-check-circle me-1"></i>Submit & Finalize
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </form>
 </div>
 
+{# Enhanced JavaScript #}
 <script>
-    // Add this to your script block
 document.addEventListener('DOMContentLoaded', function() {
+    
+    // ── Declaration Details Toggle ────────────────────────────────────
     const declarations = [
-        {bool: 'id_ever_disqualified', text: 'id_disqualification_details'},
-        {bool: 'id_legal_proceedings', text: 'id_legal_proceedings_details'},
-        {bool: 'id_criminal_conviction', text: 'id_criminal_conviction_details'},
-        {bool: 'id_bankruptcy', text: 'id_bankruptcy_details'}
+        'ever_disqualified',
+        'legal_proceedings', 
+        'criminal_conviction', 
+        'bankruptcy',
+        'dismissed_or_resigned'
     ];
 
-    declarations.forEach(pair => {
-        const checkbox = document.getElementById(pair.bool);
-        const textField = document.getElementById(pair.text);
+    declarations.forEach(fieldName => {
+        const checkbox = document.getElementById(`id_${fieldName}`);
+        const detailsDiv = document.getElementById(`details-${fieldName}`);
         
-        // Initial state
-        textField.style.display = checkbox.checked ? 'block' : 'none';
-
-        checkbox.addEventListener('change', () => {
-            textField.style.display = checkbox.checked ? 'block' : 'none';
-        });
+        if (checkbox && detailsDiv) {
+            // Set initial state based on checkbox value
+            detailsDiv.style.display = checkbox.checked ? 'block' : 'none';
+            
+            // Toggle on change
+            checkbox.addEventListener('change', () => {
+                detailsDiv.style.display = checkbox.checked ? 'block' : 'none';
+                if (checkbox.checked) {
+                    // Focus the details field when checkbox is checked
+                    const textarea = detailsDiv.querySelector('textarea, input');
+                    if (textarea) setTimeout(() => textarea.focus(), 100);
+                }
+            });
+        }
     });
+
+    // ── Document Upload Progress ──────────────────────────────────────
+    const documentFields = [
+        'fit_proper_form', 'curriculum_vitae', 'police_clearance', 'id_copy',
+        'tax_clearance_individual', 'statement_assets_liabilities', 
+        'character_ref_1', 'character_ref_2', 'financial_ref_1', 'financial_ref_2'
+    ];
+
+    /*function updateDocumentProgress() {
+        let uploadedCount = 0;
+        const totalCount = documentFields.length;
+        
+        documentFields.forEach(fieldName => {
+            const input = document.getElementById(`id_${fieldName}`);
+            if (input && (input.files && input.files.length > 0)) {
+                uploadedCount++;
+            } else if (input && input.value && input.value.trim() !== '') {
+                
+                uploadedCount++;
+            }
+        });*/
+
+        function updateDocumentProgress() {
+        let uploadedCount = 0;
+        const totalCount = documentFields.length;
+        
+        documentFields.forEach(fieldName => {
+            const input = document.getElementById(`id_${fieldName}`);
+            const currentFileLink = document.querySelector(`a[href*="${fieldName}"]`); // Look for existing file link
+            
+            if (input && input.files && input.files.length > 0) {
+                // New file selected
+                uploadedCount++;
+            } else if (currentFileLink || (input && input.dataset.hasFile === 'true')) {
+                // Existing file present (check for link or data attribute)
+                uploadedCount++;
+            }
+        });
+        
+        const percentage = Math.round((uploadedCount / totalCount) * 100);
+        
+        document.getElementById('doc-count').textContent = `${uploadedCount} of ${totalCount}`;
+        document.getElementById('doc-progress').style.width = `${percentage}%`;
+        
+        // Update progress bar color
+        const progressBar = document.getElementById('doc-progress');
+        if (percentage === 100) {
+            progressBar.className = 'progress-bar bg-success';
+        } else if (percentage >= 70) {
+            progressBar.className = 'progress-bar bg-info';
+        } else if (percentage >= 30) {
+            progressBar.className = 'progress-bar bg-warning';
+        } else {
+            progressBar.className = 'progress-bar bg-danger';
+        }
+        
+        // Enable/disable submit button based on completion
+        updateSubmitButton(percentage === 100);
+        
+        return percentage;
+    }
+
+    // ── Submit Button State Management ────────────────────────────────
+    const certificationCheck = document.getElementById('accuracy-certification');
+    const submitButton = document.getElementById('submit-final-btn');
+    
+    function updateSubmitButton(documentsComplete) {
+        const certificationChecked = certificationCheck && certificationCheck.checked;
+        const canSubmit = documentsComplete && certificationChecked;
+        
+        if (submitButton) {
+            submitButton.disabled = !canSubmit;
+            
+            if (canSubmit) {
+                submitButton.innerHTML = '<i class="fas fa-check-circle me-1"></i>Submit & Finalize';
+                submitButton.className = 'btn btn-success px-4';
+            } else if (!documentsComplete) {
+                submitButton.innerHTML = '<i class="fas fa-upload me-1"></i>Complete Documents First';
+                submitButton.className = 'btn btn-outline-secondary px-4';
+            } else {
+                submitButton.innerHTML = '<i class="fas fa-exclamation me-1"></i>Certify Accuracy';
+                submitButton.className = 'btn btn-outline-warning px-4';
+            }
+        }
+    }
+    
+    // ── Event Listeners ───────────────────────────────────────────────
+    // Listen for file uploads
+    documentFields.forEach(fieldName => {
+        const input = document.getElementById(`id_${fieldName}`);
+        if (input) {
+            input.addEventListener('change', updateDocumentProgress);
+        }
+    });
+    
+    // Listen for certification checkbox
+    if (certificationCheck) {
+        certificationCheck.addEventListener('change', () => {
+            const progress = updateDocumentProgress();
+            updateSubmitButton(progress === 100);
+        });
+    }
+    
+    // ── Initialize ────────────────────────────────────────────────────
+    updateDocumentProgress();
 });
 </script>
+
+{# Styling #}
+<style>
+.declaration-section .border {
+    transition: all 0.2s ease;
+}
+
+.declaration-section .border:hover {
+    border-color: #007bff !important;
+    background-color: #f8f9fa;
+}
+
+.details-field {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.progress {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+#submit-final-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.text-decoration-underline {
+    text-decoration: underline !important;
+}
+</style>
 {% endblock %}
