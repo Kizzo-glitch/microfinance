@@ -46,3 +46,5 @@ django-crispy-forms==2.4
 certifi==2025.10.5
 pip_system_certs==5.3
 
+django-widget-tweaks==1.5.1
+
