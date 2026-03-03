@@ -3,547 +3,1009 @@
 
 {% block content %}
 
+<!-- Header-->
+<header class="bg-success text-white text-center py-5">
+    <div class="container">
+        <h1 class="fw-bold">CBL Compliance Made Simple</h1>
+        <p class="lead">Get licensed faster, stay compliant longer, reduce costs by up to 75%</p>
+        <div class="d-flex justify-content-center gap-3 mt-4">
+            <a href="#eligibility-wizard" class="btn btn-light btn-lg px-4">
+                <i class="bi bi-list-check me-2"></i>Check Your Eligibility
+            </a>
+            &nbsp;&nbsp;
+            <a href="{% url 'register' %}" class="btn btn-outline-light btn-lg px-4">
+                Start Your Application
+            </a>
+        </div>
+    </div>
+</header>
 
- <!-- Header-->
-        <header class="bg-success text-white text-center py-5">
-            <div class="container">
-                <h1 class="fw-light fw-bold">Hello Fedha Lender</h1>
-                <p class="lead">Here are some steps we can help you with to be fully compliant.</p>
-                <div class="d-flex justify-content-center">
-                    
-                    
-                    
+<!-- Problem & Solution Section -->
+<section id="compliance-assistance" class="py-5 bg-light">
+    <div class="container">
+        <div class="card shadow border-0">
+            <div class="card-header bg-success text-white text-center">
+                <h2>Why Lenders Choose Fedha-Grow</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <h4 class="text-danger fw-bold mb-3">The Traditional Way (Problems)</h4>
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item border-0 px-0">
+                                <i class="bi bi-x-circle-fill text-danger me-2"></i>
+                                <strong>M50,000 - M150,000</strong> in consultant fees
+                            </div>
+                            <div class="list-group-item border-0 px-0">
+                                <i class="bi bi-x-circle-fill text-danger me-2"></i>
+                                <strong>6-12 months</strong> approval timeline
+                            </div>
+                            <div class="list-group-item border-0 px-0">
+                                <i class="bi bi-x-circle-fill text-danger me-2"></i>
+                                Complex regulatory requirements
+                            </div>
+                            <div class="list-group-item border-0 px-0">
+                                <i class="bi bi-x-circle-fill text-danger me-2"></i>
+                                Risk of penalties and shutdowns
+                            </div>
+                            <div class="list-group-item border-0 px-0">
+                                <i class="bi bi-x-circle-fill text-danger me-2"></i>
+                                Manual document preparation
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <h4 class="text-success fw-bold mb-3">The Fedha-Grow Way (Solutions)</h4>
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item border-0 px-0">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <strong>75% cost savings</strong> vs. traditional consultants
+                            </div>
+                            <div class="list-group-item border-0 px-0">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                <strong>3-4 months</strong> faster approvals
+                            </div>
+                            <div class="list-group-item border-0 px-0">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Automated document generation
+                            </div>
+                            <div class="list-group-item border-0 px-0">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Real-time CBL application tracking
+                            </div>
+                            <div class="list-group-item border-0 px-0">
+                                <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                Ongoing compliance monitoring
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <h5 class="text-success mb-3">Key Features</h5>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="d-flex">
+                            <i class="bi bi-robot text-success me-3 mt-1" style="font-size: 1.25rem;"></i>
+                            <div>
+                                <strong>AI-Powered Document Generation</strong>
+                                <div class="small text-muted">Auto-generate business plans, schedules, and compliance forms</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex">
+                            <i class="bi bi-graph-up-arrow text-success me-3 mt-1" style="font-size: 1.25rem;"></i>
+                            <div>
+                                <strong>Predictive Analytics</strong>
+                                <div class="small text-muted">Identify compliance issues 60 days in advance</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex">
+                            <i class="bi bi-shield-check text-success me-3 mt-1" style="font-size: 1.25rem;"></i>
+                            <div>
+                                <strong>CBL API Integration</strong>
+                                <div class="small text-muted">Direct submission to CBL, 85% fewer errors</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex">
+                            <i class="bi bi-headset text-success me-3 mt-1" style="font-size: 1.25rem;"></i>
+                            <div>
+                                <strong>24/7 Expert Support</strong>
+                                <div class="small text-muted">Dedicated compliance officers and technical support</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </header>
+        </div>
+    </div>
+</section>
 
-                    <section id="compliance-assistance" class="py-5 bg-light">
-                        <div class="container">
-                            <div class="card shadow border-0">
-                            <div class="card-header bg-success text-white text-center">
-                                <h2>Lender Compliance Assistance</h2>
-                            </div>
-                            <div class="card-body">
+<!-- Compliance Tiers Section -->
+<section id="compliance-tiers" class="py-5">
+    <div class="container">
+        <div class="card shadow border-0">
+            <div class="card-header bg-success text-white text-center">
+                <h2>CBL Licensing Pathways</h2>
+                <p class="mb-0 text-light">Choose the right regulatory path for your lending business</p>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4">
 
-                                <p class="text-center mb-4">
-                                Starting a lending business in Lesotho can be complex — Fedha-Grow helps lenders become compliant,
-                                licensed, and operational with confidence.
-                                </p>
-
-                                <!-- Problem -->
-                                <h4 class="text-danger fw-bold">The Problem</h4>
-                                <ul>
-                                <li>Understanding requirements</li>
-                                <li>High consultant fees (M 50,000 – M 150,000)</li>
-                                <li>6–12 month approval timeline</li>
-                                <li>Lack of regulatory understanding</li>
-                                <li>Fear of penalties and shutdowns</li>
-                                </ul>
-
-                                <!-- Solution -->
-                                <h4 class="text-success fw-bold mt-4">Our Solution: <em>Lender Compliance Hub</em></h4>
-                                <ul>
-                                <li>Assess eligibility and recommend correct license type</li>
-                                <li>Generate required documents automatically</li>
-                                <li>Track application status step-by-step</li>
-                                <li>Provide ongoing compliance tools (AML, reporting, audits)</li>
-                                <li>Allow lenders to operate under Fedha-Grow umbrella during approval</li>
-                                </ul>
-
-                            </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section id="compliance-tiers" class="py-5 bg-light">
-                        <div class="container">
-                            <div class="card shadow border-0">
-                            <div class="card-header bg-success text-white text-center">
-                                <h2>Compliance Pathways for Every Type of Lender</h2>
-                            </div>
-                             <br>
-
-                            <div class="row g-4">
-
-                            <!-- Tier 1 -->
-                            <div class="col-md-6 col-lg-3">
-                                <div class="card shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <h5 class="text-success fw-bold">Tier 1</h5>
-                                    <p class="fw-semibold">Unlicensed Individuals</p>
-                                    <p class="small">Operate under Fedha-Grow’s platform license</p>
-                                    <p class="small mb-2"><strong>Split:</strong> 70% Lender / 30% Platform</p>
+                    <!-- Tier 1 (Deposit-Taking) -->
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card border-warning h-100">
+                            <div class="card-body text-center">
+                                <div class="bg-warning bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
+                                    <i class="bi bi-building text-warning" style="font-size: 1.5rem;"></i>
                                 </div>
-                                </div>
-                            </div>
-
-                            <!-- Tier 2 -->
-                            <div class="col-md-6 col-lg-3">
-                                <div class="card shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <h5 class="text-success fw-bold">Tier 2</h5>
-                                    <p class="fw-semibold">Small MFIs (Under M 2M)</p>
-                                    <p class="small">Guided registration + temporary platform operation</p>
-                                </div>
-                                </div>
-                            </div>
-
-                            <!-- Tier 3 -->
-                            <div class="col-md-6 col-lg-3">
-                                <div class="card shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <h5 class="text-success fw-bold">Tier 3</h5>
-                                    <p class="fw-semibold">Full MFIs (M 2M+)</p>
-                                    <p class="small">White-label compliance dashboard & reporting</p>
-                                </div>
-                                </div>
-                            </div>
-
-                            <!-- Tier 4 -->
-                            <div class="col-md-6 col-lg-3">
-                                <div class="card shadow-sm h-100">
-                                <div class="card-body text-center">
-                                    <h5 class="text-success fw-bold">Tier 4</h5>
-                                    <p class="fw-semibold">Peer-to-Peer Groups</p>
-                                    <p class="small">Operate under Fedha-Grow omnibus license</p>
-                                </div>
-                                </div>
-                            </div>
-
-                            </div>
-                            <br>
-
-                        </div>
-                        </div>
-                    </section>
-
-                    <section id="compliance-journey" class="py-5 bg-light">
-                        <div class="container">
-                            <div class="card shadow border-0">
-                            <div class="card-header bg-success text-white text-center">
-                                <h2>Compliance Journey</h2>
-                            </div>
-                             <br>
-                           
-
-                            <div class="d-flex flex-wrap justify-content-center align-items-center">
-
-                            <div class="text-center mx-3">
-                                <i class="bi bi-bar-chart-steps fs-2 text-success"></i><br>Assessment
-                            </div>
-                            <i class="bi bi-arrow-right fs-4 mx-2"></i>
-
-                            <div class="text-center mx-3">
-                                <i class="bi bi-journal-text fs-2 text-success"></i><br>Document Generation
-                            </div>
-                            <i class="bi bi-arrow-right fs-4 mx-2"></i>
-
-                            <div class="text-center mx-3">
-                                <i class="bi bi-bank fs-2 text-success"></i><br>CBL Submission
-                            </div>
-                            <i class="bi bi-arrow-right fs-4 mx-2"></i>
-
-                            <div class="text-center mx-3">
-                                <i class="bi bi-lightning-charge-fill fs-2 text-success"></i><br>Operate Under Platform
-                            </div>
-                            <i class="bi bi-arrow-right fs-4 mx-2"></i>
-
-                            <div class="text-center mx-3">
-                                <i class="bi bi-patch-check-fill fs-2 text-success"></i><br>Full License
-                            </div>
-
-                            </div>
-                        </div>
-                        </div>
-                        <br>
-                    </section>
-
-
-                    <div class="container py-5">
-                        <!-- Header -->
-                        <div class="card shadow-sm mb-4">
-                            <div class="card-header bg-success text-white">
-                            <h1 class="h4 mb-0">Full Lender Compliance Hub — How it works</h1>
-                            <small class="text-light">Guided licensing, document generation & CBL tracking for lenders</small>
-                            </div>
-                            <div class="card-body">
-                            <div class="row gy-4">
-                                <div class="col-lg-7">
-                                <h5 class="text-success">Overview</h5>
-                                <p>
-                                    The Lender Compliance Hub helps individuals, groups and small firms understand which
-                                    regulatory path at the Central Bank of Lesotho (CBL) they need, auto-generate
-                                    required application documents, track the CBL application progress, and provide
-                                    ongoing compliance tooling (AML, reporting, fit & proper checks).
-                                </p>
-
-                                <div class="mb-3">
-                                    <a class="btn btn-outline-success me-2" href="#eligibility-wizard">Try Eligibility Wizard</a>
-                                    <a class="btn btn-success" href="#">Download Sample Docs</a>
-                                </div>
-
-                                <hr>
-
-                                <h6 class="text-success">Problem summary</h6>
-                                <ul>
-                                    <li>Understanding requirements and reducing approval timelines</li>
-                                    <li>High consultant costs (M 50k–150k)</li>
-                                    <li>Small lenders lack compliance capacity</li>
-                                </ul>
-
-                                <h6 class="text-success mt-3">Solution snapshot</h6>
-                                <ul>
-                                    <li>Eligibility & tier recommendation wizard</li>
-                                    <li>Auto-document generation (business plans, schedules, fit-and-proper forms)</li>
-                                    <li>CBL application tracking & status updates</li>
-                                    <li>Ongoing compliance tooling (reporting, AML checks, credit bureau integration)</li>
-                                </ul>
-                                </div>
-
-                                <div class="col-lg-5">
-                                <div class="card border-success">
-                                    <div class="card-body">
-                                    <h6 class="card-title text-success"><i class="bi bi-award-fill"></i> Quick Tiers</h6>
-                                    <p class="small mb-2">
-                                        <strong>Tier 1:</strong> Individual lenders (facilitated under platform license)<br>
-                                        <strong>Tier 2:</strong> Small MFIs (assets &lt; 2M) — guided registration<br>
-                                        <strong>Tier 3:</strong> Full MFIs (2M+ capital) — full application support<br>
-                                        <strong>Tier 4:</strong> Alternative / peer-to-peer under platform umbrella
-                                    </p>
-
-                                    <hr>
-
-                                    <h6 class="text-success">CBL files (uploaded)</h6>
-                                    <ul class="list-unstyled small">
-                                        <li><i class="bi bi-file-earmark-pdf-fill text-danger"></i>
-                                        <a href="/mnt/data/MFI License Application Requirements Check List.pdf" target="_blank">MFI License Requirements (Checklist)</a>
-                                        </li>
-                                        <li><i class="bi bi-file-earmark-pdf-fill text-danger"></i>
-                                        <a href="/mnt/data/Schedules.pdf" target="_blank">Schedules & Application Forms (Schedule I–IV)</a>
-                                        </li>
-                                        <li><i class="bi bi-file-earmark-pdf-fill text-danger"></i>
-                                        <a href="/mnt/data/Fit & Proper Questionnaire for IISSD & NBSD Key Employees (Revised July 2017).pdf" target="_blank">Fit & Proper Questionnaire (Key Employees)</a>
-                                        </li>
+                                <h5 class="text-warning fw-bold">CBL Tier 1</h5>
+                                <p class="fw-semibold text-dark">Deposit-Taking MFIs</p>
+                                <div class="text-start small">
+                                    <p><strong>Requirements:</strong></p>
+                                    <ul class="list-unstyled">
+                                        <li>• Min 5 directors</li>
+                                        <li>• Audit committee</li>
+                                        <li>• Credit committee</li>
+                                        <li>• 15% liquidity ratio</li>
+                                        <li>• Monthly reporting</li>
                                     </ul>
-                                    </div>
-                                </div>
-                                </div>
-                            </div> <!-- row -->
-                            </div> <!-- card-body -->
-                        </div> <!-- card -->
-
-                        <!-- Eligibility Wizard -->
-                        <a id="eligibility-wizard"></a>
-                        <div class="row">
-                            <div class="col-lg-7">
-                            <div class="card shadow-sm mb-4">
-                                <div class="card-header bg-light">
-                                <h5 class="mb-0"><i class="bi bi-list-check text-success"></i> Eligibility Wizard</h5>
-                                </div>
-                                <div class="card-body">
-                                <div id="wizard">
-                                    <!-- Steps indicators -->
-                                    <div class="mb-3">
-                                    <small class="text-muted">Step <span id="stepIdx">1</span> of 4</small>
-                                    <div class="progress mt-1" style="height:8px;">
-                                        <div class="progress-bar bg-success" role="progressbar" id="wizardProgress" style="width:25%"></div>
-                                    </div>
-                                    </div>
-
-                                    <!-- Step 1: Basic info -->
-                                    <div class="wizard-step" data-step="1">
-                                    <div class="mb-3">
-                                        <label class="form-label">Capital available for lending (M)</label>
-                                        <input type="number" id="capital" class="form-control" placeholder="e.g., 250000" min="0" />
-                                        <div class="form-text">Enter total capital the lender can commit.</div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Organizational form</label>
-                                        <select id="orgType" class="form-select">
-                                        <option value="individual">Individual</option>
-                                        <option value="business">Business / NGO</option>
-                                        <option value="community_group">Group / Stokvel</option>
-                                        </select>
-                                    </div>
-                                    </div>
-
-                                    <!-- Step 2: Governance -->
-                                    <div class="wizard-step d-none" data-step="2">
-                                    <div class="mb-3">
-                                        <label class="form-label">Number of proposed Board members</label>
-                                        <input type="number" id="boardCount" class="form-control" min="0" value="0" />
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Do you have audited financials?</label>
-                                        <select id="audited" class="form-select">
-                                        <option value="no">No</option>
-                                        <option value="yes">Yes</option>
-                                        </select>
-                                    </div>
-                                    </div>
-
-                                    <!-- Step 3: Operations & Compliance -->
-                                    <div class="wizard-step d-none" data-step="3">
-                                    <div class="mb-3">
-                                        <label class="form-label">Will you perform payroll deduction or require employer integration?</label>
-                                        <select id="payroll" class="form-select">
-                                        <option value="no">No</option>
-                                        <option value="yes">Yes</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Preferred structure</label>
-                                        <select id="preferred" class="form-select">
-                                        <option value="own_license">Apply for own license</option>
-                                        <option value="operate_under_platform">Operate under platform (facilitated)</option>
-                                        </select>
-                                    </div>
-                                    </div>
-
-                                    <!-- Step 4: Review & Recommendation -->
-                                    <div class="wizard-step d-none" data-step="4">
-                                    <h6>Recommendation</h6>
-                                    <div id="recommendationCard" class="card border-success mb-3">
-                                        <div class="card-body">
-                                        <h5 id="rec_tier" class="h5 text-success">--</h5>
-                                        <p id="rec_text" class="small">--</p>
-                                        <p class="mb-1"><strong>Required Documents</strong></p>
-                                        <ul id="rec_docs" class="small"></ul>
-                                        </div>
-                                    </div>
-
-                                    <div class="mb-3">
-                                        <label class="form-label">Action</label>
-                                        <select id="actionAfter" class="form-select">
-                                        <option value="start_application">Start CBL Application (Guided)</option>
-                                        <option value="operate_under_platform">Operate under Platform Now</option>
-                                        <option value="book_consultation">Book Compliance Consultation</option>
-                                        </select>
-                                    </div>
-                                    </div>
-
-                                    <!-- Buttons -->
-                                    <div class="d-flex justify-content-between">
-                                    <button id="prevBtn" class="btn btn-outline-secondary" disabled>Back</button>
-                                    <div>
-                                        <button id="resetBtn" class="btn btn-link text-muted me-2">Reset</button>
-                                        <button id="nextBtn" class="btn btn-success">Next</button>
-                                    </div>
-                                    </div>
-                                </div>
+                                    <p><strong>Setup:</strong> M100,000</p>
+                                    <p><strong>Monthly:</strong> M15,000</p>
                                 </div>
                             </div>
-
-                            <!-- CBL Tracking mock UI -->
-                            <div class="card shadow-sm mb-4">
-                                <div class="card-header bg-light">
-                                <h6 class="mb-0"><i class="bi bi-clock-history text-success"></i> CBL Application Tracker</h6>
-                                </div>
-                                <div class="card-body">
-                                <p class="small text-muted">Track progress of applications submitted to the Central Bank of Lesotho.</p>
-                                <table class="table table-sm">
-                                    <thead>
-                                    <tr>
-                                        <th>Application</th>
-                                        <th>Submitted</th>
-                                        <th>Status</th>
-                                        <th>Last updated</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody id="trackerTable">
-                                    <tr>
-                                        <td>Fedha-Grow Analysis</td>
-                                        <td>2025-09-15</td>
-                                        <td><span class="badge bg-warning">Under Review</span></td>
-                                        <td>2025-09-20</td>
-                                    </tr>
-                                    <tr>
-                                        <td>Community Lender (M 200k)</td>
-                                        <td>2025-09-01</td>
-                                        <td><span class="badge bg-success">Approved</span></td>
-                                        <td>2025-10-08</td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                                <small class="text-muted">To utilise this function, register as lender and follow compliance processes.</small>
-                                </div>
-                            </div>
-
-                            </div>
-
-                            <!-- Right column: Auto-docs & Compliance Tools -->
-                            <div class="col-lg-5">
-                            <div class="card shadow-sm mb-4">
-                                <div class="card-header bg-success text-white">
-                                <h6 class="mb-0"><i class="bi bi-file-earmark-text-fill"></i> Auto Docs & Checklists</h6>
-                                </div>
-                                <div class="card-body">
-                                <p class="small">Quick access to regulatory documents and the per-tier checklist. Clicking "Generate" will simulate document preparation using templates.</p>
-                                <ul class="list-group mb-3">
-                                    <li class="list-group-item d-flex justify-content-between align-items-start">
-                                    <div>
-                                        <div class="fw-bold">MFI License Requirements</div>
-                                        <div class="small text-muted">Checklist & guidance</div>
-                                    </div>
-                                    <a class="btn btn-sm btn-outline-success" href="/mnt/data/MFI License Application Requirements Check List.pdf" target="_blank">Open</a>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between align-items-start">
-                                    <div>
-                                        <div class="fw-bold">Application Schedules</div>
-                                        <div class="small text-muted">Schedule I – IV (forms)</div>
-                                    </div>
-                                    <a class="btn btn-sm btn-outline-success" href="/mnt/data/Schedules.pdf" target="_blank">Open</a>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between align-items-start">
-                                    <div>
-                                        <div class="fw-bold">Fit & Proper Forms</div>
-                                        <div class="small text-muted">Questionnaire for directors & key staff</div>
-                                    </div>
-                                    <a class="btn btn-sm btn-outline-success" href="/mnt/data/Fit & Proper Questionnaire for IISSD & NBSD Key Employees (Revised July 2017).pdf" target="_blank">Open</a>
-                                    </li>
-                                </ul>
-
-                                <div class="mb-2">
-                                    <button id="generateDocs" class="btn btn-success w-100">Generate Required Docs (sample)</button>
-                                </div>
-                                <div id="generateResult" class="small text-muted mt-2"></div>
-                                </div>
-                            </div>
-
-                            <div class="card shadow-sm">
-                                <div class="card-header bg-light">
-                                <h6 class="mb-0"><i class="bi bi-shield-check text-success"></i> Compliance Tools</h6>
-                                </div>
-                                <div class="card-body small">
-                                <ul>
-                                    <li><strong>AML checklist & transaction monitoring</strong> — configurable rules & alerts</li>
-                                    <li><strong>Prudential reporting</strong> — auto-generate quarterly reports for CBL</li>
-                                    <li><strong>Credit bureau integration</strong> — push/pull borrower credit data</li>
-                                    <li><strong>Fit & proper management</strong> — manage director questionnaires, references & clearances</li>
-                                    <li><strong>Policy templates</strong> — risk management, loan policies, internal audit procedures</li>
-                                </ul>
-                                </div>
-                            </div>
-                            </div>
-                        </div> <!-- row -->
-
-                        <style>
-                            /* small UI touches */
-                            .wizard-step { transition: all .15s ease-in-out; }
-                            .btn { border-radius: .6rem; }
-                            .accordion-button { border-radius: .8rem !important; background-color: #e9f7ef; color: #125b2d; }
-                            .card-header.bg-success { border-top-left-radius: .5rem; border-top-right-radius: .5rem; }
-                        </style>
-
-                        <script>
-                            // Wizard logic (client-side)
-                            (function(){
-                            const steps = Array.from(document.querySelectorAll('.wizard-step'));
-                            let idx = 0;
-                            const stepIdxEl = document.getElementById('stepIdx');
-                            const progress = document.getElementById('wizardProgress');
-                            const prevBtn = document.getElementById('prevBtn');
-                            const nextBtn = document.getElementById('nextBtn');
-                            const resetBtn = document.getElementById('resetBtn');
-
-                            function showStep(i){
-                                steps.forEach(s => s.classList.add('d-none'));
-                                steps[i].classList.remove('d-none');
-                                stepIdxEl.textContent = (i+1);
-                                progress.style.width = ((i+1)/steps.length*100) + '%';
-                                prevBtn.disabled = (i===0);
-                                nextBtn.textContent = (i+steps.length===steps.length*2 ? 'Finish' : (i === steps.length-1 ? 'Finish' : 'Next'));
-                            }
-                            showStep(0);
-
-                            prevBtn.addEventListener('click', () => {
-                                if(idx>0){ idx--; showStep(idx); }
-                            });
-
-                            nextBtn.addEventListener('click', () => {
-                                if(idx < steps.length-1){
-                                // validate minimal inputs at each step
-                                if(idx===0){
-                                    const cap = Number(document.getElementById('capital').value || 0);
-                                    if(cap <= 0){ alert('Please enter a capital amount'); return; }
-                                }
-                                idx++; showStep(idx);
-                                if(idx === steps.length-1){ computeRecommendation(); }
-                                } else {
-                                // Finish pressed on final step -> perform chosen action
-                                const action = document.getElementById('actionAfter').value;
-                                alert('Selected action: ' + action + ' — (in production this would start your application / scheduling.)');
-                                }
-                            });
-
-                            resetBtn.addEventListener('click', () => {
-                                document.getElementById('capital').value = '';
-                                document.getElementById('orgType').value = 'individual';
-                                document.getElementById('boardCount').value = 0;
-                                document.getElementById('audited').value = 'no';
-                                document.getElementById('payroll').value = 'no';
-                                document.getElementById('preferred').value = 'own_license';
-                                idx = 0; showStep(idx);
-                            });
-
-                            function computeRecommendation(){
-                                const capital = Number(document.getElementById('capital').value || 0);
-                                const orgType = document.getElementById('orgType').value;
-                                const boardCount = Number(document.getElementById('boardCount').value || 0);
-                                const audited = document.getElementById('audited').value === 'yes';
-                                const payroll = document.getElementById('payroll').value === 'yes';
-                                const preferred = document.getElementById('preferred').value;
-
-                                // Tier logic (based on earlier spec)
-                                let tier = 4;
-                                let text = '';
-                                let docs = [];
-
-                                if(orgType === 'individual' && capital < 500000){
-                                tier = 1;
-                                text = 'Tier 1 (Individual lender). Recommendation: operate under platform umbrella (facilitation) while compliance is handled centrally.';
-                                docs = ['Source of funds declaration', 'Basic KYC (ID, proof of address)', 'Service agreement'];
-                                } else if(capital < 2000000){
-                                tier = 2;
-                                text = 'Tier 2 (Small MFI). Recommendation: guided registration; prepare simplified MFI application and interim facilitation.';
-                                docs = ['Business plan', 'Board composition', 'Basic financials', 'AML manual', 'Schedule I-II'];
-                                } else {
-                                tier = 3;
-                                text = 'Tier 3 (Full MFI). Recommendation: full MFI licensing with full governance & audited financials.';
-                                docs = ['Full business plan (3 yr projections)', 'Audited financial statements', 'Fit & proper questionnaires (directors)', 'AML & risk manuals', 'Schedule I–IV'];
-                                }
-
-                                // if payroll or employer union, add payroll requirements
-                                if(payroll){
-                                docs.push('Payroll deduction agreement / employer verification documents');
-                                }
-                                // if preferred to operate under platform, add note
-                                if(preferred === 'operate_under_platform'){
-                                docs.unshift('Operate under platform umbrella (fast-tracked) — interim solution');
-                                }
-
-                                document.getElementById('rec_tier').textContent = 'Recommended: ' + 'Tier ' + tier;
-                                document.getElementById('rec_text').textContent = text;
-                                const docsList = document.getElementById('rec_docs');
-                                docsList.innerHTML = '';
-                                docs.forEach(d => {
-                                const li = document.createElement('li');
-                                li.textContent = d;
-                                docsList.appendChild(li);
-                                });
-
-                                // show quick generate suggestion
-                                document.getElementById('generateResult').innerHTML = `<div>Recommendation computed: Tier ${tier}. Click "Generate Required Docs" to prepare templates.</div>`;
-                            }
-
-                            // simulate document generation click
-                            document.getElementById('generateDocs').addEventListener('click', () => {
-                                document.getElementById('generateResult').innerHTML = '<div class="text-success">Sample documents prepared — you can download templates from the list above.</div>';
-                            });
-                            })();
-                        </script>
+                        </div>
                     </div>
 
+                    <!-- Tier 2 (Large Credit-Only) -->
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card border-primary h-100">
+                            <div class="card-body text-center">
+                                <div class="bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
+                                    <i class="bi bi-bank text-primary" style="font-size: 1.5rem;"></i>
+                                </div>
+                                <h5 class="text-primary fw-bold">CBL Tier 2</h5>
+                                <p class="fw-semibold text-dark">Large Credit-Only</p>
+                                <div class="text-start small">
+                                    <p><strong>Eligibility:</strong></p>
+                                    <ul class="list-unstyled">
+                                        <li>• Assets ≥ M10,000,000</li>
+                                        <li>• Min 5 directors</li>
+                                        <li>• Internal audit</li>
+                                        <li>• Quarterly reporting</li>
+                                    </ul>
+                                    <p><strong>Setup:</strong> M50,000</p>
+                                    <p><strong>Monthly:</strong> M5,000</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
+                    <!-- Tier 3 (Small Credit-Only) -->
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card border-success h-100">
+                            <div class="card-body text-center">
+                                <div class="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
+                                    <i class="bi bi-shop text-success" style="font-size: 1.5rem;"></i>
+                                </div>
+                                <h5 class="text-success fw-bold">CBL Tier 3</h5>
+                                <p class="fw-semibold text-dark">Small Credit-Only</p>
+                                <div class="text-start small">
+                                    <p><strong>Eligibility:</strong></p>
+                                    <ul class="list-unstyled">
+                                        <li>• Assets < M10,000,000</li>
+                                        <li>• Min capital M500,000</li>
+                                        <li>• Basic governance</li>
+                                        <li>• Annual reporting</li>
+                                    </ul>
+                                    <p><strong>Setup:</strong> M15,000</p>
+                                    <p><strong>Monthly:</strong> M1,500</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Platform Individual -->
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card border-info h-100">
+                            <div class="card-body text-center">
+                                <div class="bg-info bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" style="width: 60px; height: 60px;">
+                                    <i class="bi bi-people text-info" style="font-size: 1.5rem;"></i>
+                                </div>
+                                <h5 class="text-info fw-bold">Platform Tier</h5>
+                                <p class="fw-semibold text-dark">Individual Lenders</p>
+                                <div class="text-start small">
+                                    <p><strong>Features:</strong></p>
+                                    <ul class="list-unstyled">
+                                        <li>• Operate under our license</li>
+                                        <li>• P2P lending</li>
+                                        <li>• Group schemes</li>
+                                        <li>• Fast onboarding</li>
+                                    </ul>
+                                    <p><strong>Setup:</strong> M2,000</p>
+                                    <p><strong>Monthly:</strong> M500</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <p class="text-muted mb-3">Not sure which tier is right for you?</p>
+                    <a href="#eligibility-wizard" class="btn btn-success btn-lg">
+                        <i class="bi bi-compass me-2"></i>Use Our Eligibility Wizard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Main Hub Section -->
+<div class="container py-5">
+    <!-- Header -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-success text-white">
+            <h1 class="h4 mb-0">Interactive Compliance Tools</h1>
+            <small class="text-light">Try our tools to get a feel for the platform (full features require registration)</small>
+        </div>
+        <div class="card-body">
+            <div class="row gy-4">
+                <div class="col-lg-7">
+                    <h5 class="text-success">What You Get</h5>
+                    <p>
+                        Our Lender Compliance Hub streamlines the entire CBL licensing process,
+                        from initial eligibility assessment to ongoing regulatory compliance.
+                        Everything is automated, tracked, and backed by expert support.
+                    </p>
+
+                    <div class="mb-3">
+                        <a class="btn btn-outline-success me-2" href="#eligibility-wizard">Try Eligibility Assessment</a>
+                        <a class="btn btn-success" href="#sample-docs">Preview Sample Documents</a>
+                    </div>
+
+                    <hr>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-success">Assessment & Planning</h6>
+                            <ul class="small">
+                                <li>Eligibility wizard with tier recommendations</li>
+                                <li>Capital requirement calculator</li>
+                                <li>Timeline and cost projections</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-success">Ongoing Support</h6>
+                            <ul class="small">
+                                <li>Real-time regulatory updates</li>
+                                <li>Automated compliance monitoring</li>
+                                <li>Expert consultation access</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <div class="card border-success">
+                        <div class="card-body">
+                            <h6 class="card-title text-success">
+                                <i class="bi bi-award-fill"></i> Success Statistics
+                            </h6>
+                            <div class="row text-center mb-3">
+                                <div class="col-4">
+                                    <div class="h4 text-success mb-0">95%</div>
+                                    <small class="text-muted">Approval Rate</small>
+                                </div>
+                                <div class="col-4">
+                                    <div class="h4 text-success mb-0">4.2</div>
+                                    <small class="text-muted">Months Avg</small>
+                                </div>
+                                <div class="col-4">
+                                    <div class="h4 text-success mb-0">75%</div>
+                                    <small class="text-muted">Cost Savings</small>
+                                </div>
+                            </div>
+
+                            <hr>
+
+                            <h6 class="text-success">Document Library</h6>
+                            <ul class="list-unstyled small">
+                                <li class="mb-2">
+                                    <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+                                    <a href="#" class="document-link text-decoration-none ms-2" data-doc="checklist">
+                                        CBL Application Checklist
+                                    </a>
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+                                    <a href="#" class="document-link text-decoration-none ms-2" data-doc="schedules">
+                                        Application Forms (Schedules I-IV)
+                                    </a>
+                                </li>
+                                <li class="mb-2">
+                                    <i class="bi bi-file-earmark-pdf-fill text-danger"></i>
+                                    <a href="#" class="document-link text-decoration-none ms-2" data-doc="fit-proper">
+                                        Fit & Proper Questionnaire
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Eligibility Wizard -->
+    <a id="eligibility-wizard"></a>
+    <div class="row">
+        <div class="col-lg-7">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="bi bi-list-check text-success"></i> 
+                        CBL Eligibility Assessment
+                    </h5>
+                    <small class="text-muted">Find your optimal licensing path in under 2 minutes</small>
+                </div>
+                <div class="card-body">
+                    <div id="wizard">
+                        <!-- Progress -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted">Step <span id="stepIdx">1</span> of 4</small>
+                                <small class="text-muted"><span id="stepPercent">25</span>% Complete</small>
+                            </div>
+                            <div class="progress" style="height:8px;">
+                                <div class="progress-bar bg-success" id="wizardProgress" style="width:25%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Step 1: Capital & Entity Type -->
+                        <div class="wizard-step" data-step="1">
+                            <h6 class="text-primary mb-3">Business Overview</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Available Capital for Lending (Maloti)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">M</span>
+                                    <input type="number" id="capital" class="form-control" placeholder="e.g., 750000" min="0" />
+                                </div>
+                                <div class="form-text">Total capital you can commit to the lending business</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Business Structure</label>
+                                <select id="orgType" class="form-select">
+                                    <option value="individual">Individual Lender</option>
+                                    <option value="partnership">Partnership</option>
+                                    <option value="company">Registered Company</option>
+                                    <option value="ngo">NGO/Non-Profit</option>
+                                    <option value="community_group">Community Group/Stokvel</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Current Assets (if applicable)</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">M</span>
+                                    <input type="number" id="assets" class="form-control" placeholder="e.g., 5000000" min="0" />
+                                </div>
+                                <div class="form-text">Existing business assets including loan portfolio</div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Governance & Operations -->
+                        <div class="wizard-step d-none" data-step="2">
+                            <h6 class="text-primary mb-3">Governance & Management</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Board of Directors</label>
+                                <select id="boardSize" class="form-select">
+                                    <option value="0">No formal board planned</option>
+                                    <option value="3">3 members</option>
+                                    <option value="5">5 members</option>
+                                    <option value="7">7+ members</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Do you have audited financial statements?</label>
+                                <select id="audited" class="form-select">
+                                    <option value="no">No</option>
+                                    <option value="yes">Yes, current audited financials</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Management Experience</label>
+                                <select id="experience" class="form-select">
+                                    <option value="new">New to financial services</option>
+                                    <option value="some">Some financial experience</option>
+                                    <option value="extensive">Extensive financial/MFI experience</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Services & Compliance -->
+                        <div class="wizard-step d-none" data-step="3">
+                            <h6 class="text-primary mb-3">Planned Services</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Do you plan to accept deposits?</label>
+                                <select id="deposits" class="form-select">
+                                    <option value="no">No - Credit/lending only</option>
+                                    <option value="yes">Yes - Want to accept customer deposits</option>
+                                </select>
+                                <div class="form-text">Deposit-taking requires the highest CBL license tier</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Target Market</label>
+                                <select id="market" class="form-select">
+                                    <option value="individuals">Individual borrowers</option>
+                                    <option value="smes">Small businesses & entrepreneurs</option>
+                                    <option value="groups">Groups & associations</option>
+                                    <option value="mixed">Mixed customer base</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Preferred Approach</label>
+                                <select id="approach" class="form-select">
+                                    <option value="full_license">Apply for independent CBL license</option>
+                                    <option value="platform">Operate under Fedha-Grow platform umbrella</option>
+                                    <option value="unsure">Not sure - recommend best option</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Recommendation -->
+                        <div class="wizard-step d-none" data-step="4">
+                            <h6 class="text-primary mb-3">Your Personalized Recommendation</h6>
+                            <div id="recommendationCard" class="card border-success mb-4">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-auto">
+                                            <div id="rec_icon" class="bg-success bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                                <i class="bi bi-building text-success"></i>
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <h5 id="rec_tier" class="text-success mb-1">Recommended Path</h5>
+                                            <p id="rec_text" class="small text-muted mb-2">Assessment result will appear here</p>
+                                            <div id="rec_details" class="small">
+                                                <div class="row">
+                                                    <div class="col-6">
+                                                        <strong>Setup Cost:</strong> <span id="rec_setup">-</span><br>
+                                                        <strong>Monthly Fee:</strong> <span id="rec_monthly">-</span>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <strong>Timeline:</strong> <span id="rec_timeline">-</span><br>
+                                                        <strong>Approval Rate:</strong> <span id="rec_success">-</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-info">
+                                <h6><i class="bi bi-info-circle me-1"></i>Next Steps</h6>
+                                <div id="rec_next_steps">
+                                    <p class="mb-2">To proceed with this recommendation:</p>
+                                    <div class="d-grid gap-2">
+                                        <a href="{% url 'register' %}" class="btn btn-success">
+                                            <i class="bi bi-person-plus me-2"></i>Create Free Account & Start Application
+                                        </a>
+                                        <button class="btn btn-outline-primary" onclick="bookConsultation()">
+                                            <i class="bi bi-calendar3 me-2"></i>Book Free Consultation Call
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Navigation -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <button id="prevBtn" class="btn btn-outline-secondary" disabled>
+                                <i class="bi bi-arrow-left me-1"></i>Back
+                            </button>
+                            <div>
+                                <button id="resetBtn" class="btn btn-link text-muted me-2">Reset Assessment</button>
+                                <button id="nextBtn" class="btn btn-success">
+                                    Next<i class="bi bi-arrow-right ms-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right column -->
+        <div class="col-lg-5">
+            <!-- Sample Documents -->
+            <div class="card shadow-sm mb-4" id="sample-docs">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">
+                        <i class="bi bi-file-earmark-text-fill"></i> 
+                        Sample CBL Documents
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="small mb-3">
+                        Preview the types of documents our platform generates automatically.
+                        Full document generation requires registration.
+                    </p>
+
+                    <div class="list-group mb-3">
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold small">CBL Application Checklist</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Complete requirements by tier</div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-success preview-doc" data-doc="checklist">
+                                Preview
+                            </button>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold small">Schedule I Application Form</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Primary application document</div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-success preview-doc" data-doc="schedule1">
+                                Preview
+                            </button>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold small">Business Plan Template</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">3-year financial projections</div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-success preview-doc" data-doc="business-plan">
+                                Preview
+                            </button>
+                        </div>
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold small">AML/CFT Policy Manual</div>
+                                <div class="text-muted" style="font-size: 0.75rem;">Anti-money laundering template</div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-success preview-doc" data-doc="aml">
+                                Preview
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Document Preview Area -->
+                    <div id="document-preview" class="border rounded p-3 bg-light d-none">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0 text-success" id="preview-title">Document Preview</h6>
+                            <button class="btn btn-sm btn-outline-secondary close-preview">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                        <div id="preview-content" class="small">
+                            Preview content will load here...
+                        </div>
+                    </div>
+
+                    <div class="d-grid gap-2 mt-3">
+                        <button id="generateSample" class="btn btn-success">
+                            <i class="bi bi-magic me-2"></i>Generate Sample Documents
+                        </button>
+                        <div id="generateResult" class="small text-muted mt-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compliance Tools -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="bi bi-shield-check text-success"></i> 
+                        Platform Features Preview
+                    </h6>
+                </div>
+                <div class="card-body small">
+                    <div class="mb-3">
+                        <div class="fw-bold text-success mb-1">Automation & AI</div>
+                        <ul class="mb-2">
+                            <li>Auto-complete forms using business data</li>
+                            <li>AI-powered compliance checking</li>
+                            <li>Smart document generation</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="fw-bold text-success mb-1">Tracking & Monitoring</div>
+                        <ul class="mb-2">
+                            <li>Real-time CBL application status</li>
+                            <li>Compliance deadline tracking</li>
+                            <li>Automated regulatory updates</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="fw-bold text-success mb-1">Ongoing Support</div>
+                        <ul class="mb-0">
+                            <li>Expert compliance consultation</li>
+                            <li>24/7 technical support</li>
+                            <li>Industry benchmarking data</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.wizard-step { 
+    transition: all 0.3s ease-in-out; 
+    min-height: 300px;
+}
+.btn { 
+    border-radius: 0.5rem; 
+}
+.card { 
+    border-radius: 0.75rem; 
+}
+.card-header.bg-success { 
+    border-top-left-radius: 0.75rem; 
+    border-top-right-radius: 0.75rem; 
+}
+.progress {
+    border-radius: 1rem;
+}
+.document-link {
+    transition: color 0.2s ease;
+}
+.document-link:hover {
+    color: var(--bs-success) !important;
+}
+.list-group-item {
+    border-radius: 0.5rem !important;
+    margin-bottom: 0.25rem;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // ──── Eligibility Wizard Logic ────────────────────────────────────
+    (function() {
+        const steps = Array.from(document.querySelectorAll('.wizard-step'));
+        let currentStep = 0;
+        
+        const stepIdxEl = document.getElementById('stepIdx');
+        const stepPercentEl = document.getElementById('stepPercent');
+        const progress = document.getElementById('wizardProgress');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        function showStep(index) {
+            // Hide all steps
+            steps.forEach(step => step.classList.add('d-none'));
+            // Show current step
+            steps[index].classList.remove('d-none');
+            
+            // Update UI
+            const stepNum = index + 1;
+            const percent = Math.round((stepNum / steps.length) * 100);
+            
+            stepIdxEl.textContent = stepNum;
+            stepPercentEl.textContent = percent;
+            progress.style.width = percent + '%';
+            
+            // Button states
+            prevBtn.disabled = (index === 0);
+            nextBtn.innerHTML = index === steps.length - 1 ? 
+                'View Results <i class="bi bi-check-circle ms-1"></i>' : 
+                'Next <i class="bi bi-arrow-right ms-1"></i>';
+        }
+
+        function validateStep(index) {
+            switch(index) {
+                case 0:
+                    const capital = parseFloat(document.getElementById('capital').value) || 0;
+                    if (capital <= 0) {
+                        alert('Please enter a valid capital amount to proceed');
+                        return false;
+                    }
+                    break;
+                case 1:
+                    // Governance step - optional validation
+                    break;
+                case 2:
+                    // Services step - optional validation
+                    break;
+            }
+            return true;
+        }
+
+        function computeRecommendation() {
+            const capital = parseFloat(document.getElementById('capital').value) || 0;
+            const assets = parseFloat(document.getElementById('assets').value) || 0;
+            const orgType = document.getElementById('orgType').value;
+            const boardSize = parseInt(document.getElementById('boardSize').value) || 0;
+            const audited = document.getElementById('audited').value === 'yes';
+            const deposits = document.getElementById('deposits').value === 'yes';
+            const experience = document.getElementById('experience').value;
+            const approach = document.getElementById('approach').value;
+
+            let recommendation = {};
+
+            // Tier determination logic (corrected)
+            if (deposits && capital >= 10000000 && boardSize >= 5 && audited) {
+                recommendation = {
+                    tier: 'CBL Tier 1 - Deposit-Taking MFI',
+                    description: 'You qualify for the highest CBL license tier, allowing you to accept deposits and provide full banking services.',
+                    setup: 'M100,000',
+                    monthly: 'M15,000',
+                    timeline: '8-12 months',
+                    success: '90%',
+                    icon: 'bi-building',
+                    color: 'warning'
+                };
+            } else if (assets >= 10000000 && boardSize >= 5) {
+                recommendation = {
+                    tier: 'CBL Tier 2 - Large Credit-Only',
+                    description: 'Your asset size qualifies you for Tier 2 licensing with streamlined requirements for credit-only operations.',
+                    setup: 'M50,000',
+                    monthly: 'M5,000',
+                    timeline: '6-8 months',
+                    success: '95%',
+                    icon: 'bi-bank',
+                    color: 'primary'
+                };
+            } else if (capital >= 500000 && (orgType === 'company' || orgType === 'ngo')) {
+                recommendation = {
+                    tier: 'CBL Tier 3 - Small Credit-Only',
+                    description: 'Perfect for small MFIs focused on community lending with minimal regulatory burden.',
+                    setup: 'M15,000',
+                    monthly: 'M1,500',
+                    timeline: '4-6 months',
+                    success: '98%',
+                    icon: 'bi-shop',
+                    color: 'success'
+                };
+            } else {
+                recommendation = {
+                    tier: 'Platform Tier - Individual Lender',
+                    description: 'Operate under our umbrella license - fastest path to start lending while building compliance.',
+                    setup: 'M2,000',
+                    monthly: 'M500',
+                    timeline: '2-4 weeks',
+                    success: '100%',
+                    icon: 'bi-people',
+                    color: 'info'
+                };
+            }
+
+            // If they prefer platform approach, suggest that regardless
+            if (approach === 'platform') {
+                recommendation.tier = 'Platform Tier - Recommended';
+                recommendation.description = 'Based on your preference, operating under our platform umbrella is the fastest and most cost-effective option.';
+            }
+
+            // Update UI
+            const icon = document.querySelector('#rec_icon i');
+            icon.className = `${recommendation.icon} text-${recommendation.color}`;
+            
+            document.getElementById('rec_tier').textContent = recommendation.tier;
+            document.getElementById('rec_text').textContent = recommendation.description;
+            document.getElementById('rec_setup').textContent = recommendation.setup;
+            document.getElementById('rec_monthly').textContent = recommendation.monthly;
+            document.getElementById('rec_timeline').textContent = recommendation.timeline;
+            document.getElementById('rec_success').textContent = recommendation.success;
+        }
+
+        // Event listeners
+        nextBtn.addEventListener('click', function() {
+            if (currentStep < steps.length - 1) {
+                if (validateStep(currentStep)) {
+                    currentStep++;
+                    showStep(currentStep);
+                    
+                    // Generate recommendation on final step
+                    if (currentStep === steps.length - 1) {
+                        computeRecommendation();
+                    }
+                }
+            }
+        });
+
+        prevBtn.addEventListener('click', function() {
+            if (currentStep > 0) {
+                currentStep--;
+                showStep(currentStep);
+            }
+        });
+
+        resetBtn.addEventListener('click', function() {
+            // Reset form fields
+            document.getElementById('capital').value = '';
+            document.getElementById('assets').value = '';
+            document.getElementById('orgType').value = 'individual';
+            document.getElementById('boardSize').value = '0';
+            document.getElementById('audited').value = 'no';
+            document.getElementById('deposits').value = 'no';
+            document.getElementById('experience').value = 'new';
+            document.getElementById('approach').value = 'unsure';
+            
+            // Reset wizard
+            currentStep = 0;
+            showStep(currentStep);
+        });
+
+        // Initialize
+        showStep(0);
+    })();
+
+    // ──── Document Preview Logic ───────────────────────────────────────
+    const documentPreviews = {
+        checklist: {
+            title: 'CBL Application Checklist',
+            content: `
+                <h6>Required Documents by Tier</h6>
+                <div class="row">
+                    <div class="col-6">
+                        <strong>All Tiers:</strong>
+                        <ul class="small">
+                            <li>Schedule I Application Form</li>
+                            <li>Schedule II Information Sheet</li>
+                            <li>Company Registration Certificate</li>
+                            <li>Tax Clearance Certificate</li>
+                            <li>AML/CFT Policy Manual</li>
+                        </ul>
+                    </div>
+                    <div class="col-6">
+                        <strong>Tier 1 & 2 Additional:</strong>
+                        <ul class="small">
+                            <li>Audited Financial Statements</li>
+                            <li>Board Resolution</li>
+                            <li>Business Plan (3 years)</li>
+                            <li>Risk Management Manual</li>
+                        </ul>
+                    </div>
+                </div>
+            `
+        },
+        schedule1: {
+            title: 'Schedule I - Application Form',
+            content: `
+                <h6>Principal Application Sections</h6>
+                <ol class="small">
+                    <li><strong>Applicant Information</strong> - Company details, registration info</li>
+                    <li><strong>Principal Activities</strong> - Proposed business activities</li>
+                    <li><strong>Capital Structure</strong> - Share capital, ownership details</li>
+                    <li><strong>Financial Projections</strong> - 3-year business forecasts</li>
+                    <li><strong>Management Structure</strong> - Organizational chart</li>
+                    <li><strong>Operations Plan</strong> - Target market, products</li>
+                </ol>
+                <div class="bg-light p-2 rounded mt-2">
+                    <small><strong>Auto-Generated:</strong> Our platform pre-fills 70% of this form using your business profile data.</small>
+                </div>
+            `
+        },
+        'business-plan': {
+            title: 'Business Plan Template',
+            content: `
+                <h6>Comprehensive 3-Year Business Plan</h6>
+                <div class="row small">
+                    <div class="col-6">
+                        <strong>Financial Sections:</strong>
+                        <ul>
+                            <li>Revenue Projections</li>
+                            <li>Operating Expenses</li>
+                            <li>Cash Flow Analysis</li>
+                            <li>Balance Sheet Projections</li>
+                        </ul>
+                    </div>
+                    <div class="col-6">
+                        <strong>Strategic Sections:</strong>
+                        <ul>
+                            <li>Market Analysis</li>
+                            <li>Competitive Positioning</li>
+                            <li>Risk Assessment</li>
+                            <li>Implementation Timeline</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="alert alert-info py-2 mt-2">
+                    <small><strong>AI-Powered:</strong> Automatically generates financial models based on your capital and market inputs.</small>
+                </div>
+            `
+        },
+        aml: {
+            title: 'AML/CFT Policy Manual',
+            content: `
+                <h6>Anti-Money Laundering Framework</h6>
+                <div class="small">
+                    <strong>Key Policy Areas:</strong>
+                    <ul>
+                        <li>Customer Due Diligence (CDD) procedures</li>
+                        <li>Suspicious transaction monitoring</li>
+                        <li>Record keeping requirements</li>
+                        <li>Staff training protocols</li>
+                        <li>Reporting obligations to CBL</li>
+                        <li>Regular review and update procedures</li>
+                    </ul>
+                    
+                    <div class="bg-success bg-opacity-10 p-2 rounded mt-2">
+                        <strong>Compliance Features:</strong>
+                        <ul class="mb-0">
+                            <li>Automated transaction monitoring rules</li>
+                            <li>Customer risk scoring</li>
+                            <li>Regulatory reporting templates</li>
+                        </ul>
+                    </div>
+                </div>
+            `
+        }
+    };
+
+    // Document preview functionality
+    document.querySelectorAll('.preview-doc').forEach(button => {
+        button.addEventListener('click', function() {
+            const docType = this.getAttribute('data-doc');
+            const preview = documentPreviews[docType];
+            
+            if (preview) {
+                document.getElementById('preview-title').textContent = preview.title;
+                document.getElementById('preview-content').innerHTML = preview.content;
+                document.getElementById('document-preview').classList.remove('d-none');
+            }
+        });
+    });
+
+    // Close preview
+    document.querySelector('.close-preview').addEventListener('click', function() {
+        document.getElementById('document-preview').classList.add('d-none');
+    });
+
+    // Generate sample documents
+    document.getElementById('generateSample').addEventListener('click', function() {
+        const button = this;
+        const resultDiv = document.getElementById('generateResult');
+        
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating...';
+        
+        setTimeout(() => {
+            resultDiv.innerHTML = `
+                <div class="alert alert-success py-2 mb-0">
+                    <i class="bi bi-check-circle me-1"></i>
+                    <strong>Sample documents generated!</strong> 
+                    <a href="{% url 'register' %}" class="alert-link">Create an account</a> to access full document generation.
+                </div>
+            `;
+            button.disabled = false;
+            button.innerHTML = '<i class="bi bi-magic me-2"></i>Generate Sample Documents';
+        }, 2000);
+    });
+
+    // ──── Global Functions ─────────────────────────────────────────────
+    window.bookConsultation = function() {
+        alert('Consultation booking would open calendar integration here. For now, please contact us directly.');
+    };
+
+    // Smooth scroll for anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+});
+</script>
 
 {% endblock %}
