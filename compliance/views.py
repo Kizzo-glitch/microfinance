@@ -21,10 +21,8 @@ from django.core.files.base import ContentFile
 from io import BytesIO
 import uuid
 
-from .document_generation_service2 import DocumentGenerationService
-
 from compliance.compliace_services import ComplianceDashboardService
-from compliance.document_generators2 import AutoDocumentWorkflow
+
 from lenders.models import LenderProfile
 from .models import ComplianceProfile, PersonnelProfile
 from .forms import ComplianceProfileForm, ComplianceUpdateForm, PersonnelProfileForm, AddPersonnelForm
