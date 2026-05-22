@@ -2,6 +2,7 @@
 {% load model_helpers %}
 <!-- Compliance Form Page (compliance_form.html) -->
 {% block content %}
+
 <div class="container py-4">
     <div class="row justify-content-center">
         <div class="col-md-8">
@@ -48,23 +49,6 @@
                             {% endfor %}
                         </div>
                         {% endfor %}
-
-                        <!--{% for field in form %}
-                          <div class="mb-4">
-                              <label class="form-label fw-bold">{{ field.label }}</label>
-                              
-                              <div class="drop-zone" onclick="document.getElementById('{{ field.id_for_label }}').click();" id="zone-{{ field.id_for_label }}">
-                                  <i class="fas fa-cloud-upload-alt"></i>
-                                  <p class="mb-1 small">Drag & drop your PDF here or <strong>click to browse</strong></p>
-                                  <span id="name-{{ field.id_for_label }}" class="badge bg-secondary">No file selected</span>
-                                  
-                                  {{ field }}
-                              </div>
-
-                              {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-                              {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-                          </div>
-                      {% endfor %}-->
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-success btn-lg">Save & Update Progress</button>

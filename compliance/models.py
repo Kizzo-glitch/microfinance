@@ -6,6 +6,11 @@ from django.utils import timezone
 from uuid import uuid4
 from django.conf import settings
 
+#import pandas as pd
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
+import json
+
 from lenders.models import LenderProfile
 
 user = settings.AUTH_USER_MODEL
@@ -62,12 +67,9 @@ class ComplianceProfile(models.Model):
         'board_list_with_terms':         'Board of Directors List with Terms',
         'credit_committee_terms':        'Board Credit Committee Terms (Tier 1)',
         'internal_audit_charter':        'Internal Audit Charter',
+        'company_profile':               'Company Profile',
     }
 
-    """
-    Top-level compliance record for a lender.
-    Tracks licensing status, CBL reference, and overall progress.
-    """
     lender = models.OneToOneField(LenderProfile, on_delete=models.CASCADE, related_name='compliance')
     
     # CBL Application Metadata
@@ -90,6 +92,7 @@ class ComplianceProfile(models.Model):
     financial_statements_certified = models.FileField(upload_to='compliance/certified_statements/', blank=True, null=True, help_text="For Tier 3")
     capital_commitment_letter = models.FileField(upload_to='compliance/capital/', blank=True, null=True)
     bank_statements_capital = models.FileField(upload_to='compliance/bank_statements/', blank=True, null=True)
+    company_profile = models.FileField(upload_to='compliance/company_profile/', blank=True, null=True)
 
     # Governance & Policies
     risk_management_manual = models.FileField(upload_to='compliance/policies/', blank=True, null=True)
@@ -387,6 +390,12 @@ class ComplianceChecklistItem(models.Model):
 
     def __str__(self):
         return f"{self.lender.company_name} - {self.description}: {'✅' if self.completed else '❌'}"
+
+
+
+
+
+
 
 
 # ================================

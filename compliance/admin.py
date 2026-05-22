@@ -6,4 +6,4 @@ from .models import ComplianceProfile, PersonnelProfile, ComplianceDocument, Com
 admin.site.register(ComplianceProfile)
 admin.site.register(PersonnelProfile)
 admin.site.register(ComplianceDocument)
-admin.site.register(ComplianceChecklistItem)
+admin.site.register(ComplianceChecklistItem) 

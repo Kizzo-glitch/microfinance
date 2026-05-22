@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 
+
 app_name = 'compliance'
 
 
@@ -28,6 +29,12 @@ urlpatterns = [
     path('<int:lender_id>/personnel/add/', views.PersonnelCreateView.as_view(), name='personnel_create'),
     path('personnel/<int:pk>/edit/', views.PersonnelUpdateView.as_view(), name='personnel_update'),
     path('personnel/<int:pk>/delete/', views.PersonnelDeleteView.as_view(), name='personnel_delete'),
+
+    path('generation-readiness/', views.DocumentGenerationReadinessView.as_view(), name='generation_readiness'),
+    path('generate-documents/', views.GenerateDocumentsView.as_view(), name='generate_documents'),
+    path('generate-single/<str:document_field>/', views.GenerateSingleDocumentView.as_view(), name='generate_single'),
+    path('preview/<str:document_type>/', views.DocumentPreviewView.as_view(), name='document_preview'),
+    path('generation-stream/<str:generation_id>/', views.GenerationStreamView.as_view(), name='generation_stream'),
 
    
 ]

@@ -1,36 +1,42 @@
+{% load model_helpers %}
 
-<div class="list-group-item d-flex justify-content-between align-items-center">
-    <span class="small">{{ label }}</span>
-    {% if file %}
-        <div class="d-flex align-items-center gap-2">
-            <a href="{{ file.url }}" target="_blank" class="text-success" title="View uploaded file">
-                <i class="fas fa-file-pdf"></i>
-            </a>
-            <i class="fas fa-check-circle text-success"></i>
+    <div class="list-group-item d-flex justify-content-between align-items-center doc-item" 
+        data-field="{{ field_name }}" 
+        data-processed="false">
+        
+        <div class="flex-grow-1">
+            <div class="d-flex align-items-center">
+                <span class="small fw-medium">{{ doc_info.label }}</span>
+                 &nbsp;&nbsp;
+                {% if doc_info.can_generate %}
+                    <span class="badge bg-warning bg-opacity-10 text-info ms-2" style="font-size: 0.6rem;">
+                        AUTO-GEN
+                    </span>
+                {% endif %}
+            </div>
         </div>
-    {% else %}
+        
         <div class="d-flex align-items-center gap-2">
-            <i class="fas fa-times-circle text-danger"></i>
-            <a href="{% url 'compliance:compliance_update' lender.id %}"
-               class="btn btn-outline-danger btn-sm py-0 px-2"
-               style="font-size:0.75rem;">
-                Upload
-            </a>
+            {% if file %}
+                <a href="{{ file.url }}" target="_blank" class="text-primary" title="View uploaded file">
+                    <i class="fas fa-file-pdf"></i>
+                </a>
+                <i class="fas fa-check-circle text-success"></i>
+            {% else %}
+                <div class="d-flex gap-1">
+                    {% if doc_info.can_generate %}
+                        <button class="btn btn-success btn-sm py-0 px-2" 
+                                onclick="generateSingleDocument('{{ field_name }}')" 
+                                style="font-size:0.7rem;">
+                            <i class="fas fa-magic me-1"></i>Generate
+                        </button>
+                    {% endif %}
+                    <a href="{% url 'compliance:compliance_update' lender.id %}" 
+                    class="btn btn-outline-secondary btn-sm py-0 px-2" 
+                    style="font-size:0.7rem;">
+                        Upload
+                    </a>
+                </div>
+            {% endif %}
         </div>
-    {% endif %}
-</div>
-
-<!--Document Item Page (doc_item.html)
-<div class="list-group-item d-flex justify-content-between align-items-center">
-    <div>
-        <span class="small">{{ label }}</span>
     </div>
-    {% if file %}
-        <div class="d-flex align-items-center">
-            <a href="{{ file.url }}" target="_blank" class="text-success me-2"><i class="fas fa-file-pdf"></i></a>
-            <span class="text-success">✅</span>
-        </div>
-    {% else %}
-        <span class="text-danger">❌</span>
-    {% endif %}
-</div>-->

@@ -17,11 +17,11 @@
                             {{ stats.progress }}% Complete
                         </div>
                     </div>
-                </div>
+                </div>          
+
             </div>
         </div>
     </div>
-
 
     <div class="row">
         <div class="col-md-4">
@@ -31,21 +31,48 @@
                 </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush">
-                        {% for field_name, label in compliance_docs.items %}
+                        {% for field_name, doc_info in compliance_docs.items %}
                             {% with file=compliance|getattr_filter:field_name %}
-                                {% include 'doc_item.html' with label=label file=file field=field_name lender=lender %}
+                                {% include 'doc_item.html' with doc_info=doc_info file=file field_name=field_name lender=lender %}
                             {% endwith %}
                         {% endfor %}
                     </div>
                 </div>
 
-
                 <div class="card-footer">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <a href="{% url 'compliance:compliance_update' lender.id %}" class="btn btn-outline-primary btn-sm w-100">
+                                <i class="fas fa-upload me-1"></i> Manual Upload
+                            </a>
+                        </div>
+                        <div class="col-6">
+                            <button class="btn btn-success btn-sm w-100" id="generate-docs-btn" onclick="generateDocuments()">
+                                <i class="fas fa-magic me-1"></i> Auto-Generate
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Generation Progress (hidden by default) -->
+                    <div id="generation-progress" class="mt-3 d-none">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <small class="text-muted">Generating Documents...</small>
+                            <small class="text-muted"><span id="gen-progress-percent">0</span>%</small>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-success" id="gen-progress-bar" style="width: 0%"></div>
+                        </div>
+                        <div id="generation-status" class="small text-muted mt-1">Preparing templates...</div>
+                    </div>
+                </div>
+
+
+                <!--<div class="card-footer">
                     <a href="{% url 'compliance:compliance_update' lender.id %}" class="btn btn-primary btn-sm w-100">
                         <i class="fas fa-upload me-1"></i> Upload/Update Documents
                     </a>
                     
-                </div>
+                </div>-->
             </div>
         </div>
 
@@ -121,6 +148,71 @@
                 </div>
             </div>
 
+            <!-- Add after the progress bar -->
+             <div class="mt-4">
+                {% if can_generate_documents %}
+                <div class="card shadow-sm mb-4 border-success">
+                    <div class="card-body bg-success bg-opacity-5">
+                        <div class="row align-items-center">
+                            <div class="col-auto">
+                                <div class="bg-secondary bg-opacity-10 rounded-circle p-3">
+                                    <i class="fas fa-robot text-primary fa-2x"></i>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <h5 class="text-primary mb-1">Ready for Auto-Generation!</h5>
+                                <p class="mb-2 small text-white">
+                                    Your profile is {{ generation_readiness.completeness }}% complete.     
+                                    We can automatically generate <strong>{{ generation_readiness.can_generate_count }}</strong> of your required documents.
+                                </p>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-primary btn-sm" onclick="generateAllDocuments()">
+                                        <i class="fas fa-magic me-1"></i>Generate All Documents ({{ generation_readiness.estimated_time }} min)
+                                    </button>
+                                    &nbsp;&nbsp;
+                                    <button class="btn btn-outline-primary btn-sm" onclick="previewGeneration()">
+                                        <i class="fas fa-eye me-1"></i>Preview First
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                <button class="btn btn-sm btn-outline-danger" onclick="this.parentElement.parentElement.parentElement.parentElement.remove()">
+                                    <i class="fas fa-times text-white"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- <div class="mt-4">
+            
+                {% if can_generate_documents %}
+                <div class="card shadow-sm mb-4 border-success">
+                    <div class="card-body bg-success bg-opacity-5">
+                        <h5 class="text-success mb-1">Ready for Auto-Generation!</h5>
+                        <p class="mb-2 small">
+                            Your profile is {{ generation_readiness.completeness }}% complete. 
+                            We can automatically generate <strong>{{ generation_readiness.can_generate_count }}</strong> of your required documents.
+                        </p>
+                        <button class="btn btn-success btn-sm" onclick="generateAllDocuments()">
+                            <i class="fas fa-magic me-1"></i>Generate All Documents ({{ generation_readiness.estimated_time }})
+                        </button>
+                    </div>
+                </div>
+                {% endif %}-->
+            
+                <!-- Individual document generation buttons -->
+                <!--{% for field_name, doc_info in compliance_docs.items %}
+                    {% if doc_info.can_generate %}
+                        <button class="btn btn-success btn-sm" onclick="generateSingleDocument('{{ field_name }}')">
+                            <i class="fas fa-magic me-1"></i>Generate ({{ doc_info.generation_confidence|floatformat:0 }}% confidence)
+                        </button>
+                    {% endif %}
+                {% endfor %}
+            </div>-->
+
 
             <div class="mt-4">
                 {% if stats.next_action %}
@@ -162,4 +254,492 @@
         </div>
     </div>
 </div>
+
+<!-- Generation Preview Modal -->
+<div class="modal fade" id="generationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-magic me-2"></i>Document Generation Preview
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" onclick="closeGenerationModal()"></button>
+            </div>
+            <!--<div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-magic me-2"></i>Document Generation Preview
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>-->
+            <div class="modal-body">
+                <!-- Generation Options -->
+                <div id="generation-options">
+                    <h6 class="text-success mb-3">Documents to Generate</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="list-group">
+                                <div class="list-group-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="gen-schedule-i" checked>
+                                        <label class="form-check-label fw-medium">
+                                            Schedule I - Application Form
+                                        </label>
+                                        <div class="small text-muted">Auto-filled from your profile (95% complete)</div>
+                                    </div>
+                                </div>
+                                <div class="list-group-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="gen-business-plan" checked>
+                                        <label class="form-check-label fw-medium">
+                                            3-Year Business Plan
+                                        </label>
+                                        <div class="small text-muted">AI-generated with market data (est. 2 min)</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="list-group">
+                                <div class="list-group-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="gen-aml-policy" checked>
+                                        <label class="form-check-label fw-medium">
+                                            AML/CFT Policy Manual
+                                        </label>
+                                        <div class="small text-muted">Tier-specific template (90% customized)</div>
+                                    </div>
+                                </div>
+                                <div class="list-group-item">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="gen-risk-manual">
+                                        <label class="form-check-label fw-medium">
+                                            Risk Management Manual
+                                        </label>
+                                        <div class="small text-muted">Requires additional business info</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <h6 class="text-success mb-3">Generation Settings</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label small">Business Plan Detail Level</label>
+                            <select class="form-select form-select-sm">
+                                <option>Standard (recommended)</option>
+                                <option>Detailed (CBL preferred)</option>
+                                <option>Comprehensive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small">Document Format</label>
+                            <select class="form-select form-select-sm">
+                                <option>Microsoft Word (.docx)</option>
+                                <option>PDF (final version)</option>
+                                <option>Both formats</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Generation Progress (hidden initially) -->
+                <div id="generation-in-progress" class="text-center d-none">
+                    <div class="spinner-border text-success mb-3" role="status"></div>
+                    <h6 class="text-success">Generating Your Documents</h6>
+                    <p class="text-muted" id="current-generation-step">Preparing templates...</p>
+                    
+                    <div class="progress mb-3" style="height: 10px;">
+                        <div class="progress-bar bg-success" id="modal-progress-bar" style="width: 0%"></div>
+                    </div>
+                    
+                    <div class="small text-muted">
+                        <div id="generation-log">
+                            <div>✓ Profile data validated</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Generation Complete -->
+                <div id="generation-complete" class="text-center d-none">
+                    <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                    <h6 class="text-success">Documents Generated Successfully!</h6>
+                    <p class="text-muted">All selected documents have been generated and saved to your compliance profile.</p>
+                    
+                    <div id="generated-documents-list" class="text-start mt-3">
+                        <!-- Will be populated with generated documents -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div id="modal-actions">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="closeGenerationModal()">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="startGeneration()">
+                        <i class="fas fa-magic me-1"></i>Generate Documents
+                    </button>
+                </div>
+                <div id="modal-actions-complete" class="d-none">
+                    <button type="button" class="btn btn-success" onclick="window.location.reload()">
+                        <i class="fas fa-refresh me-1"></i>Refresh Dashboard
+                    </button>
+                </div>
+            </div>
+            <!--<div class="modal-footer">
+                <div id="modal-actions">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="startGeneration()">
+                        <i class="fas fa-magic me-1"></i>Generate Documents
+                    </button>
+                </div>
+                <div id="modal-actions-complete" class="d-none">
+                    <button type="button" class="btn btn-success" onclick="window.location.reload()">
+                        <i class="fas fa-refresh me-1"></i>Refresh Dashboard
+                    </button>
+                </div>
+            </div>-->
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+    
+    // ──── Global Variables ────────────────────────────────────────
+    let generationModal;
+    const lenderId = {{ lender.id }};  // Get from template context
+    
+    // ──── Modal Functions ─────────────────────────────────────────
+    window.generateAllDocuments = function() {
+        const modal = new bootstrap.Modal(document.getElementById('generationModal'));
+        generationModal = modal;
+        modal.show();
+    };
+    
+    window.previewGeneration = function() {
+        // Show preview modal or section
+        alert('Preview functionality - would show document previews here');
+    };
+    
+    // ──── Document Generation Functions ───────────────────────────
+    window.generateSingleDocument = function(fieldName) {
+        const button = event.target;
+        const originalHTML = button.innerHTML;
+        
+        button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating...';
+        button.disabled = true;
+        
+        fetch(`/compliance/${lenderId}/generate-single/${fieldName}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update UI to show success
+                updateDocItemSuccess(button.closest('.doc-item'), data.file_url);
+                showSuccessMessage(`${fieldName} generated successfully!`);
+            } else {
+                showErrorMessage(data.message || 'Generation failed');
+                button.innerHTML = originalHTML;
+                button.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Generation error:', error);
+            showErrorMessage('Network error during generation');
+            button.innerHTML = originalHTML;
+            button.disabled = false;
+        });
+    };
+    
+    window.startGeneration = function() {
+        // Hide options, show progress
+        document.getElementById('generation-options').classList.add('d-none');
+        document.getElementById('generation-in-progress').classList.remove('d-none');
+        document.getElementById('modal-actions').classList.add('d-none');
+        
+        // Get selected documents
+        const selectedDocs = getSelectedDocuments();
+        
+        // Start generation process
+        generateDocumentsAPI(selectedDocs);
+    };
+    
+    window.closeGenerationModal = function() {
+        if (generationModal) {
+            generationModal.hide();
+        }
+    };
+    
+    // ──── Helper Functions ────────────────────────────────────────
+    function getSelectedDocuments() {
+        const checkboxes = document.querySelectorAll('#generation-options input[type="checkbox"]:checked');
+        return Array.from(checkboxes).map(cb => cb.value || cb.id.replace('gen-', ''));
+    }
+    
+    function generateDocumentsAPI(selectedDocs) {
+        fetch(`/compliance/${lenderId}/generate-documents/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                'selected_documents': selectedDocs
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Start listening to progress stream
+                const eventSource = new EventSource(data.stream_url);
+                
+                eventSource.onmessage = function(event) {
+                    const progressData = JSON.parse(event.data);
+                    updateGenerationProgress(progressData);
+                    
+                    if (progressData.complete) {
+                        eventSource.close();
+                        showGenerationComplete(progressData);
+                    }
+                };
+                
+                eventSource.onerror = function() {
+                    eventSource.close();
+                    showGenerationError('Connection lost during generation');
+                };
+            } else {
+                showGenerationError(data.message || 'Failed to start generation');
+            }
+        })
+        .catch(error => {
+            console.error('Generation API error:', error);
+            showGenerationError('Network error starting generation');
+        });
+    }
+    
+    function updateGenerationProgress(data) {
+        const progressBar = document.getElementById('modal-progress-bar');
+        const stepText = document.getElementById('current-generation-step');
+        const logDiv = document.getElementById('generation-log');
+        
+        // Update progress
+        if (progressBar && data.progress !== undefined) {
+            progressBar.style.width = data.progress + '%';
+        }
+        
+        if (stepText && data.current_step) {
+            stepText.textContent = data.current_step;
+        }
+        
+        // Add log entry
+        if (logDiv && data.log_entry) {
+            const logEntry = document.createElement('div');
+            logEntry.textContent = data.log_entry;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight; // Auto-scroll
+        }
+    }
+    
+    function showGenerationComplete(data) {
+        // Hide progress, show complete
+        document.getElementById('generation-in-progress').classList.add('d-none');
+        document.getElementById('generation-complete').classList.remove('d-none');
+        document.getElementById('modal-actions-complete').classList.remove('d-none');
+        
+        // Populate results
+        const resultsList = document.getElementById('generated-documents-list');
+        resultsList.innerHTML = '';
+        
+        if (data.generated_documents) {
+            data.generated_documents.forEach(doc => {
+                const item = document.createElement('div');
+                item.className = 'mb-2';
+                item.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>${doc.field}: </span>
+                        <span class="badge bg-${doc.success ? 'success' : 'danger'}">
+                            ${doc.success ? 'Generated' : 'Failed'}
+                        </span>
+                    </div>
+                `;
+                resultsList.appendChild(item);
+            });
+        }
+    }
+    
+    function showGenerationError(message) {
+        document.getElementById('generation-in-progress').classList.add('d-none');
+        document.getElementById('generation-options').classList.remove('d-none');
+        document.getElementById('modal-actions').classList.remove('d-none');
+        
+        showErrorMessage(message);
+    }
+    
+    function updateDocItemSuccess(docItem, fileUrl) {
+        const rightSection = docItem.querySelector('.d-flex.gap-1').parentElement;
+        rightSection.innerHTML = `
+            <a href="${fileUrl}" target="_blank" class="text-success" title="View generated file">
+                <i class="fas fa-file-pdf"></i>
+            </a>
+            <i class="fas fa-check-circle text-success"></i>
+            <span class="badge bg-success bg-opacity-10 text-success ms-1" style="font-size:0.6rem;">
+                GENERATED
+            </span>
+        `;
+    }
+    
+    function getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]').value;
+    }
+    
+    function showSuccessMessage(message) {
+        // Add to your existing message system or create a simple alert
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-success alert-dismissible position-fixed';
+        alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alert);
+        
+        setTimeout(() => {
+            alert.remove();
+        }, 5000);
+    }
+    
+    function showErrorMessage(message) {
+        const alert = document.createElement('div');
+        alert.className = 'alert alert-danger alert-dismissible position-fixed';
+        alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        document.body.appendChild(alert);
+        
+        setTimeout(() => {
+            alert.remove();
+        }, 5000);
+    }
+});
+</script>
+
+<!--<script>
+    // Document Generation Functions
+function generateDocuments() {
+    // Check generation readiness
+    fetch(`/compliance/${lenderId}/generation-readiness/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.ready) {
+                showGenerationModal();
+            } else {
+                showReadinessAlert(data.missing_data);
+            }
+        });
+}
+
+function generateAllDocuments() {
+    const modal = new bootstrap.Modal(document.getElementById('generationModal'));
+    modal.show();
+}
+
+function startGeneration() {
+    // Hide options, show progress
+    document.getElementById('generation-options').classList.add('d-none');
+    document.getElementById('generation-in-progress').classList.remove('d-none');
+    document.getElementById('modal-actions').classList.add('d-none');
+    
+    // Get selected documents
+    const selectedDocs = getSelectedDocuments();
+    
+    // Start generation process
+    generateDocumentsAPI(selectedDocs);
+}
+
+function generateDocumentsAPI(selectedDocs) {
+    const eventSource = new EventSource(`/compliance/${lenderId}/generate-documents/`);
+    
+    eventSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        updateGenerationProgress(data);
+    };
+    
+    eventSource.onerror = function() {
+        eventSource.close();
+        showGenerationError();
+    };
+}
+
+function updateGenerationProgress(data) {
+    const progressBar = document.getElementById('modal-progress-bar');
+    const stepText = document.getElementById('current-generation-step');
+    const logDiv = document.getElementById('generation-log');
+    
+    // Update progress
+    progressBar.style.width = data.progress + '%';
+    stepText.textContent = data.current_step;
+    
+    // Add log entry
+    if (data.log_entry) {
+        const logEntry = document.createElement('div');
+        logEntry.innerHTML = `✓ ${data.log_entry}`;
+        logDiv.appendChild(logEntry);
+    }
+    
+    // Check if complete
+    if (data.complete) {
+        showGenerationComplete(data.generated_documents);
+    }
+}
+
+function generateSingleDocument(fieldName) {
+    // Show inline progress for single document
+    const docItem = document.querySelector(`[data-field="${fieldName}"]`);
+    const button = docItem.querySelector('button');
+    
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating...';
+    button.disabled = true;
+    
+    fetch(`/compliance/${lenderId}/generate-single/${fieldName}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCsrfToken(),
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Replace the entire doc item with success state
+            updateDocItemSuccess(docItem, data.file_url);
+        } else {
+            showGenerationError(data.error);
+            button.innerHTML = '<i class="fas fa-magic me-1"></i>Generate';
+            button.disabled = false;
+        }
+    });
+}
+
+function updateDocItemSuccess(docItem, fileUrl) {
+    const rightSection = docItem.querySelector('.d-flex.gap-1').parentElement;
+    rightSection.innerHTML = `
+        <a href="${fileUrl}" target="_blank" class="text-success" title="View generated file">
+            <i class="fas fa-file-pdf"></i>
+        </a>
+        <i class="fas fa-check-circle text-success"></i>
+        <span class="badge bg-success bg-opacity-10 text-success ms-1" style="font-size:0.6rem;">
+            GENERATED
+        </span>
+    `;
+}
+</script>-->
+
 {% endblock %}

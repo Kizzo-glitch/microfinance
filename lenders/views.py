@@ -161,7 +161,6 @@ def lender_index(request):
 		return redirect('landing')
 
 
-
 # 2. Loan Status Distribution View
 def lender_loan_status_data(request):
 	lender = request.user.lender

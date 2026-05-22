@@ -4,6 +4,7 @@ from decimal import Decimal
 from django.utils import timezone
 
 
+
 class ComplianceDashboardService:
     """
     Computes the compliance dashboard state for a single lender.
