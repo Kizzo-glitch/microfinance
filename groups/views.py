@@ -879,14 +879,14 @@ def withdraw_invitation(request, invitation_id):
 						
 						Thank you.
 						"""
-						
+						"""
 						send_mail(
 							subject=f"Invitation Withdrawn - {invitation.group.name}",
 							message=email_body,
 							from_email=settings.EMAIL_HOST_USER,
 							recipient_list=[invitation.invitee_email],
 							fail_silently=True
-						)
+						)"""
 					except Exception:
 						pass
 			
@@ -984,14 +984,14 @@ def resend_invitation(request, invitation_id):
 					Thank you,
 					{invitation.group.name}
 					"""
-					
+					"""
 					send_mail(
 						subject=f"Reminder: Invitation to join {invitation.group.name}",
 						message=email_body,
 						from_email=settings.EMAIL_HOST_USER,
 						recipient_list=[invitation.invitee_email],
 						fail_silently=False
-					)
+					)"""
 					invitation.email_sent = True
 					invitation.email_sent_at = timezone.now()
 					email_sent = True
@@ -1099,14 +1099,14 @@ def extend_invitation(request, invitation_id):
 					Thank you,
 					{invitation.group.name}
 					"""
-					
+					"""
 					send_mail(
 						subject=f"Invitation Extended - {invitation.group.name}",
 						message=email_body,
 						from_email=settings.EMAIL_HOST_USER,
 						recipient_list=[invitation.invitee_email],
 						fail_silently=True
-					)
+					)"""
 				except Exception:
 					pass
 		
@@ -1195,14 +1195,14 @@ def cancel_invitation_activation(request, invitation_id):
 					Thank you,
 					{invitation.group.name}
 					"""
-					
+					"""
 					send_mail(
 						subject=f"Invitation Declined - {invitation.group.name}",
 						message=email_body,
 						from_email=settings.EMAIL_HOST_USER,
 						recipient_list=[email],
 						fail_silently=True
-					)
+					)"""
 				except Exception:
 					pass
 		

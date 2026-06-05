@@ -569,7 +569,7 @@ def send_otp(request):
 	from_email = settings.EMAIL_HOST_USER
 	to_email = [borrower.email_address]
 
-	send_mail(subject, message, from_email, to_email, fail_silently=False, )
+	#send_mail(subject, message, from_email, to_email, fail_silently=False, )
 
 	return redirect('borrowers:verify_otp')
 
