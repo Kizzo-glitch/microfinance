@@ -177,53 +177,7 @@
 
             </script>
 
-            <!--<script>
-                
-                const form = document.getElementById('uploadForm');
-                const progressBar = document.querySelector('.progress-bar');
-                const responseDiv = document.getElementById('response');
-
-                form.addEventListener('submit', function (e) {
-                    e.preventDefault();
-                    const formData = new FormData(form);
-
-                    // Initialize progress
-                    progressBar.style.width = '0%';
-                    progressBar.textContent = '0%';
-
-                    fetch("{% url 'upload_documents_self_employed' %}", {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRFToken': '{{ csrf_token }}'
-                        },
-                        body: formData
-                    }).then(response => response.json())
-                      .then(data => {
-                          if (data.success) {
-                              progressBar.style.width = '100%';
-                              progressBar.textContent = '100%';
-                              responseDiv.innerHTML = `<div class="alert alert-success">${data.success}</div>`;
-                              setTimeout(() => {
-                                window.location.href = data.redirect_url;
-                                }, 2000);
-                          } else if (data.error) {
-                              responseDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
-                          }
-                      }).catch(error => {
-                          responseDiv.innerHTML = `<div class="alert alert-danger">An error occurred. Please try again later.</div>`;
-                      });
-                });
-
-                // Update progress bar dynamically based on file input
-                form.addEventListener('change', function () {
-                    const totalFiles = form.querySelectorAll('input[type="file"]').length;
-                    const uploadedFiles = Array.from(form.querySelectorAll('input[type="file"]')).filter(input => input.files.length > 0).length;
-                    const progress = Math.floor((uploadedFiles / totalFiles) * 100);
-
-                    progressBar.style.width = `${progress}%`;
-                    progressBar.textContent = `${progress}%`;
-                });
-            </script>-->
+           
 
            
   <style>
