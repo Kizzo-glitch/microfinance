@@ -4,6 +4,7 @@
 {% block content %}
 
 
+
 <div class="container-fluid">
 
             {% if draft_app %}
@@ -51,7 +52,7 @@
                                         {% else %}
                                             Not Rated
                                         {% endif %}
-                                    <!--</p>-->
+                                    
                                 </div>
 
                                 <div class="col mr-2">
@@ -60,10 +61,10 @@
                                         <strong>Interest Rate: {{ lender.interest_rate }}%</strong>
                                     </div>
                                     <div class="h8 font-weight-bold mb-1">
-                                        <strong>Min Loan: R{{ lender.min_loan }}</strong>
+                                        <strong>Min Loan: R{{ lender.min_loan_amount }}</strong>
                                     </div>
                                     <div class="h8 font-weight-bold mb-1">
-                                        <strong>Max Loan: R{{ lender.max_loan }}</strong>
+                                        <strong>Max Loan: R{{ lender.max_loan_amount }}</strong>
                                     </div>
                                     <div class="h8 font-weight-bold mb-1">
                                         <strong>Loan Terms: {{ lender.loan_terms|join:", " }}</strong>
