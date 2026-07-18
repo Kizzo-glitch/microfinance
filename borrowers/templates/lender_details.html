@@ -3,7 +3,6 @@
 {% load custom_filters %}
 {% load loan_extras %}
 
-
 {% block content %}
 
                 <div class="container mt-5">
@@ -13,7 +12,7 @@
                         </div>
                         <div class="card-body">
                             <p class="card-text">
-                                <strong>Address:</strong> {{ lender.office_address }}
+                                <strong>Address:</strong> {{ lender.physical_address }}
                             </p>
                             <p class="card-text">
                                 <strong>Interest Rate:</strong> {{ lender.interest_rate }}%

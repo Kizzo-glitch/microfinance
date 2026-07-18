@@ -135,7 +135,7 @@ def borrower_index(request):
 	)
 	# ✅ Pending Invitations
 	pending_invitations = GroupInvitation.objects.filter(
-		invitee_phone=borrower.phone_number,  # assuming borrowerprofile has phone_number
+		invitee_phone=borrower.phone_number,  
 		status='pending'
 	)
 
