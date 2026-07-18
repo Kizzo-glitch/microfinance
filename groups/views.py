@@ -46,8 +46,26 @@ def group_landing(request):
 	return render(request, 'group_landing.html')
 
 
-
 def register_group_admin(request):
+	if request.method == "POST":
+		form = BorrowerGroupRegistrationForm(request.POST)
+		if form.is_valid():
+			user = form.save(commit=False)
+			user.role = 'borrower' 
+			user.save()
+
+			login(request, user)
+			messages.success(request, "Account created. Please complete your profile before creating a group.")
+			return redirect('groups:group_borrower_profile')
+		# If form is invalid, execution flows directly to the render() below
+	else:
+		form = BorrowerGroupRegistrationForm()
+		
+	# This must be outside the else block to catch invalid POST forms
+	return render(request, 'register_group_admin.html', {'form': form})
+
+
+def register_group_admin2(request):
 	if request.method == "POST":
 		form = BorrowerGroupRegistrationForm(request.POST)
 		if form.is_valid():
@@ -60,8 +78,59 @@ def register_group_admin(request):
 	return render(request, 'register_group_admin.html', {'form': form})
 
 
-
 def group_borrower_profile(request):
+	# 1. Access Control Check
+	if not request.user.is_authenticated or not getattr(request.user, 'is_borrower', False):
+		messages.error(request, "You Must Be Logged In As A Borrower To Access That Page!!")
+		return redirect('groups:groups_landing')
+
+	user = request.user
+
+	# 2. Safely get or create the profile
+	# This prevents the DoesNotExist crash entirely
+	profile, created = BorrowerProfile.objects.get_or_create(user=user)
+
+	# Force borrower to be a group admin
+	if not profile.is_group_admin:
+		profile.is_group_admin = True
+		profile.save(update_fields=["is_group_admin"])
+
+	# 3. Handle Form Submission
+	if request.method == 'POST':
+		form = BorrowerProfileForm(request.POST, instance=profile)
+		if form.is_valid():
+			updated_profile = form.save(commit=False)
+			updated_profile.user = user
+			updated_profile.save()
+			messages.success(request, "Your Info Has Been Updated!!")
+			return redirect('groups:group_admin_dashboard')
+		else:
+			print(form.errors)
+	else:
+		# Pre-fill initial data from the User model for the form fields
+		initial_data = {
+			'phone_number': getattr(user, 'phone_number', ''),
+			'email_address': user.email,
+			'full_name': f"{user.first_name} {user.last_name}".strip() if user.first_name else "",
+		}
+		form = BorrowerProfileForm(instance=profile, initial=initial_data)
+
+	# 4. Gather Loan Statistics safely
+	outstanding_loans = Loan.objects.filter(borrower=profile, outstanding_balance__gt=0).count()
+	overdue_loans = Loan.objects.filter(borrower=profile, due_date__lt=date.today(), outstanding_balance__gt=0).count()
+	total_debt = Loan.objects.filter(borrower=profile).aggregate(
+		total=models.Sum('outstanding_balance')
+	)['total'] or 0
+
+	return render(request, "group_borrower_profile.html", {
+		'form': form,
+		'outstanding_loans': outstanding_loans,
+		'overdue_loans': overdue_loans,
+		'total_debt': total_debt,
+	})
+
+
+def group_borrower_profile2(request):
 	if request.user.is_borrower:
 		user = request.user
 		current_user = BorrowerProfile.objects.get(user=request.user)
@@ -253,122 +322,122 @@ def manage_sub_admins(request, group_id):
 
 
 def manage_members(request, group_id):
-    group = get_object_or_404(BorrowerGroup, id=group_id)
-    current_member = GroupMembership.objects.filter(group=group, borrower=request.user.borrower).first()
+	group = get_object_or_404(BorrowerGroup, id=group_id)
+	current_member = GroupMembership.objects.filter(group=group, borrower=request.user.borrower).first()
 
-    # Permission check
-    if not current_member or current_member.role not in ['admin', 'sub-admin']:
-        messages.error(request, "You don’t have permission to manage members.")
-        return redirect('borrowers:borrower_index')
+	# Permission check
+	if not current_member or current_member.role not in ['admin', 'sub-admin']:
+		messages.error(request, "You don’t have permission to manage members.")
+		return redirect('borrowers:borrower_index')
 
-    members = group.memberships.select_related('borrower__user')
+	members = group.memberships.select_related('borrower__user')
 
-    # Handle role actions
-    if request.method == "POST":
-        member_id = request.POST.get('member_id')
-        action = request.POST.get('action')
-        target_member = get_object_or_404(GroupMembership, id=member_id, group=group)
+	# Handle role actions
+	if request.method == "POST":
+		member_id = request.POST.get('member_id')
+		action = request.POST.get('action')
+		target_member = get_object_or_404(GroupMembership, id=member_id, group=group)
 
-        if action == "promote" and target_member.role == "member":
-            target_member.role = "sub-admin"
-            target_member.save()
-            GroupActivity.objects.create(
-                group=group,
-                actor=request.user.borrower,
-                action="Promoted Member",
-                details=f"{target_member.borrower.full_name} was promoted to Sub-Admin"
-            )
-            messages.success(request, f"{target_member.borrower.full_name} promoted to Sub-Admin.")
+		if action == "promote" and target_member.role == "member":
+			target_member.role = "sub-admin"
+			target_member.save()
+			GroupActivity.objects.create(
+				group=group,
+				actor=request.user.borrower,
+				action="Promoted Member",
+				details=f"{target_member.borrower.full_name} was promoted to Sub-Admin"
+			)
+			messages.success(request, f"{target_member.borrower.full_name} promoted to Sub-Admin.")
 
-        elif action == "demote" and target_member.role == "sub-admin":
-            target_member.role = "member"
-            target_member.save()
-            GroupActivity.objects.create(
-                group=group,
-                actor=request.user.borrower,
-                action="Demoted Member",
-                details=f"{target_member.borrower.full_name} was demoted to Member"
-            )
-            messages.info(request, f"{target_member.borrower.full_name} demoted to Member.")
+		elif action == "demote" and target_member.role == "sub-admin":
+			target_member.role = "member"
+			target_member.save()
+			GroupActivity.objects.create(
+				group=group,
+				actor=request.user.borrower,
+				action="Demoted Member",
+				details=f"{target_member.borrower.full_name} was demoted to Member"
+			)
+			messages.info(request, f"{target_member.borrower.full_name} demoted to Member.")
 
-        elif action == "remove":
-            GroupActivity.objects.create(
-                group=group,
-                actor=request.user.borrower,
-                action="Removed Member",
-                details=f"{target_member.borrower.full_name} was removed from the group"
-            )
-            target_member.delete()
-            messages.warning(request, f"{target_member.borrower.full_name} removed from the group.")
+		elif action == "remove":
+			GroupActivity.objects.create(
+				group=group,
+				actor=request.user.borrower,
+				action="Removed Member",
+				details=f"{target_member.borrower.full_name} was removed from the group"
+			)
+			target_member.delete()
+			messages.warning(request, f"{target_member.borrower.full_name} removed from the group.")
 
-        else:
-            messages.error(request, "Invalid action or role change not allowed.")
+		else:
+			messages.error(request, "Invalid action or role change not allowed.")
 
-        return redirect('groups:manage_members', group_id=group.id)
+		return redirect('groups:manage_members', group_id=group.id)
 
-    return render(request, 'manage_members.html', {
-        'group': group,
-        'members': members,
-        'is_admin': current_member.role in ['admin', 'sub-admin']
-    })
+	return render(request, 'manage_members.html', {
+		'group': group,
+		'members': members,
+		'is_admin': current_member.role in ['admin', 'sub-admin']
+	})
 
 def manage_members2(request, group_id):
-    group = get_object_or_404(BorrowerGroup, id=group_id)
-    
-    # Permission check
-    if not GroupMembership.objects.filter(group=group, borrower=request.user.borrower, role__in=['admin', 'sub-admin']).exists():
-        messages.error(request, "You don’t have permission to manage members.")
-        return redirect('borrowers:borrower_index')
+	group = get_object_or_404(BorrowerGroup, id=group_id)
+	
+	# Permission check
+	if not GroupMembership.objects.filter(group=group, borrower=request.user.borrower, role__in=['admin', 'sub-admin']).exists():
+		messages.error(request, "You don’t have permission to manage members.")
+		return redirect('borrowers:borrower_index')
 
-    members = group.memberships.select_related('borrower__user')
-    return render(request, 'admin_manage_members.html', {
-        'group': group,
-        'members': members,
-    })
+	members = group.memberships.select_related('borrower__user')
+	return render(request, 'admin_manage_members.html', {
+		'group': group,
+		'members': members,
+	})
 
 
 def group_activity_log(request, group_id):
-    group = get_object_or_404(BorrowerGroup, id=group_id)
-    logs = group.activities.all()
+	group = get_object_or_404(BorrowerGroup, id=group_id)
+	logs = group.activities.all()
 
-    action_filter = request.GET.get('action')
-    if action_filter:
-        logs = logs.filter(action__icontains=action_filter)
+	action_filter = request.GET.get('action')
+	if action_filter:
+		logs = logs.filter(action__icontains=action_filter)
 
-    return render(request, 'activity_log.html', {
-        'group': group,
-        'logs': logs,
-    })
+	return render(request, 'activity_log.html', {
+		'group': group,
+		'logs': logs,
+	})
 
 def group_documents(request, group_id):
-    group = get_object_or_404(BorrowerGroup, id=group_id)
-    documents = group.documents.all()
+	group = get_object_or_404(BorrowerGroup, id=group_id)
+	documents = group.documents.all()
 
-    if request.method == 'POST':
-        file = request.FILES.get('file')
-        description = request.POST.get('description')
-        if file:
-            version = (group.documents.filter(file__icontains=file.name).count() + 1)
-            GroupDocument.objects.create(
-                group=group,
-                uploaded_by=request.user.borrower,
-                file=file,
-                version=version,
-                description=description,
-            )
-            messages.success(request, "Document uploaded successfully.")
-            return redirect('groups:group_documents', group.id)
+	if request.method == 'POST':
+		file = request.FILES.get('file')
+		description = request.POST.get('description')
+		if file:
+			version = (group.documents.filter(file__icontains=file.name).count() + 1)
+			GroupDocument.objects.create(
+				group=group,
+				uploaded_by=request.user.borrower,
+				file=file,
+				version=version,
+				description=description,
+			)
+			messages.success(request, "Document uploaded successfully.")
+			return redirect('groups:group_documents', group.id)
 
-    return render(request, 'group_documents.html', {
-        'group': group,
-        'documents': documents,
-    })
+	return render(request, 'group_documents.html', {
+		'group': group,
+		'documents': documents,
+	})
 
 
 # -----------------------------
 # GROUP CREATION & MANAGEMENT
 # -----------------------------
-@login_required
+#@login_required
 def group_list(request):
 	borrower = request.user.borrower
 	groups = BorrowerGroup.objects.filter(admin=borrower) | BorrowerGroup.objects.filter(memberships__borrower=borrower)
@@ -439,7 +508,7 @@ def group_members(request, group_id):
 
 
 
-@login_required
+#@login_required
 def group_edit(request, pk):
 	group = get_object_or_404(BorrowerGroup, pk=pk, admin=request.user.borrower)
 	if request.method == 'POST':
@@ -456,7 +525,7 @@ def group_edit(request, pk):
 # -----------------------------
 # GROUP CONSTITUTION 
 # -----------------------------
-@login_required
+#@login_required
 def group_constitution(request, group_id):
 	group = get_object_or_404(BorrowerGroup, id=group_id)
 	constitution, created = GroupConstitution.objects.get_or_create(group=group)
@@ -754,7 +823,7 @@ def pending_join_requests(request):
 	return render(request, 'pending_join_requests.html', context)
 
 
-@login_required
+#@login_required
 def approve_join_request(request, request_id):
 	join_request = get_object_or_404(GroupJoinRequest, id=request_id, status='pending')
 	borrower = join_request.requester
@@ -783,7 +852,7 @@ def decline_join_request(request, request_id):
 	messages.warning(request, f"Join request from {join_request.requester} has been declined.")
 	return redirect('groups:pending_join_requests')
 
-@login_required
+#@login_required
 def invitation_detail(request, invitation_id):
 	"""
 	View detailed information about a specific invitation
@@ -831,7 +900,7 @@ def invitation_detail(request, invitation_id):
 	return render(request, 'groups/invitation_detail.html', context)
 
 
-@login_required
+#@login_required
 def withdraw_invitation(request, invitation_id):
 	"""
 	Allow inviter to withdraw a pending invitation
@@ -909,7 +978,7 @@ def withdraw_invitation(request, invitation_id):
 	return render(request, 'groups/invitation_confirm_action.html', context)
 
 
-@login_required
+#@login_required
 def resend_invitation(request, invitation_id):
 	"""
 	Resend invitation notification (SMS/Email)
@@ -1031,7 +1100,7 @@ def resend_invitation(request, invitation_id):
 	return render(request, 'groups/invitation_confirm_action.html', context)
 
 
-@login_required
+#@login_required
 def extend_invitation(request, invitation_id):
 	"""
 	Extend the expiry date of a pending invitation
@@ -1227,7 +1296,7 @@ def cancel_invitation_activation(request, invitation_id):
 
 
 
-@login_required
+#@login_required
 def group_invitations_list(request, group_id):
 	"""
 	View all invitations for a specific group
@@ -1290,7 +1359,7 @@ def group_invitations_list(request, group_id):
 # -------------------------------------------------------
 # 2️⃣ Group admin reviews and manages requests
 # -------------------------------------------------------
-@login_required
+#@login_required
 def review_join_request(request, request_id):
 	join_request = get_object_or_404(GroupJoinRequest, id=request_id)
 	group = join_request.group
@@ -1323,82 +1392,82 @@ def review_join_request(request, request_id):
 
 
 def create_meeting(request, group_id):
-    group = get_object_or_404(BorrowerGroup, id=group_id)
+	group = get_object_or_404(BorrowerGroup, id=group_id)
 
-    if request.method == "POST":
-        form = GroupMeetingForm(request.POST, request.FILES)
-        if form.is_valid():
-            meeting = form.save(commit=False)
-            meeting.group = group
-            meeting.created_by = request.user
-            meeting.save()
+	if request.method == "POST":
+		form = GroupMeetingForm(request.POST, request.FILES)
+		if form.is_valid():
+			meeting = form.save(commit=False)
+			meeting.group = group
+			meeting.created_by = request.user
+			meeting.save()
 
-            # Log event
-            ActivityLog.objects.create(
-                group=group,
-                actor=request.user,
-                action="meeting_created",
-                details=f"Created meeting: {meeting.title}"
-            )
+			# Log event
+			ActivityLog.objects.create(
+				group=group,
+				actor=request.user,
+				action="meeting_created",
+				details=f"Created meeting: {meeting.title}"
+			)
 
-            # Auto-create attendance records
-            for member in group.members.all():
-                MeetingAttendance.objects.get_or_create(meeting=meeting, member=member)
+			# Auto-create attendance records
+			for member in group.members.all():
+				MeetingAttendance.objects.get_or_create(meeting=meeting, member=member)
 
-            return redirect("group_meetings", group_id=group.id)
-    else:
-        form = GroupMeetingForm()
+			return redirect("group_meetings", group_id=group.id)
+	else:
+		form = GroupMeetingForm()
 
-    return render(request, "create_meeting.html", {
-        "group": group,
-        "form": form,
-    })
+	return render(request, "create_meeting.html", {
+		"group": group,
+		"form": form,
+	})
 
 
 
 def group_meetings(request, group_id):
-    group = get_object_or_404(BorrowerGroup, id=group_id)
-    meetings = group.meetings.order_by("-date", "-created_at")
+	group = get_object_or_404(BorrowerGroup, id=group_id)
+	meetings = group.meetings.order_by("-date", "-created_at")
 
-    return render(request, "groups/meetings/meeting_list.html", {
-        "group": group,
-        "meetings": meetings,
-    })
+	return render(request, "groups/meetings/meeting_list.html", {
+		"group": group,
+		"meetings": meetings,
+	})
 
 
 def meeting_detail(request, group_id, meeting_id):
-    group = get_object_or_404(BorrowerGroup, id=group_id)
-    meeting = get_object_or_404(GroupMeeting, id=meeting_id, group=group)
+	group = get_object_or_404(BorrowerGroup, id=group_id)
+	meeting = get_object_or_404(GroupMeeting, id=meeting_id, group=group)
 
-    attendance = meeting.attendance.select_related("member", "member__user")
+	attendance = meeting.attendance.select_related("member", "member__user")
 
-    return render(request, "groups/meetings/meeting_detail.html", {
-        "group": group,
-        "meeting": meeting,
-        "attendance": attendance,
-    })
+	return render(request, "groups/meetings/meeting_detail.html", {
+		"group": group,
+		"meeting": meeting,
+		"attendance": attendance,
+	})
 
 
 
 def update_attendance(request, group_id, meeting_id):
-    meeting = get_object_or_404(GroupMeeting, id=meeting_id, group__id=group_id)
+	meeting = get_object_or_404(GroupMeeting, id=meeting_id, group__id=group_id)
 
-    if request.method == "POST":
-        for key, value in request.POST.items():
-            if key.startswith("present_"):
-                attendance_id = key.split("_")[1]
-                record = MeetingAttendance.objects.get(id=attendance_id)
-                record.was_present = (value == "on")
-                record.save()
+	if request.method == "POST":
+		for key, value in request.POST.items():
+			if key.startswith("present_"):
+				attendance_id = key.split("_")[1]
+				record = MeetingAttendance.objects.get(id=attendance_id)
+				record.was_present = (value == "on")
+				record.save()
 
-        ActivityLog.objects.create(
-            group=meeting.group,
-            actor=request.user,
-            action="attendance_updated",
-            details=f"Updated attendance for meeting: {meeting.title}"
-        )
+		ActivityLog.objects.create(
+			group=meeting.group,
+			actor=request.user,
+			action="attendance_updated",
+			details=f"Updated attendance for meeting: {meeting.title}"
+		)
 
-    return redirect("meeting_detail", group_id=group_id, meeting_id=meeting_id)
+	return redirect("meeting_detail", group_id=group_id, meeting_id=meeting_id)
 
 
 
