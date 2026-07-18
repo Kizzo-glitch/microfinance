@@ -65,18 +65,6 @@ def register_group_admin(request):
 	return render(request, 'register_group_admin.html', {'form': form})
 
 
-def register_group_admin2(request):
-	if request.method == "POST":
-		form = BorrowerGroupRegistrationForm(request.POST)
-		if form.is_valid():
-			user = form.save()
-			login(request, user)
-			messages.success(request, "Account created. Please complete your profile before creating a group.")
-			return redirect('groups:group_borrower_profile') 
-	else:
-		form = BorrowerGroupRegistrationForm()
-	return render(request, 'register_group_admin.html', {'form': form})
-
 
 def group_borrower_profile(request):
 	# 1. Access Control Check
@@ -86,8 +74,6 @@ def group_borrower_profile(request):
 
 	user = request.user
 
-	# 2. Safely get or create the profile
-	# This prevents the DoesNotExist crash entirely
 	profile, created = BorrowerProfile.objects.get_or_create(user=user)
 
 	# Force borrower to be a group admin

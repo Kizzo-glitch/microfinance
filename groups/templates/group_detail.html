@@ -71,7 +71,6 @@
         </div>
     </div>
     
-
     <!-- Group Info Details -->
     <div class="card shadow-sm border-0">
         <div class="card-header bg-light fw-semibold">
@@ -80,7 +79,7 @@
         <div class="card-body">
             <p><strong>Admin:</strong> {{ group.admin.full_name }}</p>
             <p><strong>Description:</strong> {{ group.description|default:"No description provided." }}</p>
-            <p><strong>Region:</strong> {{ group.region|default:"Not specified" }}</p>
+            <p><strong>Region:</strong> {{ group.district|default:"Not specified" }}</p>
             <p><strong>Verification Status:</strong> 
                 {% if group.verified %}
                     <span class="badge bg-success">Verified</span>
