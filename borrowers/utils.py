@@ -26,6 +26,6 @@ def handle_stage_navigation(request, form, loan_app, next_stage_redirect=None):
 
 		elif action == "exit":
 			loan_app.save()
-			return redirect("borrower_index")
+			return redirect("borrowers:borrower_index")
 
 	return None

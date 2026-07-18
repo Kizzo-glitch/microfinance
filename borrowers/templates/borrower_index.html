@@ -42,6 +42,9 @@
                                     <div class="h5 font-weight-bold text-primary text-uppercase mb-1">
                                         <strong>{{ lender.company_name }}</strong>
                                     </div>
+                                    <div class="h8 font-weight-bold mb-1">
+                                        <strong>{{ lender.physical_address }}</strong>
+                                    </div>
                                     <!--<p style="font-weight: bold; font-style: italic;">Average Rating: -->
                                         {% if lender.average_rating %} 
                                             <div class="h5 mb-0 font-weight-bold text-gray-800">
@@ -249,11 +252,11 @@
                         {% for lender in lenders %}
                             <tr>
                                 <td>{{ lender.company_name }}</td>
-                                <td>{{ lender.registration_no }}</td>
-                                <td>{{ lender.office_address }}</td>
+                                <td>{{ lender.registration_number }}</td>
+                                <td>{{ lender.physical_address }}</td>
                                 <td>{{ lender.interest_rate }}%</td>
-                                <td>R{{ lender.min_loan }} </td>
-                                <td>R{{ lender.max_loan }}</td>
+                                <td>R{{ lender.min_loan_amount }} </td>
+                                <td>R{{ lender.max_loan_amount }}</td>
                                 <td><a href="{% url 'borrowers:lender_details' lender.id %}" class="btn btn-sm btn-outline-primary">View</a></td>
                                 
                                 

@@ -644,7 +644,7 @@ def select_employment_type(request):
 
 	loan_app, created = LoanApplication.objects.get_or_create(
 		borrower=profile,
-		lender=lender,  # ✅ This is correct
+		lender=lender,  
 		status="draft",
 		defaults={"current_stage": "employment"}
 	)
@@ -683,7 +683,9 @@ def select_employment_type(request):
 
 @login_required
 def resume_application(request, app_id):
-	loan_app = LoanApplication.objects.get(id=app_id, borrower=request.user.borrower)
+	lender_id = request.session.get('lender_id')
+	lender = LenderProfile.objects.get(id=lender_id)
+	loan_app = LoanApplication.objects.get(id=app_id, borrower=request.user.borrower, lender=lender)
 
 	if loan_app.current_stage == "employment":
 		return redirect("borrowers:employment_type")
