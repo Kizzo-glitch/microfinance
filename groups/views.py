@@ -64,6 +64,7 @@ def register_group_admin(request):
 def group_borrower_profile(request):
 	if request.user.is_borrower:
 		user = request.user
+		current_user = BorrowerProfile.objects.get(user=request.user)
 		try:
 			current_user = BorrowerProfile.objects.get(user=request.user)
 		except BorrowerProfile.DoesNotExist:
@@ -76,7 +77,6 @@ def group_borrower_profile(request):
 
 		# Get original User Form (still editable for borrower details)
 		form = BorrowerProfileForm(request.POST or None, instance=current_user)
-
 
 		# Get or create the BorrowerProfile instance for the current user
 		try:
@@ -131,8 +131,7 @@ def group_borrower_profile(request):
 		})
 
 	messages.error(request, "You Must Be Logged In To Access That Page!!")
-	return redirect('groups:group_landing')
-
+	return redirect('groups:groups_landing')
 
 
 
