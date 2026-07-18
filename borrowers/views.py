@@ -680,7 +680,6 @@ def select_employment_type(request):
 		"required_docs": REQUIRED_DOCS,})
 
 
-
 @login_required
 def resume_application(request, app_id):
 	lender_id = request.session.get('lender_id')
