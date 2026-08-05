@@ -1,17 +1,98 @@
 {% load static %}
-<!-- Responsive navbar-->
 
-<nav class="navbar navbar-expand navbar-light bg-primary topbar mb-4 static-top shadow">
 
+<nav class="navbar navbar-expand-lg fedha-topbar mb-4 static-top">
+    <div class="container px-lg-5">
+        <a class="navbar-brand" href="{% url 'landing' %}">
+            <svg class="fedha-mark" viewBox="0 0 100 100" width="30" height="30" aria-hidden="true" focusable="false">
+                <circle cx="50" cy="50" r="36" fill="none" stroke="#14402D" stroke-width="12" stroke-dasharray="28 9.5"/>
+                <circle cx="50" cy="50" r="11.5" fill="#D69A3C"/>
+            </svg>
+            <span class="fedha-brandmark-text">Fedha-Grow <span class="fedha-brandmark-sub">Groups</span></span>
+        </a>
+
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+
+        <button class="navbar-toggler" type="button" data-toggle="collapse"
+                data-target="#groupsNav" aria-controls="groupsNav" aria-expanded="false"
+                aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="groupsNav">
+            <ul class="navbar-nav mr-auto fedha-topbar-links">
+                <li class="nav-item"><a class="nav-link" href="#why-groups">Why groups</a></li>
+                <li class="nav-item"><a class="nav-link" href="#how-it-works">How it works</a></li>
+            </ul>
+
+            <ul class="navbar-nav fedha-topbar-actions">
+                {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'groups:group_admin_dashboard' %}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-fedha-ghost btn-fedha-sm" href="{% url 'groups:admin_logout' %}">Log out</a>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'groups:group_admin_login' %}">Log in</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn btn-fedha-primary btn-fedha-sm" href="{% url 'groups:register_group_admin' %}">Register as admin</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<style>
+.fedha-topbar .navbar-brand { padding: 0; margin: 0; }
+.fedha-brandmark { display: flex; align-items: center; gap: .625rem; }
+.fedha-coin {
+  width: 1.5rem; height: 1.5rem; border-radius: 50%;
+  background: var(--fg-ochre);
+  box-shadow: inset 0 0 0 3px var(--fg-cream), inset 0 0 0 4.5px var(--fg-ochre);
+  flex: 0 0 auto;
+}
+.fedha-brandmark-text {
+  font-family: var(--fg-font-display);
+  font-weight: 700; font-size: 1.125rem; letter-spacing: -0.01em;
+  color: var(--fg-ink);
+}
+.fedha-brandmark-sub { font-weight: 400; color: rgba(34, 30, 26, .55); }
+
+.fedha-topbar-actions { align-items: center; }
+.fedha-topbar-actions .nav-link { padding-right: 1rem; }
+
+/* Small variant of the bar's filled action */
+.btn-fedha-sm { font-size: .875rem; padding: .4375rem 1rem; }
+
+/* Outline action on the cream bar (the dark-bg ghost would be invisible here) */
+.btn-fedha-ghost {
+  font-family: var(--fg-font-display); font-weight: 600;
+  background-color: transparent;
+  border: 1px solid var(--fg-border-strong, rgba(20, 64, 45, .28));
+  color: var(--fg-forest);
+  border-radius: var(--fg-radius);
+  white-space: nowrap;
+}
+.btn-fedha-ghost:hover,
+.btn-fedha-ghost:focus { background-color: rgba(20, 64, 45, .07); color: var(--fg-forest); }
+
+@media (max-width: 991.98px) {
+  .fedha-topbar-actions { align-items: stretch; }
+  .fedha-topbar-actions .btn { display: block; width: 100%; text-align: center; margin-top: .5rem; }
+}
+</style>
+
+
+<!-- <nav class="navbar navbar-expand navbar-light bg-primary topbar mb-4 static-top shadow">
             <div class="container px-lg-5">
                 <a class="navbar-brand" href="{% url 'landing' %}">Fedha-Grow Groups</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav ms-auto">
-
-                        <!--<li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#how-it-works">How It Works</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#testimonials">Testimonials</a></li>-->
                     </ul>
                 </div>
 
@@ -27,41 +108,5 @@
                     {% endif %}
                 </ul>
                 
-            </div>
-
-            
-
-        </nav>
-        
-        <!--<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-            <div class="container px-lg-5">
-                <a class="navbar-brand" href="{% url 'landing' %}">Fedha-Grow</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
-                <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                    <ul class="navbar-nav ms-auto">-->
-
-                        <!--<li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#how-it-works">How It Works</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#testimonials">Testimonials</a></li>-->
-                        
-                        
-                        <!--<li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="#!">Register as Borrower</a></li>-->
-                        <!--<li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="#!">Register as Lender</a></li>-->
-                        
-                        <!--{% if user.is_authenticated %}                        
-                        <li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="{% url 'logout' %}">Logout</a></li>
-                        {% else %}
-                            
-                        <li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="{% url 'register' %}">Register</a></li>
-                              
-                        {% if user.role == 'borrower' %}
-                        <li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="{% url 'login' %}?next=/borrowers/borrower_index/">Login</a></li>
-                            {% else %}
-                        <li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="{% url 'login' %}?next=/lenders/lender_index/">Login</a></li>
-                                {% endif %}
-                            
-                        {% endif %}
-                    </ul>
-                </div>
             </div>
         </nav> -->

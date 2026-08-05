@@ -38,6 +38,7 @@ from .forms import (
 	GroupTypeSpecificSettingsForm, GroupJoinRequestForm, GroupInvitationForm,
 	BorrowerGroupRegistrationForm, BorrowerJoinRequestForm, GroupAdminReviewForm
 )
+from .decorators import group_admin_required
 	 
 User = get_user_model()
 
@@ -222,13 +223,14 @@ def admin_logout(request):
 	return redirect('groups:groups_landing') 
 
 
-
+@login_required
+@group_admin_required
 def group_admin_dashboard(request):
 	"""
 	Dashboard for group admins (the user must be admin of at least one group).
 	Shows: groups administered, key metrics, pending items, recent activity.
 	"""
-	# assume BorrowerProfile accessible as request.user.borrower (your project used that)
+	
 	try:
 		borrower_profile = request.user.borrower
 	except Exception:
@@ -285,6 +287,7 @@ def group_admin_dashboard(request):
 
 
 @login_required
+@group_admin_required
 def manage_sub_admins(request, group_id):
 	group = get_object_or_404(BorrowerGroup, id=group_id, admin=request.user.borrower)
 

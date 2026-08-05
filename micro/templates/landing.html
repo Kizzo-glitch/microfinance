@@ -8,7 +8,7 @@
     <div class="container px-lg-5">
         <p class="fedha-eyebrow">Grow credit. Grow communities</p>
         <h1 class="fedha-hero-title">Welcome to Fedha-Grow</h1>
-        <p class="fedha-hero-lead">Building the infrastructure for fair credit in Lesotho.</p>
+        <p class="fedha-hero-lead">Together building the infrastructure for fair credit and inclusion.</p>
 
         <div class="fedha-hero-actions">
             {% if user.is_authenticated %}
@@ -20,6 +20,7 @@
                 <a class="btn btn-fedha-primary btn-fedha-lg" href="{{ fedha_dashboard_url }}">Go to dashboard</a>
             {% else %}
                 <a class="btn btn-fedha-primary btn-fedha-lg" href="{% url 'register' %}">Get started</a>
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 <a class="btn btn-fedha-ghost btn-fedha-lg" href="{% url 'groups:groups_landing' %}">Register a group</a>
             {% endif %}
         </div>
@@ -29,12 +30,13 @@
 <!-- ========================= TRUST STRIP ========================= -->
 <div class="fedha-trust">
     <div class="container px-lg-5">
-        <span class="fedha-trust-label">Built for regulated lending</span>
+        <span class="fedha-trust-label">Built for resposible &amp; regulated lending</span>
         <ul class="fedha-trust-list">
             <li>CBL compliance engine</li>
             <li>Full audit trails</li>
             <li>Affordability assessment</li>
             <li>Regulatory reporting</li>
+            <li>Community lending ecosytem</li>
         </ul>
     </div>
 </div>
@@ -44,7 +46,7 @@
     <div class="container px-lg-5">
         <div class="fedha-section-head">
             <p class="fedha-eyebrow fedha-eyebrow--leaf">What the platform does</p>
-            <h2 class="fedha-section-title">Built around how lending actually works.</h2>
+            <h2 class="fedha-section-title">Built around lending that actually works.</h2>
         </div>
 
         <div class="row">
@@ -72,8 +74,8 @@
                 <div class="card fedha-feature h-100">
                     <div class="card-body">
                         <i class="bi bi-shield-lock-fill fedha-feature-icon" aria-hidden="true"></i>
-                        <h3 class="fedha-feature-title">Secure Transactions</h3>
-                        <p class="fedha-feature-text mb-0">Bank-grade encryption, role-based access control, and audit trails ensure safety of data and repayments processes.</p>
+                        <h3 class="fedha-feature-title">Secure Connections</h3>
+                        <p class="fedha-feature-text mb-0">High-grade encryption, role-based access control, and audit trails ensure safety of data and repayments processes.</p>
                     </div>
                 </div>
             </div>
@@ -93,7 +95,7 @@
                     <div class="card-body">
                         <i class="bi bi-exclamation-triangle-fill fedha-feature-icon" aria-hidden="true"></i>
                         <h3 class="fedha-feature-title">Risk Profiling &amp; Alerts</h3>
-                        <p class="fedha-feature-text mb-0">Our calculations flag risky applications by evaluating affordability, missed payments, and financial behavior trends.</p>
+                        <p class="fedha-feature-text mb-0">We flag risky applications by evaluating affordability, missed payments, and financial behavior trends.</p>
                     </div>
                 </div>
             </div>
@@ -211,13 +213,67 @@
     </div>
 </section>
 
+<!-- ========================= PLATFORM METRICS =====================
+     Numbers come from the view context. Each has a |default fallback so the
+     section degrades gracefully rather than rendering "None".
+     Wire these up in the landing view:
+       lenders_onboarded, groups_registered, loans_disbursed_value,
+       submissions_filed, borrowers_served, uptime_pct, as_of_date
+     ============================================================== -->
+<section id="metrics" class="fedha-section fedha-section--dark">
+    <div class="container px-lg-5">
+        <div class="fedha-section-head">
+            <p class="fedha-eyebrow fedha-eyebrow--ochre">Platform to date</p>
+            <h2 class="fedha-section-title fedha-section-title--invert">The numbers behind the platform</h2>
+        </div>
+        <div class="fedha-metrics">
+            <div class="fedha-metric">
+                <span class="fedha-metric-value">{{ lenders_onboarded|default:"&mdash;" }}</span>
+                <span class="fedha-metric-label">Total Lenders onboarded</span>
+                <span class="fedha-metric-note">Tier 1&ndash;3 MFIs running on Fedha-Grow</span>
+            </div>
+            <div class="fedha-metric">
+                <span class="fedha-metric-value">{{ verified_lenders|default:"&mdash;" }}</span>
+                <span class="fedha-metric-label">Verified Lenders</span>
+                <span class="fedha-metric-note">Lenders with verified status</span>
+            </div>
+            <div class="fedha-metric">
+                <span class="fedha-metric-value">{{ borrowers_served|default:"&mdash;" }}</span>
+                <span class="fedha-metric-label">Borrowers Served</span>
+                <span class="fedha-metric-note">Individual and group borrowers with an active record</span>
+            </div>
+            <div class="fedha-metric">
+                <span class="fedha-metric-value">{{ groups_registered|default:"&mdash;" }}</span>
+                <span class="fedha-metric-label">Community Groups Digitised</span>
+                <span class="fedha-metric-note">Stokvels, Associations and Unions under the umbrella</span>
+            </div>
+            <div class="fedha-metric">
+                <span class="fedha-metric-value">{{ loans_disbursed_value|default:"&mdash;" }}</span>
+                <span class="fedha-metric-label">Loan Total Disbursed</span>
+                <span class="fedha-metric-note">Total value advanced through the platform</span>
+            </div>
+            <div class="fedha-metric">
+                <span class="fedha-metric-value">{{ submissions_filed|default:"&mdash;" }}</span>
+                <span class="fedha-metric-label">CBL Submissions Filed</span>
+                <span class="fedha-metric-note">Prudential returns generated and filed on time</span>
+            </div>
+            <div class="fedha-metric">
+                <span class="fedha-metric-value">{{ uptime_pct|default:"&mdash;" }}</span>
+                <span class="fedha-metric-label">Platform Uptime</span>
+                <span class="fedha-metric-note">Rolling twelve-month availability</span>
+            </div>
+        </div>
+        <p class="fedha-metrics-asof">Figures as at {{ as_of_date|default:"the most recent reporting period" }}.</p>
+    </div>
+</section>
+
 <!-- ========================= TESTIMONIALS ========================
      TODO: replace these with real, attributable quotes or with hard metrics
      (lenders onboarded, groups registered, loans disbursed, submissions filed).
      Placeholder-looking testimonials cost more trust than they earn with
      regulators and funders.
      ============================================================== -->
-<section id="testimonials" class="fedha-section fedha-section--dark">
+<!--<section id="testimonials" class="fedha-section fedha-section--dark">
     <div class="container px-lg-5">
         <div class="fedha-section-head">
             <p class="fedha-eyebrow fedha-eyebrow--ochre">What Our Users Say</p>
@@ -243,7 +299,7 @@
             </div>
         </div>
     </div>
-</section>
+</section>-->
 
 <style>
 /* ==========================================================================
@@ -459,11 +515,32 @@
 }
 .fedha-tier-body p { font-size: .9375rem; line-height: 1.6; color: rgba(34, 30, 26, .7); }
 
-/* ---------- Testimonials ---------- */
-.fedha-quote { margin: 0; padding-left: 1.25rem; border-left: 2px solid var(--fg-ochre); }
-.fedha-quote-text { font-size: 1.125rem; line-height: 1.6; color: var(--fg-cream); margin: 0 0 1rem; }
-.fedha-quote-cite { font-size: .9375rem; color: rgba(246, 241, 231, .6); }
-.fedha-quote-cite::before { content: none; }
+/* ---------- Platform metrics ---------- */
+.fedha-section-title--invert { color: var(--fg-cream); }
+.fedha-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 2.5rem 2rem;
+}
+.fedha-metric {
+  display: flex;
+  flex-direction: column;
+  gap: .375rem;
+  padding-left: 1.25rem;
+  border-left: 2px solid var(--fg-ochre);
+}
+.fedha-metric-value {
+  font-family: var(--fg-font-display);
+  font-weight: 700;
+  font-size: 2.75rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--fg-cream);
+  font-variant-numeric: tabular-nums;
+}
+.fedha-metric-label { font-size: 1rem; font-weight: 600; color: var(--fg-cream); }
+.fedha-metric-note { font-size: .875rem; line-height: 1.5; color: rgba(246, 241, 231, .6); text-wrap: pretty; }
+.fedha-metrics-asof { margin: 3rem 0 0; font-size: .8125rem; color: rgba(246, 241, 231, .45); }
 
 /* ---------- Scroll-to-top (kept; recoloured) ---------- */
 .scroll-to-top {

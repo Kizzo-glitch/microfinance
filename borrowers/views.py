@@ -492,6 +492,7 @@ def apply_for_loan_list(request):
 	return render(request, 'apply_loan_list.html', {'lenders': lenders})
 
 
+
 @login_required
 def lender_details(request, lender_id):
 	lender = get_object_or_404(LenderProfile, id=lender_id)

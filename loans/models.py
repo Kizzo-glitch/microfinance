@@ -72,7 +72,7 @@ class LoanApplication(models.Model):
 	LOAN_STAGE_CHOICES = [
 		("employment_type", "Employment Type"),
 		("documents", "Upload Documents"),
-		("update_expenses", "Update Expenses"),
+		("affordability", "Affordability"),
 		
 		("loan_calculator", "Loan Calculator"),
 		("apply_loan", "Apply Loan"),

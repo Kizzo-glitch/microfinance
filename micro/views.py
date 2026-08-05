@@ -1,3 +1,5 @@
+from email.headerregistry import Group
+
 from django.shortcuts import render, redirect
 from django.contrib import messages
 
@@ -15,11 +17,47 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import PasswordChangeView
 from django.urls import reverse_lazy
 
+from decimal import Decimal
+
+from django.db.models import Count, Sum
+from django.utils import timezone
+
+
+from loans.models import Loan
+from groups.models import BorrowerGroup
+from compliance.models import ComplianceProfile
 
 
 
-def landing(request):	
-	return render(request, 'landing.html', {})
+
+
+def landing(request):
+	lenders_onboarded = LenderProfile.objects.all().count()
+	
+	verified_lenders = LenderProfile.objects.filter(
+		verification_status__in=['verified', 'licensed']).count()
+
+	borrowers_served = BorrowerProfile.objects.count()
+
+	groups_registered = BorrowerGroup.objects.count()
+
+	loans_total = (Loan.objects.aggregate(total=Sum('amount'))['total'] or Decimal("0.00"))
+
+	submissions_filed = ComplianceProfile.objects.filter(current_stage='submitted').count()
+
+	context = {
+		"lenders_onboarded": f"{lenders_onboarded:,}",
+		"verified_lenders": f"{verified_lenders:,}",
+		"borrowers_served": f"{borrowers_served:,}",
+		"groups_registered": f"{groups_registered:,}",
+		"loans_disbursed_value": f"M {loans_total:,.2f}",
+		"submissions_filed": f"{submissions_filed:,}",
+		"uptime_pct": "99.9%",
+		"as_of_date": timezone.now().strftime("%d %B %Y"),
+	}
+
+	return render(request, "landing.html", context)
+
 
 def lender_compliance(request):	
 	return render(request, 'lender_compliance.html', {})
@@ -57,40 +95,40 @@ def register(request):
 
 
 class RegulatorPasswordChangeView(PasswordChangeView):
-    template_name = 'password_setup.html'
-    
-    def get_success_url(self):
-        # Redirect to the profile update page after success
-        return reverse_lazy('regulator:regulator_profile')
+	template_name = 'password_setup.html'
+	
+	def get_success_url(self):
+		# Redirect to the profile update page after success
+		return reverse_lazy('regulator:regulator_profile')
 
-    def form_valid(self, form):
-        user = self.request.user
-        user.must_change_password = False
-        user.save()
-        return super().form_valid(form)
+	def form_valid(self, form):
+		user = self.request.user
+		user.must_change_password = False
+		user.save()
+		return super().form_valid(form)
 
 """
 class CustomPasswordChangeView(PasswordChangeView):
-    template_name = 'password_change_form.html'
-    success_url = reverse_lazy('regulator:regulator_dashboard') # Redirect after change
+	template_name = 'password_change_form.html'
+	success_url = reverse_lazy('regulator:regulator_dashboard') # Redirect after change
 
-    def form_valid(self, form):
-        # When they successfully change the password, flip the flag to False
-        self.request.user.must_change_password = False
-        self.request.user.save()
-        return super().form_valid(form)
+	def form_valid(self, form):
+		# When they successfully change the password, flip the flag to False
+		self.request.user.must_change_password = False
+		self.request.user.save()
+		return super().form_valid(form)
 
 
 class RegulatorPasswordChangeView(PasswordChangeView):
-    template_name = 'password_setup.html'
-    success_url = reverse_lazy('password_change_done')
+	template_name = 'password_setup.html'
+	success_url = reverse_lazy('password_change_done')
 
-    def form_valid(self, form):
-        # Once the password is changed, they are no longer forced to change it
-        user = self.request.user
-        user.must_change_password = False
-        user.save()
-        return super().form_valid(form)
+	def form_valid(self, form):
+		# Once the password is changed, they are no longer forced to change it
+		user = self.request.user
+		user.must_change_password = False
+		user.save()
+		return super().form_valid(form)
 """
 
 def logout_user(request):

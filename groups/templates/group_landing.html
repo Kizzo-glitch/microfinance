@@ -1,8 +1,255 @@
 {% extends "group_base.html" %}
 {% load static %}
+
 {% block content %}
 
-<section class="bg-light py-5">
+<!-- ============================= HERO ============================= -->
+<header class="fedha-hero fedha-hero--groups">
+    <div class="container px-lg-5">
+        <p class="fedha-eyebrow">Group management and lending on Fedha-Grow</p>
+        <h1 class="fedha-hero-title">Borrower Groups</h1>
+        <p class="fedha-hero-lead">Unlock the power of collective trust.</p>
+        <p class="fedha-hero-body">Groups like Societies, Stokvels, and Unions give lenders confidence and borrowers easier access to credit.</p>
+
+        <div class="fedha-hero-actions">
+            {% if user.is_authenticated %}
+                <a class="btn btn-fedha-primary btn-fedha-lg" href="{% url 'groups:group_admin_dashboard' %}">Go to dashboard</a>
+            {% else %}
+                <a class="btn btn-fedha-primary btn-fedha-lg" href="{% url 'groups:register_group_admin' %}">Register a group</a>
+                <a class="btn btn-fedha-ghost btn-fedha-lg" href="{% url 'lender_compliance' %}">For lenders</a>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+<!-- ========================= TRUST STRIP ========================= -->
+<div class="fedha-trust">
+    <div class="container px-lg-5">
+        <span class="fedha-trust-label">Example group types (not limited to)</span>
+        <ul class="fedha-trust-list">
+            <li>Societies</li>
+            <li>Stokvels</li>
+            <li>Unions</li>
+            <li>Associations</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ========================== WHY GROUPS ========================= -->
+<section id="why-groups" class="fedha-section">
+    <div class="container px-lg-5">
+        <div class="fedha-section-head">
+            <p class="fedha-eyebrow fedha-eyebrow--leaf">Why groups work</p>
+            <h2 class="fedha-section-title">Collective trust is underwriting data.</h2>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-4 mb-md-0">
+                <div class="fedha-group-card">
+                    <div class="fedha-group-media">
+                        <img src="{% static 'landing/assets/social_proof.png' %}"
+                             alt="Members of a savings group meeting together">
+                    </div>
+                    <i class="bi bi-people-fill fedha-feature-icon" aria-hidden="true"></i>
+                    <h3 class="fedha-feature-title">Social Proof</h3>
+                    <p class="fedha-feature-text mb-0">Group membership reduces identity fraud and provides credibility to lenders.</p>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4 mb-md-0">
+                <div class="fedha-group-card">
+                    <div class="fedha-group-media">
+                        <img src="{% static 'landing/assets/low_risk.jpeg' %}"
+                             alt="A group treasurer recording contributions in a ledger">
+                    </div>
+                    <i class="bi bi-shield-lock-fill fedha-feature-icon" aria-hidden="true"></i>
+                    <h3 class="fedha-feature-title">Reduced Risk</h3>
+                    <p class="fedha-feature-text mb-0">Lenders feel safer when borrowers are backed by a trusted organization.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="fedha-group-card">
+                    <div class="fedha-group-media">
+                        <img src="{% static 'landing/assets/access.jpeg' %}"
+                             alt="A small business owner receiving approved funds">
+                    </div>
+                    <i class="bi bi-graph-up fedha-feature-icon" aria-hidden="true"></i>
+                    <h3 class="fedha-feature-title">Better Access</h3>
+                    <p class="fedha-feature-text mb-0">Borrowers in groups often enjoy faster approvals and better terms.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========================= HOW IT WORKS ======================== -->
+<section id="how-it-works" class="fedha-section fedha-section--panel">
+    <div class="container px-lg-5">
+        <div class="fedha-section-head">
+            <p class="fedha-eyebrow fedha-eyebrow--leaf">Five steps</p>
+            <h2 class="fedha-section-title">How it Works</h2>
+        </div>
+
+        <ol class="fedha-steps">
+            <li class="fedha-step">
+                <span class="fedha-step-num">1</span>
+                <p class="fedha-step-text">Register as Group Admin.</p>
+            </li>
+            <li class="fedha-step">
+                <span class="fedha-step-num">2</span>
+                <p class="fedha-step-text">Admin creates a group (society, stokvel, union, etc.).</p>
+            </li>
+            <li class="fedha-step">
+                <span class="fedha-step-num">3</span>
+                <p class="fedha-step-text">The group admin invites members to join.</p>
+            </li>
+            <li class="fedha-step">
+                <span class="fedha-step-num">4</span>
+                <p class="fedha-step-text">Members activate their profiles and link to the group.</p>
+            </li>
+            <li class="fedha-step">
+                <span class="fedha-step-num">5</span>
+                <p class="fedha-step-text">Lenders can subscribe to and finance groups directly.</p>
+            </li>
+        </ol>
+    </div>
+</section>
+
+<!-- ============================== CTA ============================ -->
+<section class="fedha-section fedha-section--dark">
+    <div class="container px-lg-5">
+        <div class="fedha-cta">
+            <div>
+                <h2 class="fedha-section-title fedha-section-title--invert">Ready to Get Started?</h2>
+                <p class="fedha-cta-lead">Create your borrower group today or explore partnerships as a lender.</p>
+            </div>
+            <div class="fedha-hero-actions">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'groups:group_admin_dashboard' %}" class="btn btn-fedha-primary btn-fedha-lg">Go to dashboard</a>
+                {% else %}
+                    <a href="{% url 'groups:register_group_admin' %}" class="btn btn-fedha-primary btn-fedha-lg">Get Started</a>
+                {% endif %}
+                <a href="{% url 'lender_compliance' %}" class="btn btn-fedha-ghost-invert btn-fedha-lg">For Lenders</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+/* ==========================================================================
+   Groups landing only. Tokens come from fedha-brand.css. All selectors
+   namespaced .fedha-* so nothing leaks into the group admin dashboard.
+   ========================================================================== */
+.fedha-section { padding: 5.5rem 0; background-color: var(--fg-cream); }
+.fedha-section--panel { background-color: var(--fg-cream-panel); border-top: 1px solid var(--fg-border); border-bottom: 1px solid var(--fg-border); }
+.fedha-section--dark { background-color: var(--fg-ink); }
+
+.fedha-section-head { margin-bottom: 2.75rem; max-width: 46rem; }
+.fedha-section-title {
+  font-family: var(--fg-font-display);
+  font-weight: 700; font-size: 2.5rem; line-height: 1.08;
+  letter-spacing: -0.02em; color: var(--fg-ink); margin: 0;
+}
+.fedha-section-title--invert { color: var(--fg-cream); }
+.fedha-eyebrow {
+  font-size: .8125rem; font-weight: 600; letter-spacing: .16em;
+  text-transform: uppercase; color: rgba(34, 30, 26, .5); margin: 0 0 .875rem;
+}
+.fedha-eyebrow--leaf { color: var(--fg-leaf); }
+
+/* ---------- Hero ---------- */
+.fedha-hero--groups { background-color: var(--fg-cream); padding: 5rem 0 4.5rem; }
+.fedha-hero-title {
+  font-family: var(--fg-font-display);
+  font-weight: 700; font-size: 3.5rem; line-height: 1.04;
+  letter-spacing: -0.03em; color: var(--fg-ink); margin: 0 0 1rem;
+}
+.fedha-hero-lead {
+  font-family: var(--fg-font-display);
+  font-weight: 600; font-size: 1.375rem; color: var(--fg-forest);
+  margin: 0 0 .75rem;
+}
+.fedha-hero-body {
+  font-size: 1.0625rem; line-height: 1.65; max-width: 34rem;
+  color: rgba(34, 30, 26, .72); margin: 0 0 2rem; text-wrap: pretty;
+}
+.fedha-hero-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+
+/* ---------- Buttons ---------- */
+.btn-fedha-lg {
+  font-family: var(--fg-font-display); font-weight: 600;
+  font-size: 1.0625rem; letter-spacing: 0; text-transform: none;
+  padding: .9375rem 2rem; border-radius: var(--fg-radius);
+  border: 1px solid transparent; box-shadow: none;
+}
+.btn-fedha-primary { background-color: var(--fg-ochre); border-color: var(--fg-ochre); color: var(--fg-ink); }
+.btn-fedha-primary:hover,
+.btn-fedha-primary:focus { background-color: #C68A2C; border-color: #C68A2C; color: var(--fg-ink); }
+/* Outline on cream */
+.btn-fedha-ghost { background-color: transparent; border-color: rgba(20, 64, 45, .28); color: var(--fg-forest); }
+.btn-fedha-ghost:hover,
+.btn-fedha-ghost:focus { background-color: rgba(20, 64, 45, .07); border-color: var(--fg-forest); color: var(--fg-forest); }
+/* Outline on ink */
+.btn-fedha-ghost-invert { background-color: transparent; border-color: rgba(246, 241, 231, .45); color: var(--fg-cream); }
+.btn-fedha-ghost-invert:hover,
+.btn-fedha-ghost-invert:focus { background-color: rgba(246, 241, 231, .12); border-color: rgba(246, 241, 231, .75); color: var(--fg-cream); }
+
+/* ---------- Trust strip ---------- */
+.fedha-trust { background-color: var(--fg-ink); padding: 1.625rem 0; }
+.fedha-trust .container { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 2.5rem; }
+.fedha-trust-label {
+  font-size: .75rem; font-weight: 600; letter-spacing: .14em;
+  text-transform: uppercase; color: rgba(246, 241, 231, .5);
+}
+.fedha-trust-list { display: flex; flex-wrap: wrap; gap: .75rem 2.25rem; list-style: none; margin: 0; padding: 0; }
+.fedha-trust-list li { font-size: .9375rem; color: rgba(246, 241, 231, .85); }
+
+/* ---------- Why-groups cards ---------- */
+.fedha-group-card { height: 100%; }
+.fedha-group-media {
+  border-radius: 4px; overflow: hidden; margin-bottom: 1.25rem;
+  background-color: var(--fg-cream-panel); aspect-ratio: 4 / 3;
+}
+.fedha-group-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fedha-feature-icon { font-size: 1.375rem; color: var(--fg-leaf); display: block; margin-bottom: .625rem; }
+.fedha-feature-title {
+  font-family: var(--fg-font-display);
+  font-weight: 600; font-size: 1.1875rem; letter-spacing: -0.01em;
+  color: var(--fg-ink); margin: 0 0 .5rem;
+}
+.fedha-feature-text { font-size: .9375rem; line-height: 1.6; color: rgba(34, 30, 26, .72); text-wrap: pretty; }
+
+/* ---------- Steps ---------- */
+.fedha-steps {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1.75rem 2rem; counter-reset: none;
+}
+.fedha-step { display: flex; gap: 1rem; align-items: flex-start; }
+.fedha-step-num {
+  flex: 0 0 auto; width: 2rem; height: 2rem; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background-color: var(--fg-forest); color: var(--fg-cream);
+  font-family: var(--fg-font-display); font-weight: 700; font-size: .9375rem;
+}
+.fedha-step-text { margin: 0; font-size: 1rem; line-height: 1.55; color: var(--fg-ink); text-wrap: pretty; }
+
+/* ---------- CTA ---------- */
+.fedha-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 2rem; }
+.fedha-cta-lead { margin: 1rem 0 0; font-size: 1.0625rem; color: rgba(246, 241, 231, .72); max-width: 32rem; }
+
+@media (max-width: 767.98px) {
+  .fedha-hero-title { font-size: 2.5rem; }
+  .fedha-section-title { font-size: 2rem; }
+  .fedha-section { padding: 3.75rem 0; }
+}
+</style>
+
+{% endblock %}
+
+
+
+
+<!--<section class="bg-light py-5">
   <div class="card shadow bg-light border-0 h-100">
     <h1 class="text-center text-success mb-4">Borrower Groups</h1>
     <p class="text-center lead">
@@ -62,6 +309,6 @@
   {% endif %}
 
   <a href="#" class="btn btn-outline-success btn-lg mx-2">For Lenders</a> 
-</section>
+</section>-->
 
-{% endblock %}
+
