@@ -3,498 +3,500 @@
 
 {% block content %}
 
-
-
-        <!-- Header-->
-        <header class="bg-success text-white text-center py-5">
-            <div class="container">
-                <h1 class="fw-light fw-bold">Welcome to Fedha-Grow</h1>
-                <p class="lead">Connecting Borrowers and Lenders Seamlessly.</p>
-                <div class="d-flex justify-content-center">
-                    {% if user.role == 'borrower' %}
-                   
-                        {% if user.is_authenticated %} 
-                        <button alt="Go to Dashboard" onclick="window.location.href='{% url 'borrowers:borrower_index' %}?'"> 
-                              <i>g</i>
-                              <i>o</i>
-                              <i>&nbsp;</i>
-                              <i>t</i>
-                              <i>o</i>
-                              <i>&nbsp;</i>
-                              <i>D</i>
-                              <i>a</i>
-                              <i>s</i>
-                              <i>h</i>
-                              <i>b</i>
-                              <i>o</i>
-                              <i>a</i>
-                              <i>r</i>
-                              <i>d</i>
-                            </button>
-                            {% else %}
-                                <button alt="Get Started" onclick="window.location.href='{% url 'register' %}?'"> 
-                                  <i>g</i>
-                                  <i>e</i>                                
-                                  <i>t</i>
-                                  <i>&nbsp;</i>
-                                  <i>s</i>                                
-                                  <i>t</i>
-                                  <i>a</i>
-                                  <i>r</i>
-                                  <i>t</i>
-                                  <i>e</i>
-                                  <i>d</i>
-                                </button>
-                            {% endif %}
-                    &nbsp;
-                        {% else %}
-                            {% if user.is_authenticated %}
-                            <button alt="Go to Dashboard" onclick="window.location.href='{% url 'lenders:lender_index' %}?'"> 
-                              <i>g</i>
-                              <i>o</i>
-                              <i>&nbsp;</i>
-                              <i>t</i>
-                              <i>o</i>
-                              <i>&nbsp;</i>
-                              <i>D</i>
-                              <i>a</i>
-                              <i>s</i>
-                              <i>h</i>
-                              <i>b</i>
-                              <i>o</i>
-                              <i>a</i>
-                              <i>r</i>
-                              <i>d</i>
-                            </button>
-                            {% else %}
-                                <button alt="Get Started" onclick="window.location.href='{% url 'register' %}?'"> 
-                                  <i>g</i>
-                                  <i>e</i>                                
-                                  <i>t</i>
-                                  <i>&nbsp;</i>
-                                  <i>s</i>                                
-                                  <i>t</i>
-                                  <i>a</i>
-                                  <i>r</i>
-                                  <i>t</i>
-                                  <i>e</i>
-                                  <i>d</i>
-                                </button>
-                            {% endif %}
-                    
-                    {% endif %}
-                    
-                </div>
-            </div>
-        </header>
-        <br><br>
-        
-
-        <!-- Page Content-->
-        <section id="features">
+<!-- ============================= HERO ============================= -->
+<header class="fedha-hero">
     <div class="container px-lg-5">
-        <!-- Page Features -->
-        <div class="row gx-lg-5">
-        
-            <!-- Fast Loan Approval -->
-            <div class="col-lg-6 col-xxl-4 mb-5">
-                <div class="card border-left-primary shadow bg-light border-0 h-100">
-                    <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
-                        <div class="feature bg-success text-white rounded-3 mb-4 mt-n4">
-                            <i class="bi bi-lightning-charge-fill"></i>
-                        </div>
-                        <h2 class="fs-4 fw-bold text-primary">Fast Loan Approval</h2>
-                        <p class="mb-0">Borrowers get matched and approved quickly through automated risk checks and real-time verification.</p>
+        <p class="fedha-eyebrow">Grow credit. Grow communities</p>
+        <h1 class="fedha-hero-title">Welcome to Fedha-Grow</h1>
+        <p class="fedha-hero-lead">Building the infrastructure for fair credit in Lesotho.</p>
+
+        <div class="fedha-hero-actions">
+            {% if user.is_authenticated %}
+                {% if user.role == 'borrower' %}
+                    {% url 'borrowers:borrower_index' as fedha_dashboard_url %}
+                {% else %}
+                    {% url 'lenders:lender_index' as fedha_dashboard_url %}
+                {% endif %}
+                <a class="btn btn-fedha-primary btn-fedha-lg" href="{{ fedha_dashboard_url }}">Go to dashboard</a>
+            {% else %}
+                <a class="btn btn-fedha-primary btn-fedha-lg" href="{% url 'register' %}">Get started</a>
+                <a class="btn btn-fedha-ghost btn-fedha-lg" href="{% url 'groups:groups_landing' %}">Register a group</a>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+<!-- ========================= TRUST STRIP ========================= -->
+<div class="fedha-trust">
+    <div class="container px-lg-5">
+        <span class="fedha-trust-label">Built for regulated lending</span>
+        <ul class="fedha-trust-list">
+            <li>CBL compliance engine</li>
+            <li>Full audit trails</li>
+            <li>Affordability assessment</li>
+            <li>Regulatory reporting</li>
+        </ul>
+    </div>
+</div>
+
+<!-- =========================== FEATURES ========================== -->
+<section id="features" class="fedha-section">
+    <div class="container px-lg-5">
+        <div class="fedha-section-head">
+            <p class="fedha-eyebrow fedha-eyebrow--leaf">What the platform does</p>
+            <h2 class="fedha-section-title">Built around how lending actually works.</h2>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card fedha-feature h-100">
+                    <div class="card-body">
+                        <i class="bi bi-lightning-charge-fill fedha-feature-icon" aria-hidden="true"></i>
+                        <h3 class="fedha-feature-title">Fast Loan Approval</h3>
+                        <p class="fedha-feature-text mb-0">Borrowers get matched and approved quickly through automated risk checks and real-time verification.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Competitive Interest Rates -->
-            <div class="col-lg-6 col-xxl-4 mb-5">
-                <div class="card border-left-primary shadow bg-light border-0 h-100">
-                    <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
-                        <div class="feature bg-success text-white rounded-3 mb-4 mt-n4">
-                            <i class="bi bi-percent"></i>
-                        </div>
-                        <h2 class="fs-4 fw-bold text-primary">Competitive Interest Rates</h2>
-                        <p class="mb-0">Lenders set rates, while the platform recommends fair terms based on borrower affordability and risk scores.</p>
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card fedha-feature h-100">
+                    <div class="card-body">
+                        <i class="bi bi-percent fedha-feature-icon" aria-hidden="true"></i>
+                        <h3 class="fedha-feature-title">Competitive Interest Rates</h3>
+                        <p class="fedha-feature-text mb-0">Lenders set rates, while the platform recommends fair terms based on borrower affordability and risk scores.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Secure Transactions -->
-            <div class="col-lg-6 col-xxl-4 mb-5">
-                <div class="card border-left-primary shadow bg-light border-0 h-100">
-                    <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
-                        <div class="feature bg-success text-white rounded-3 mb-4 mt-n4">
-                            <i class="bi bi-shield-lock-fill"></i>
-                        </div>
-                        <h2 class="fs-4 fw-bold text-primary">Secure Transactions</h2>
-                        <p class="mb-0">Bank-grade encryption, role-based access control, and audit trails ensure safety of data and repayments processes.</p>
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card fedha-feature h-100">
+                    <div class="card-body">
+                        <i class="bi bi-shield-lock-fill fedha-feature-icon" aria-hidden="true"></i>
+                        <h3 class="fedha-feature-title">Secure Transactions</h3>
+                        <p class="fedha-feature-text mb-0">Bank-grade encryption, role-based access control, and audit trails ensure safety of data and repayments processes.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Business Model Optimization -->
-            <div class="col-lg-6 col-xxl-4 mb-5">
-                <div class="card border-left-primary shadow bg-light border-0 h-100">
-                    <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
-                        <div class="feature bg-success text-white rounded-3 mb-4 mt-n4">
-                            <i class="bi bi-diagram-3-fill"></i>
-                        </div>
-                        <h2 class="fs-4 fw-bold text-primary">Lender-Borrower Fit</h2>
-                        <p class="mb-0">We assess borrower profiles and lender policies to ensure perfect alignment in loan terms, capacity, and expectations.</p>
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card fedha-feature h-100">
+                    <div class="card-body">
+                        <i class="bi bi-diagram-3-fill fedha-feature-icon" aria-hidden="true"></i>
+                        <h3 class="fedha-feature-title">Lender-Borrower Fit</h3>
+                        <p class="fedha-feature-text mb-0">We assess borrower profiles and lender policies to ensure perfect alignment in loan terms, capacity, and expectations.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- High Risk Analysis -->
-            <div class="col-lg-6 col-xxl-4 mb-5">
-                <div class="card border-left-primary shadow bg-light border-0 h-100">
-                    <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
-                        <div class="feature bg-success text-white rounded-3 mb-4 mt-n4">
-                            <i class="bi bi-exclamation-triangle-fill"></i>
-                        </div>
-                        <h2 class="fs-4 fw-bold text-primary">Risk Profiling & Alerts</h2>
-                        <p class="mb-0">Our calculations flag risky applications by evaluating affordability, missed payments, and financial behavior trends.</p>
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card fedha-feature h-100">
+                    <div class="card-body">
+                        <i class="bi bi-exclamation-triangle-fill fedha-feature-icon" aria-hidden="true"></i>
+                        <h3 class="fedha-feature-title">Risk Profiling &amp; Alerts</h3>
+                        <p class="fedha-feature-text mb-0">Our calculations flag risky applications by evaluating affordability, missed payments, and financial behavior trends.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Seamless Data Capture -->
-            <div class="col-lg-6 col-xxl-4 mb-5">
-                <div class="card border-left-primary shadow bg-light border-0 h-100">
-                    <div class="card-body text-center p-4 p-lg-5 pt-0 pt-lg-0">
-                        <div class="feature bg-success text-white rounded-3 mb-4 mt-n4">
-                            <i class="bi bi-journal-check"></i>
-                        </div>
-                        <h2 class="fs-4 fw-bold text-primary">Smart Data Collection</h2>
-                        <p class="mb-0">Data forms adapt to borrower type, ensuring only relevant information is captured accurately and securely.</p>
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card fedha-feature h-100">
+                    <div class="card-body">
+                        <i class="bi bi-journal-check fedha-feature-icon" aria-hidden="true"></i>
+                        <h3 class="fedha-feature-title">Smart Data Collection</h3>
+                        <p class="fedha-feature-text mb-0">Data forms adapt to borrower type, ensuring only relevant information is captured accurately and securely.</p>
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 </section>
 
+<!-- ========================= HOW IT WORKS ======================== -->
+<section id="how-it-works" class="fedha-section fedha-section--panel">
+    <div class="container px-lg-5">
+        <div class="fedha-section-head">
+            <p class="fedha-eyebrow fedha-eyebrow--leaf">How It Works</p>
+            <h2 class="fedha-section-title">Two journeys, one platform.</h2>
+        </div>
 
-       
+        <h4 class="fedha-journey-title">Borrower Journey</h4>
+        <ol class="fedha-steps">
+            <li class="fedha-step"><span class="fedha-step-num">1</span><i class="bi bi-person-plus-fill fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Register</span></li>
+            <li class="fedha-step"><span class="fedha-step-num">2</span><i class="bi bi-person-lines-fill fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Profile Setup</span></li>
+            <li class="fedha-step"><span class="fedha-step-num">3</span><i class="bi bi-hand-index-thumb fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Select Lender</span></li>
+            <li class="fedha-step"><span class="fedha-step-num">4</span><i class="bi bi-person-check-fill fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Verification</span></li>
+            <li class="fedha-step"><span class="fedha-step-num">5</span><i class="bi bi-cloud-upload-fill fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Upload Docs</span></li>
+            <li class="fedha-step"><span class="fedha-step-num">6</span><i class="bi bi-check-circle-fill fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Apply</span></li>
+            <li class="fedha-step fedha-step--end"><span class="fedha-step-num">7</span><i class="bi bi-wallet-fill fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Receive Funds</span></li>
+        </ol>
 
-        <section id="how-it-works" class="py-5">
-          <div class="container">
-            <div class="card shadow">
-              <div class="card-header bg-success text-white text-center">
-                <h2>How It Works</h2>
-              </div>
-              <div class="card-body">
+        <h4 class="fedha-journey-title">Lender Journey</h4>
+        <ol class="fedha-steps">
+            <li class="fedha-step"><span class="fedha-step-num">1</span><i class="bi bi-person-plus-fill fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Create Account</span></li>
+            <li class="fedha-step"><span class="fedha-step-num">2</span><i class="bi bi-cloud-upload-fill fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Business Docs</span></li>
+            <li class="fedha-step"><span class="fedha-step-num">3</span><i class="bi bi-gear-fill fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Set Terms</span></li>
+            <li class="fedha-step"><span class="fedha-step-num">4</span><i class="bi bi-folder-symlink-fill fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Review Applications</span></li>
+            <li class="fedha-step"><span class="fedha-step-num">5</span><i class="bi bi-person-check-fill fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Approve/Reject</span></li>
+            <li class="fedha-step fedha-step--end"><span class="fedha-step-num">6</span><i class="bi bi-cash-stack fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Earn ROI</span></li>
+        </ol>
+    </div>
+</section>
 
-                <!-- Borrower Flow -->
-                <h4 class="text-success text-center">Borrower Journey</h4>
-                <div class="d-flex flex-wrap justify-content-center align-items-center mb-4">
-                  <div class="text-center mx-3">
-                    <i class="bi bi-person-plus-fill fs-2 text-success"></i><br>Register
-                  </div>
-                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
-                  <div class="text-center mx-3">
-                    <i class="bi bi-person-lines-fill fs-2 text-success"></i><br>Profile Setup
-                  </div>
-                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
-                  <div class="text-center mx-3">
-                    <i class="bi bi-hand-index-thumb fs-2 text-success"></i><br>Select Lender
-                  </div>
-                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
-                  <div class="text-center mx-3">
-                    <i class="bi bi-person-check-fill fs-2 text-success"></i><br>Verification
-                  </div>
-                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
-                  <div class="text-center mx-3">
-                    <i class="bi bi-cloud-upload-fill fs-2 text-success"></i><br>Upload Docs
-                  </div>
-                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
-                  <div class="text-center mx-3">
-                    <i class="bi bi-check-circle-fill fs-2 text-success"></i><br>Apply
-                  </div>
-                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
-                  <div class="text-center mx-3">
-                    <i class="bi bi-wallet-fill fs-2 text-success"></i><br>Receive Funds
-                  </div>
-                </div>
+<!-- ====================== LENDER COMPLIANCE ====================== -->
+<section id="lender-compliance" class="fedha-section">
+    <div class="container px-lg-5">
+        <div class="fedha-section-head">
+            <p class="fedha-eyebrow fedha-eyebrow--leaf">Lender Compliance Assistance</p>
+            <h2 class="fedha-section-title">The Lender Compliance Hub.</h2>
+        </div>
 
-                <!-- Lender Flow -->
-                <h4 class="text-success text-center">Lender Journey</h4>
-                <div class="d-flex flex-wrap justify-content-center align-items-center">
-                  <div class="text-center mx-3">
-                    <i class="bi bi-person-plus-fill fs-2 text-success"></i><br>Create Account
-                  </div>
-                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
-                  <div class="text-center mx-3">
-                    <i class="bi bi-cloud-upload-fill fs-2 text-success"></i><br>Business Docs
-                  </div>
-                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
-                  <div class="text-center mx-3">
-                    <i class="bi bi-gear-fill fs-2 text-success"></i><br>Set Terms
-                  </div>
-                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
-                  <div class="text-center mx-3">
-                    <i class="bi bi-folder-symlink-fill fs-2 text-success"></i><br>Review Applications
-                  </div>
-                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
-                  <div class="text-center mx-3">
-                    <i class="bi bi-person-check-fill fs-2 text-success"></i><br>Approve/Reject
-                  </div>
-                  <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
-                  <div class="text-center mx-3">
-                    <i class="bi bi-cash-stack fs-2 text-success"></i><br>Earn ROI
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section id="lender-compliance" class="py-5">
-            <div class="container">
-                <div class="card shadow">
-                <div class="card-header bg-success text-white text-center">
-                    <h2>Lender Compliance Assistance</h2>
-                </div>
-
-                <div class="card-body">
-
-                    <!-- Problem Statement -->
-                    <h4 class="text-success text-center mb-3">The Challenge</h4>
-                    <p class="text-center">
-                    Many aspiring lenders struggle to enter the lending industry due to
-                    misunderstanding requirements, costly consultants,
-                    approval timelines, and fear of regulatory penalties.
-                    </p>
-
-                    <!-- Solution -->
-                    <h4 class="text-success text-center mt-4 mb-3">Our Solution</h4>
-                    <p class="text-center fw-semibold">
-                    <span class="text-success">The “Lender Compliance Hub”</span> — a guided, automated system that helps lenders become compliant and operational with confidence.
-                    </p>
-
-                    <!-- Feature Icons -->
-                    <div class="d-flex flex-wrap justify-content-center align-items-center mb-4">
-                    <div class="text-center mx-3">
-                        <i class="bi bi-card-checklist fs-2 text-success"></i><br>Eligibility Check
-                    </div>
-                    <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
-                    <div class="text-center mx-3">
-                        <i class="bi bi-file-earmark-text-fill fs-2 text-success"></i><br>Auto Docs
-                    </div>
-                    <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
-                    <div class="text-center mx-3">
-                        <i class="bi bi-clock-history fs-2 text-success"></i><br>CBL Tracking
-                    </div>
-                    <i class="bi bi-arrow-right fs-4 text-dark mx-2"></i>
-                    <div class="text-center mx-3">
-                        <i class="bi bi-shield-check fs-2 text-success"></i><br>Compliance Tools
-                    </div>
-                    </div>
-
-                    <!-- Tier Breakdown -->
-                    <h5 class="text-success mt-4 mb-3">Lender Categories We Support</h5>
-
-                    <ul class="list-group mb-3">
-                    <li class="list-group-item">
-                        <strong>Tier 1: Deposit-Taking MFIs</strong><br>
-                        • Full compliance suite  •	Committee management  •	Real-time liquidity monitoring  •	White-label platform customization.
-                        
-                    </li>
-
-                    <li class="list-group-item">
-                        <strong>Tier 2: Credit-only MFIs  (over M2M capital)</strong><br>
-                        • Quarterly prudential reporting •	Internal audit support • Board management & governance tools.
-                    </li>
-
-                    <li class="list-group-item">
-                        <strong>Tier 3: Small credit-only MFIs  (under M2M capital)</strong><br>
-                        • Annual CBL reporting preparation • Basic reporting & analytics • Tier 3 compliance automation.
-                    </li>
-
-                    <li class="list-group-item">
-                        <strong>Platform Tier: Group Lending (Stokvels, Associations, Unions)</strong><br>
-                        • Peer-to-peer lending under Fedha-Grow umbrella.
-                    </li>
-                    </ul>
-
-                    <!-- CTA -->
-                    <div class="text-center mt-4">
-                    <a href="{% url 'lender_compliance' %}" class="btn btn-primary px-4 py-4">
-                        EXPLORE MORE ON COMPLIANCE 
-                    </a>
-                    </div>
-
-                </div>
+        <div class="row">
+            <div class="col-lg-6 mb-4">
+                <div class="fedha-panel fedha-panel--muted h-100">
+                    <h4 class="fedha-panel-title">The Challenge</h4>
+                    <p class="mb-0">Many aspiring lenders struggle to enter the lending industry due to misunderstanding requirements, costly consultants, approval timelines, and fear of regulatory penalties.</p>
                 </div>
             </div>
-        </section>
-
-
-        <br>
-
-        <section id="testimonials" class="bg-success py-5">
-            <div class="container">
-                <h2 class="text-center mb-4 text-white">What Our Users Say</h2>
-                <div class="row">
-                    <div class="col-md-4">
-                        <blockquote class="blockquote">
-                            <p class="mb-0 text-white">"This platform made it easy for me to get the funds I needed for my small business."</p>
-                            <br>
-                            <footer class="blockquote-footer text-white">Thabo, Borrower</footer>
-                        </blockquote>
-                    </div>
-                    <div class="col-md-4">
-                        <blockquote class="blockquote">
-                            <p class="mb-0 text-white">"Investing with this platform has been a profitable and secure experience."</p>
-                            <br>
-                            <footer class="blockquote-footer text-white">Sello, Lender</footer>
-                        </blockquote>
-                    </div>
-                    <div class="col-md-4 text-white">
-                        <blockquote class="blockquote">
-                            <p class="mb-0 text-white">"I appreciate how transparent and user-friendly this app is."</p>
-                            <br>
-                            <footer class="blockquote-footer text-white">Komane, Borrower</footer>
-                        </blockquote>
-                    </div>
+            <div class="col-lg-6 mb-4">
+                <div class="fedha-panel fedha-panel--dark h-100">
+                    <h4 class="fedha-panel-title fedha-panel-title--light">Our Solution</h4>
+                    <p class="mb-0"><span class="fedha-highlight">The &ldquo;Lender Compliance Hub&rdquo;</span> &mdash; a guided, automated system that helps lenders become compliant and operational with confidence.</p>
                 </div>
             </div>
-        </section>
+        </div>
+
+        <ol class="fedha-steps fedha-steps--compact">
+            <li class="fedha-step"><span class="fedha-step-num">1</span><i class="bi bi-card-checklist fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Eligibility Check</span></li>
+            <li class="fedha-step"><span class="fedha-step-num">2</span><i class="bi bi-file-earmark-text-fill fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Auto Docs</span></li>
+            <li class="fedha-step"><span class="fedha-step-num">3</span><i class="bi bi-clock-history fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">CBL Tracking</span></li>
+            <li class="fedha-step fedha-step--end"><span class="fedha-step-num">4</span><i class="bi bi-shield-check fedha-step-icon" aria-hidden="true"></i><span class="fedha-step-label">Compliance Tools</span></li>
+        </ol>
+
+        <h5 class="fedha-subhead">Lender Categories We Support</h5>
+
+        <div class="fedha-tiers">
+            <div class="fedha-tier">
+                <span class="fedha-tier-badge">Tier 1</span>
+                <div class="fedha-tier-body">
+                    <strong class="fedha-tier-name">Deposit-Taking MFIs</strong>
+                    <p class="mb-0">Full compliance suite &middot; Committee management &middot; Real-time liquidity monitoring &middot; White-label platform customization.</p>
+                </div>
+            </div>
+            <div class="fedha-tier">
+                <span class="fedha-tier-badge">Tier 2</span>
+                <div class="fedha-tier-body">
+                    <strong class="fedha-tier-name">Credit-only MFIs (over M2M capital)</strong>
+                    <p class="mb-0">Quarterly prudential reporting &middot; Internal audit support &middot; Board management &amp; governance tools.</p>
+                </div>
+            </div>
+            <div class="fedha-tier">
+                <span class="fedha-tier-badge">Tier 3</span>
+                <div class="fedha-tier-body">
+                    <strong class="fedha-tier-name">Small credit-only MFIs (under M2M capital)</strong>
+                    <p class="mb-0">Annual CBL reporting preparation &middot; Basic reporting &amp; analytics &middot; Tier 3 compliance automation.</p>
+                </div>
+            </div>
+            <div class="fedha-tier fedha-tier--platform">
+                <span class="fedha-tier-badge fedha-tier-badge--platform">Platform</span>
+                <div class="fedha-tier-body">
+                    <strong class="fedha-tier-name">Group Lending (Stokvels, Associations, Unions)</strong>
+                    <p class="mb-0">Peer-to-peer lending under Fedha-Grow umbrella.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="fedha-cta-row">
+            <a href="{% url 'lender_compliance' %}" class="btn btn-fedha-primary btn-fedha-lg">Explore more on compliance</a>
+        </div>
+    </div>
+</section>
+
+<!-- ========================= TESTIMONIALS ========================
+     TODO: replace these with real, attributable quotes or with hard metrics
+     (lenders onboarded, groups registered, loans disbursed, submissions filed).
+     Placeholder-looking testimonials cost more trust than they earn with
+     regulators and funders.
+     ============================================================== -->
+<section id="testimonials" class="fedha-section fedha-section--dark">
+    <div class="container px-lg-5">
+        <div class="fedha-section-head">
+            <p class="fedha-eyebrow fedha-eyebrow--ochre">What Our Users Say</p>
+        </div>
+        <div class="row">
+            <div class="col-md-4 mb-4 mb-md-0">
+                <blockquote class="fedha-quote">
+                    <p class="fedha-quote-text">&ldquo;This platform made it easy for me to get the funds I needed for my small business.&rdquo;</p>
+                    <footer class="fedha-quote-cite">Thabo, Borrower</footer>
+                </blockquote>
+            </div>
+            <div class="col-md-4 mb-4 mb-md-0">
+                <blockquote class="fedha-quote">
+                    <p class="fedha-quote-text">&ldquo;Investing with this platform has been a profitable and secure experience.&rdquo;</p>
+                    <footer class="fedha-quote-cite">Sello, Lender</footer>
+                </blockquote>
+            </div>
+            <div class="col-md-4">
+                <blockquote class="fedha-quote">
+                    <p class="fedha-quote-text">&ldquo;I appreciate how transparent and user-friendly this app is.&rdquo;</p>
+                    <footer class="fedha-quote-cite">Komane, Borrower</footer>
+                </blockquote>
+            </div>
+        </div>
+    </div>
+</section>
 
 <style>
-        /* From Uiverse.io by barisdogansutcu */ 
-        button {
-         display: flex;
-         align-items: center;
-         justify-content: center;
-         height: 50px;
-         position: relative;
-         padding: 0 20px;
-         font-size: 18px;
-         text-transform: uppercase;
-         border: 0;
-         box-shadow: hsl(210deg 87% 36%) 0px 7px 0px 0px;
-         background-color: hsl(210deg 100% 44%);
-         border-radius: 12px;
-         overflow: hidden;
-         transition: 31ms cubic-bezier(.5, .7, .4, 1);
-        }
+/* ==========================================================================
+   Landing page only. Palette tokens come from fedha-brand.css.
+   Every selector is namespaced .fedha-* so nothing leaks into the dashboard
+   (the previous bare `button { }` rule styled every button on the page,
+   including the navbar toggler).
+   ========================================================================== */
 
-        button:before {
-         content: attr(alt);
-         display: flex;
-         align-items: center;
-         justify-content: center;
-         position: absolute;
-         inset: 0;
-         font-size: 15px;
-         font-weight: bold;
-         color: white;
-         letter-spacing: 4px;
-         opacity: 1;
-        }
+/* ---------- Shared section furniture ---------- */
+.fedha-section { padding: 5.5rem 0; background-color: var(--fg-cream); }
+.fedha-section--panel { background-color: var(--fg-cream-panel); border-top: 1px solid var(--fg-border); border-bottom: 1px solid var(--fg-border); }
+.fedha-section--dark { background-color: var(--fg-ink); }
 
-        button:active {
-         box-shadow: none;
-         transform: translateY(7px);
-         transition: 35ms cubic-bezier(.5, .7, .4, 1);
-        }
+.fedha-section-head { margin-bottom: 2.75rem; max-width: 46rem; }
+.fedha-section-title {
+  font-family: var(--fg-font-display);
+  font-weight: 700;
+  font-size: 2.5rem;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--fg-ink);
+  margin: 0;
+}
+.fedha-eyebrow {
+  font-size: .8125rem;
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: rgba(34, 30, 26, .5);
+  margin: 0 0 .875rem;
+}
+.fedha-eyebrow--leaf  { color: var(--fg-leaf); }
+.fedha-eyebrow--ochre { color: var(--fg-ochre); }
+.fedha-subhead {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+  margin: 3rem 0 1.25rem;
+}
 
-        button:hover:before {
-         transition: all .0s;
-         transform: translateY(100%);
-         opacity: 0;
-        }
+/* ---------- Hero ---------- */
+.fedha-hero {
+  background-color: var(--fg-forest);
+  color: var(--fg-cream);
+  padding: 6rem 0 5.5rem;
+}
+.fedha-hero .fedha-eyebrow { color: var(--fg-ochre); }
+.fedha-hero-title {
+  font-family: var(--fg-font-display);
+  font-weight: 700;
+  font-size: 3.75rem;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  color: var(--fg-cream);
+  max-width: 58rem;
+  margin: 0;
+}
+.fedha-hero-lead {
+  font-size: 1.3125rem;
+  line-height: 1.55;
+  color: rgba(246, 241, 231, .78);
+  max-width: 44rem;
+  margin: 1.5rem 0 0;
+}
+.fedha-hero-actions { display: flex; flex-wrap: wrap; gap: .875rem; margin-top: 2.5rem; }
 
-        button i {
-         color: white;
-         font-size: 15px;
-         font-weight: bold;
-         letter-spacing: 4px;
-         font-style: normal;
-         transition: all 2s ease;
-         transform: translateY(-20px);
-         opacity: 0;
-        }
+/* ---------- Buttons (scoped, no bare `button` selector) ---------- */
+.btn-fedha-lg {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  letter-spacing: 0;      /* the old button had 4px tracking */
+  text-transform: none;   /* and was uppercased */
+  padding: .9375rem 2rem;
+  border-radius: var(--fg-radius);
+  border: 1px solid transparent;
+  box-shadow: none;
+}
+.btn-fedha-primary { background-color: var(--fg-ochre); border-color: var(--fg-ochre); color: var(--fg-ink); }
+.btn-fedha-primary:hover,
+.btn-fedha-primary:focus { background-color: #C68A2C; border-color: #C68A2C; color: var(--fg-ink); }
+.btn-fedha-ghost { background-color: transparent; border-color: rgba(246, 241, 231, .45); color: var(--fg-cream); }
+.btn-fedha-ghost:hover,
+.btn-fedha-ghost:focus { background-color: rgba(246, 241, 231, .12); border-color: rgba(246, 241, 231, .75); color: var(--fg-cream); }
+.fedha-cta-row { margin-top: 2.5rem; }
 
-        button:hover i {
-         transition: all .2s ease;
-         transform: translateY(0px);
-         opacity: 1;
-        }
+/* ---------- Trust strip ---------- */
+.fedha-trust { background-color: var(--fg-ink); padding: 1.625rem 0; }
+.fedha-trust .container { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 2.5rem; }
+.fedha-trust-label {
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: rgba(246, 241, 231, .5);
+}
+.fedha-trust-list { display: flex; flex-wrap: wrap; gap: .75rem 2.25rem; list-style: none; margin: 0; padding: 0; }
+.fedha-trust-list li { font-size: .9375rem; color: rgba(246, 241, 231, .85); }
 
-        button:hover i:nth-child(1) {
-         transition-delay: 0.045s;
-        }
+/* ---------- Feature cards ---------- */
+.fedha-feature {
+  background-color: var(--fg-cream-panel);
+  border: 1px solid var(--fg-border);
+  border-radius: var(--fg-radius);
+  box-shadow: none;   /* the template's `shadow` was doing the heavy lifting */
+}
+.fedha-feature .card-body { padding: 2.25rem 2rem; }
+.fedha-feature-icon { font-size: 1.75rem; color: var(--fg-leaf); display: block; margin-bottom: 1.25rem; }
+.fedha-feature-title {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 1.3125rem;
+  letter-spacing: -0.01em;
+  color: var(--fg-ink);   /* was blue on green — one accent only */
+  margin: 0 0 .75rem;
+}
+.fedha-feature-text { font-size: .9688rem; line-height: 1.6; color: rgba(34, 30, 26, .7); }
 
-        button:hover i:nth-child(2) {
-         transition-delay: calc(0.045s * 3);
-        }xcsf
+/* ---------- Journey steps ---------- */
+.fedha-journey-title {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--fg-leaf);
+  margin: 0 0 1.25rem;
+}
+.fedha-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: .625rem;
+  list-style: none;
+  margin: 0 0 3.25rem;
+  padding: 0;
+  counter-reset: none;
+}
+.fedha-steps--compact { margin-bottom: 0; }
+.fedha-step {
+  background-color: var(--fg-cream);
+  border: 1px solid var(--fg-border);
+  border-top: 3px solid var(--fg-leaf);
+  border-radius: var(--fg-radius-sm);
+  padding: 1.25rem 1.125rem 1.375rem;
+  display: flex;
+  flex-direction: column;
+  gap: .625rem;
+}
+.fedha-section--panel .fedha-step { background-color: var(--fg-cream); }
+.fedha-step--end { border-top-color: var(--fg-forest); background-color: rgba(20, 64, 45, .05); }
+.fedha-step-num {
+  font-family: var(--fg-font-display);
+  font-weight: 700;
+  font-size: .8125rem;
+  color: var(--fg-leaf);
+}
+.fedha-step--end .fedha-step-num { color: var(--fg-forest); }
+.fedha-step-icon { font-size: 1.375rem; color: var(--fg-ink); opacity: .8; }
+.fedha-step-label { font-size: .9375rem; font-weight: 500; line-height: 1.3; color: var(--fg-ink); }
 
-        button:hover i:nth-child(3) {
-         transition-delay: calc(0.045s * 4);
-        }
+/* ---------- Compliance panels ---------- */
+.fedha-panel { border-radius: var(--fg-radius); padding: 2.25rem 2rem; }
+.fedha-panel--muted { background-color: var(--fg-cream-panel); border: 1px solid var(--fg-border); color: rgba(34, 30, 26, .78); }
+.fedha-panel--dark { background-color: var(--fg-forest); color: rgba(246, 241, 231, .82); }
+.fedha-panel-title {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 1.25rem;
+  letter-spacing: -0.01em;
+  color: var(--fg-ink);
+  margin: 0 0 .875rem;
+}
+.fedha-panel-title--light { color: var(--fg-cream); }
+.fedha-highlight { color: var(--fg-ochre); font-weight: 600; }
 
-        button:hover i:nth-child(4) {
-         transition-delay: calc(0.045s * 5);
-        }
+/* ---------- Tier list ---------- */
+.fedha-tiers { display: flex; flex-direction: column; gap: .625rem; }
+.fedha-tier {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  gap: 1.5rem;
+  align-items: start;
+  background-color: var(--fg-cream-panel);
+  border: 1px solid var(--fg-border);
+  border-radius: var(--fg-radius);
+  padding: 1.5rem 1.75rem;
+}
+.fedha-tier--platform { background-color: rgba(214, 154, 60, .09); border-color: rgba(214, 154, 60, .3); }
+.fedha-tier-badge {
+  font-family: var(--fg-font-display);
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--fg-forest);
+  background-color: rgba(20, 64, 45, .09);
+  border-radius: var(--fg-radius-pill);
+  padding: .4rem .75rem;
+  text-align: center;
+  white-space: nowrap;
+}
+.fedha-tier-badge--platform { color: var(--fg-ochre-700); background-color: rgba(214, 154, 60, .2); }
+.fedha-tier-name {
+  display: block;
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  letter-spacing: -0.005em;
+  color: var(--fg-ink);
+  margin-bottom: .375rem;
+}
+.fedha-tier-body p { font-size: .9375rem; line-height: 1.6; color: rgba(34, 30, 26, .7); }
 
-        button:hover i:nth-child(6) {
-         transition-delay: calc(0.045s * 6);
-        }
+/* ---------- Testimonials ---------- */
+.fedha-quote { margin: 0; padding-left: 1.25rem; border-left: 2px solid var(--fg-ochre); }
+.fedha-quote-text { font-size: 1.125rem; line-height: 1.6; color: var(--fg-cream); margin: 0 0 1rem; }
+.fedha-quote-cite { font-size: .9375rem; color: rgba(246, 241, 231, .6); }
+.fedha-quote-cite::before { content: none; }
 
-        button:hover i:nth-child(7) {
-         transition-delay: calc(0.045s * 7);
-        }
+/* ---------- Scroll-to-top (kept; recoloured) ---------- */
+.scroll-to-top {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  z-index: 9999;
+  display: none;
+  width: 45px;
+  height: 45px;
+  text-align: center;
+  color: var(--fg-cream);
+  background: var(--fg-forest);
+  line-height: 45px;
+  border-radius: 50%;
+  transition: background-color .2s ease;
+}
+.scroll-to-top:hover { background: var(--fg-ink); color: var(--fg-cream); }
 
-        button:hover i:nth-child(8) {
-         transition-delay: calc(0.045s * 8);
-        }
-
-        button:hover i:nth-child(9) {
-         transition-delay: calc(0.045s * 9);
-        }
-
-        button:hover i:nth-child(10) {
-         transition-delay: calc(0.045s * 10);
-        }
-
-        .scroll-to-top {
-          position: fixed;
-          bottom: 30px;
-          right: 30px;
-          z-index: 9999;
-          display: none;
-          width: 45px;
-          height: 45px;
-          text-align: center;
-          color: #fff;
-          background: #198754; /* Bootstrap 'success' green */
-          line-height: 45px;
-          border-radius: 50%;
-          transition: opacity 0.3s ease-in-out;
-        }
-
-        .scroll-to-top:hover {
-          background: #145c32;
-          color: white;
-        }
-
-
-     .feature {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      height: 4rem;
-      width: 4rem;
-      font-size: 2rem;
-    }
- </style>
-         <!-- EndPage Content-->
+/* ---------- Responsive ---------- */
+@media (max-width: 991.98px) {
+  .fedha-hero { padding: 4rem 0 3.5rem; }
+  .fedha-hero-title { font-size: 2.75rem; }
+  .fedha-hero-lead { font-size: 1.125rem; }
+  .fedha-section { padding: 4rem 0; }
+  .fedha-section-title { font-size: 2rem; }
+}
+@media (max-width: 575.98px) {
+  .fedha-hero-title { font-size: 2.25rem; }
+  .fedha-hero-actions .btn { width: 100%; text-align: center; }
+  .fedha-tier { grid-template-columns: 1fr; gap: .875rem; }
+  .fedha-tier-badge { justify-self: start; }
+}
+</style>
 
 {% endblock %}

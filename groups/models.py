@@ -9,9 +9,6 @@ from django.conf import settings
 
 
 
-# From Claude
-
-
 class BorrowerGroup(models.Model):
     """
     Base model for all group types - respects existing structures

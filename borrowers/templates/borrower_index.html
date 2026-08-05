@@ -168,36 +168,6 @@
                   </div>
                 </div>
 
-            <!--<div class="row">
-                <div class="col-xl-6 col-md-6 mb-4">
-                    <div class="card border-left-primary shadow h-100 py-2">
-                        <div class="card-body">
-                            <h5 class="card-title text-primary fw-bold mb-3">
-                            <i class="bi bi-people-fill me-2"></i>My Group
-                            </h5>
-
-                            {% if current_group %}
-                            <p class="mb-1"><strong>{{ current_group.name }}</strong></p>
-                            <p class="text-muted small">Status: Member</p>
-                            <a href="{% url 'groups:group_detail' current_group.id %}" class="btn btn-outline-primary btn-sm">View Group</a>
-
-                            {% elif pending_requests %}
-                            <p class="text-warning mb-2">You have a pending join request.</p>
-                            {% for req in pending_requests %}
-                                <small class="text-muted d-block">{{ req.group.name }}</small>
-                            {% endfor %}
-
-                            {% else %}
-                            <p class="text-muted">You’re not part of any group yet.</p>
-                            <a href="{% url 'borrowers:borrower_groups_dashboard' %}" class="btn btn-success btn-sm">
-                                <i class="bi bi-plus-circle me-1"></i>Browse Groups
-                            </a>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-            </div>-->
-
             <div class="row">
                 <div class="col-xl-6">
                     <div class="card mb-4">

@@ -1,0 +1,699 @@
+/* ==========================================================================
+   Fedha-Grow brand overrides for SB Admin 2 / Bootstrap 4
+   --------------------------------------------------------------------------
+   Load AFTER the template's css/sb-admin-2.min.css (and after bootstrap).
+   Nothing else needs editing. Do NOT hand-edit the compiled template CSS.
+
+   IMPORTANT: Bootstrap 4 compiles its colours into class rules at build time,
+   so redefining the :root custom properties alone does NOT repaint .btn-primary,
+   .text-primary, .bg-primary etc. That's why this file does both:
+     PART 1 — the tokens (for your own new markup)
+     PART 2 — explicit overrides for the compiled classes already in the template
+   If you ever move to compiling Sass yourself, PART 2 becomes unnecessary:
+   just set $primary, $success, $font-family-sans-serif before importing Bootstrap.
+   ========================================================================== */
+
+/* ---------- Fonts ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap');
+
+
+/* ==========================================================================
+   PART 1 — BRAND TOKENS
+   ========================================================================== */
+:root {
+  /* --- Fedha-Grow palette --- */
+  --fg-forest:        #14402D;  /* deep trust anchor: nav, hero, headings   */
+  --fg-forest-800:    #1F6B45;  /* hover / secondary surfaces               */
+  --fg-leaf:          #2F8255;  /* primary green: links, active states      */
+  --fg-ochre:         #D69A3C;  /* accent: CTAs, highlights, focus          */
+  --fg-ochre-700:     #A8782B;  /* ochre text on light (AA-safe)            */
+  --fg-ink:           #221E1A;  /* body text, authority                     */
+  --fg-cream:         #F6F1E7;  /* page background                          */
+  --fg-cream-panel:   #FBF6EC;  /* cards, panels                            */
+
+  /* --- Semantic --- */
+  --fg-success:       #2F8255;
+  --fg-warning:       #D69A3C;
+  --fg-danger:        #A6402A;  /* warm red, sits in-palette                */
+  --fg-info:          #1F6B45;
+  --fg-muted:         rgba(34, 30, 26, .62);
+  --fg-border:        rgba(34, 30, 26, .12);
+
+  /* --- Remap Bootstrap's own tokens onto the brand --- */
+  --primary:   #14402D;
+  --secondary: #6E675E;
+  --success:   #2F8255;
+  --info:      #1F6B45;
+  --warning:   #D69A3C;
+  --danger:    #A6402A;
+  --light:     #FBF6EC;
+  --dark:      #221E1A;
+
+  --blue:   #14402D;   /* legacy names still referenced by the template */
+  --green:  #2F8255;
+  --yellow: #D69A3C;
+  --red:    #A6402A;
+  --gray:   #6E675E;
+  --gray-dark: #221E1A;
+
+  --font-family-sans-serif: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --fg-font-display: 'Schibsted Grotesk', var(--font-family-sans-serif);
+
+  /* --- Shape & depth: flatter and squarer than the template default --- */
+  --fg-radius:    6px;
+  --fg-radius-sm: 4px;
+  --fg-radius-pill: 100px;
+  --fg-shadow:    0 1px 2px rgba(34, 30, 26, .06);
+  --fg-shadow-lg: 0 12px 32px rgba(34, 30, 26, .10);
+}
+
+
+/* --------------------------------------------------------------------------
+   Bootstrap 5 token remap.
+   Harmless under BS4 (nothing reads these); does the heavy lifting under BS5,
+   where most components resolve their colours from --bs-* at runtime.
+   -------------------------------------------------------------------------- */
+:root {
+  --bs-primary:   #14402D;
+  --bs-secondary: #6E675E;
+  --bs-success:   #2F8255;
+  --bs-info:      #1F6B45;
+  --bs-warning:   #D69A3C;
+  --bs-danger:    #A6402A;
+  --bs-light:     #FBF6EC;
+  --bs-dark:      #221E1A;
+
+  --bs-primary-rgb:   20, 64, 45;
+  --bs-secondary-rgb: 110, 103, 94;
+  --bs-success-rgb:   47, 130, 85;
+  --bs-info-rgb:      31, 107, 69;
+  --bs-warning-rgb:   214, 154, 60;
+  --bs-danger-rgb:    166, 64, 42;
+  --bs-light-rgb:     251, 246, 236;
+  --bs-dark-rgb:      34, 30, 26;
+
+  --bs-body-bg:    #F6F1E7;
+  --bs-body-color: #221E1A;
+  --bs-body-color-rgb: 34, 30, 26;
+  --bs-body-font-family: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --bs-link-color:       #2F8255;
+  --bs-link-hover-color: #14402D;
+  --bs-border-color:     rgba(34, 30, 26, .12);
+  --bs-border-radius:    6px;
+  --bs-border-radius-sm: 4px;
+  --bs-border-radius-pill: 100px;
+
+  --bs-emphasis-color: #221E1A;
+  --bs-secondary-color: rgba(34, 30, 26, .62);
+  --bs-tertiary-bg: #FBF6EC;
+
+  /* BS5.3 dark mode: keep it in-palette rather than Bootstrap's blue-grey */
+  --bs-dark-bg-subtle: #221E1A;
+  --bs-focus-ring-color: rgba(214, 154, 60, .4);
+}
+
+
+/* ==========================================================================
+   PART 2 — OVERRIDES FOR THE TEMPLATE'S COMPILED CLASSES
+   Selectors are written to match BOTH Bootstrap 4 and Bootstrap 5 where the
+   class names diverge, so this file survives the BS5 migration untouched.
+   ========================================================================== */
+
+/* ---------- Base ---------- */
+body {
+  font-family: var(--font-family-sans-serif);
+  color: var(--fg-ink);
+  background-color: var(--fg-cream);
+  text-wrap: pretty;
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: var(--fg-font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--fg-ink);
+  text-wrap: balance;
+}
+
+a            { color: var(--fg-leaf); }
+a:hover,
+a:focus      { color: var(--fg-forest); }
+
+hr           { border-top-color: var(--fg-border); }
+
+::selection  { background: rgba(214, 154, 60, .28); }
+
+
+/* ---------- Focus ring (accessibility: keep it visible) ---------- */
+a:focus-visible,
+button:focus-visible,
+.btn:focus-visible,
+.form-control:focus-visible {
+  outline: 2px solid var(--fg-ochre);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+
+/* ---------- Buttons ---------- */
+.btn {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  letter-spacing: 0;            /* kills the template's wide tracking */
+  border-radius: var(--fg-radius);
+  padding: .625rem 1.375rem;
+  text-transform: none;         /* no ALL-CAPS buttons */
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+
+/* Primary action = ochre. One accent, used sparingly. */
+.btn-primary {
+  background-color: var(--fg-ochre);
+  border-color: var(--fg-ochre);
+  color: var(--fg-ink);
+}
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary:not(:disabled):not(.disabled):active {
+  background-color: #C68A2C;
+  border-color: #C68A2C;
+  color: var(--fg-ink);
+}
+
+/* Secondary action = outlined forest */
+.btn-outline-primary {
+  color: var(--fg-forest);
+  border-color: rgba(20, 64, 45, .35);
+  background-color: transparent;
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+  background-color: var(--fg-forest);
+  border-color: var(--fg-forest);
+  color: var(--fg-cream);
+}
+
+/* On dark surfaces (hero, footer) */
+.btn-on-dark {
+  background-color: var(--fg-ochre);
+  border-color: var(--fg-ochre);
+  color: var(--fg-ink);
+}
+.btn-outline-on-dark {
+  background-color: transparent;
+  border-color: rgba(246, 241, 231, .45);
+  color: var(--fg-cream);
+}
+.btn-outline-on-dark:hover {
+  background-color: rgba(246, 241, 231, .12);
+  border-color: rgba(246, 241, 231, .7);
+  color: var(--fg-cream);
+}
+
+.btn-success { background-color: var(--fg-leaf);    border-color: var(--fg-leaf);    color: #fff; }
+.btn-info    { background-color: var(--fg-forest-800); border-color: var(--fg-forest-800); color: #fff; }
+.btn-warning { background-color: var(--fg-ochre);   border-color: var(--fg-ochre);   color: var(--fg-ink); }
+.btn-danger  { background-color: var(--fg-danger);  border-color: var(--fg-danger);  color: #fff; }
+.btn-light   { background-color: var(--fg-cream-panel); border-color: var(--fg-border); color: var(--fg-ink); }
+.btn-dark    { background-color: var(--fg-ink);     border-color: var(--fg-ink);     color: var(--fg-cream); }
+.btn-link    { color: var(--fg-leaf); }
+
+
+/* ---------- Text & background utilities ---------- */
+.text-primary   { color: var(--fg-forest) !important; }
+.text-secondary { color: var(--fg-muted) !important; }
+.text-success   { color: var(--fg-leaf) !important; }
+.text-info      { color: var(--fg-forest-800) !important; }
+.text-warning   { color: var(--fg-ochre-700) !important; }
+.text-danger    { color: var(--fg-danger) !important; }
+.text-dark      { color: var(--fg-ink) !important; }
+.text-muted     { color: var(--fg-muted) !important; }
+.text-gray-300  { color: rgba(34, 30, 26, .28) !important; }
+.text-gray-400  { color: rgba(34, 30, 26, .4)  !important; }
+.text-gray-600  { color: rgba(34, 30, 26, .6)  !important; }
+.text-gray-800  { color: var(--fg-ink) !important; }
+.text-gray-900  { color: var(--fg-ink) !important; }
+
+.bg-primary   { background-color: var(--fg-forest) !important; }
+.bg-secondary { background-color: #6E675E !important; }
+.bg-success   { background-color: var(--fg-leaf) !important; }
+.bg-info      { background-color: var(--fg-forest-800) !important; }
+.bg-warning   { background-color: var(--fg-ochre) !important; }
+.bg-danger    { background-color: var(--fg-danger) !important; }
+.bg-light     { background-color: var(--fg-cream-panel) !important; }
+.bg-dark      { background-color: var(--fg-ink) !important; }
+.bg-white     { background-color: var(--fg-cream-panel) !important; }
+
+/* The template's gradient utilities — flatten them, no aggressive gradients */
+.bg-gradient-primary { background: var(--fg-forest) !important; }
+.bg-gradient-success { background: var(--fg-leaf) !important; }
+.bg-gradient-info    { background: var(--fg-forest-800) !important; }
+.bg-gradient-warning { background: var(--fg-ochre) !important; }
+.bg-gradient-danger  { background: var(--fg-danger) !important; }
+.bg-gradient-dark    { background: var(--fg-ink) !important; }
+.bg-gradient-light   { background: var(--fg-cream-panel) !important; }
+
+.border-primary { border-color: var(--fg-forest) !important; }
+.border-left-primary { border-left-color: var(--fg-forest) !important; }
+.border-left-success { border-left-color: var(--fg-leaf) !important; }
+.border-left-info    { border-left-color: var(--fg-forest-800) !important; }
+.border-left-warning { border-left-color: var(--fg-ochre) !important; }
+.border-left-danger  { border-left-color: var(--fg-danger) !important; }
+
+
+/* ---------- Navbar ---------- */
+.navbar {
+  background-color: var(--fg-cream-panel) !important;
+  border-bottom: 1px solid var(--fg-border);
+  box-shadow: none;
+  padding-top: .875rem;
+  padding-bottom: .875rem;
+}
+.navbar-brand,
+.navbar .navbar-brand {
+  font-family: var(--fg-font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--fg-ink) !important;
+  display: inline-flex;
+  align-items: center;
+  gap: .625rem;
+}
+.navbar .nav-link,
+.navbar-nav .nav-link {
+  color: rgba(34, 30, 26, .78) !important;
+  font-weight: 500;
+  font-size: .9375rem;
+}
+.navbar .nav-link:hover,
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-item.active .nav-link {
+  color: var(--fg-forest) !important;
+}
+
+
+/* ---------- Topbar (public landing nav) ----------
+   Pairs with the .fedha-topbar markup. Bootstrap 5 collapse classes.        */
+.fedha-topbar {
+  background-color: var(--fg-cream-panel);
+  border-bottom: 1px solid var(--fg-border);
+  box-shadow: none;
+  padding-top: .875rem;
+  padding-bottom: .875rem;
+}
+
+.fedha-topbar .navbar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .625rem;
+  font-family: var(--fg-font-display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: -0.015em;
+  color: var(--fg-ink) !important;
+}
+.fedha-topbar .navbar-brand:hover { color: var(--fg-forest) !important; }
+.fedha-topbar .fedha-mark { flex: none; display: block; }
+
+.fedha-topbar .nav-link {
+  color: rgba(34, 30, 26, .78) !important;
+  font-weight: 500;
+  font-size: .9375rem;
+  padding: .5rem .875rem;
+  border-radius: var(--fg-radius-sm);
+  transition: color .15s ease, background-color .15s ease;
+}
+.fedha-topbar .nav-link:hover,
+.fedha-topbar .nav-link:focus {
+  color: var(--fg-forest) !important;
+  background-color: rgba(20, 64, 45, .06);
+}
+/* Current section / page */
+.fedha-topbar .nav-item.active > .nav-link,
+.fedha-topbar .nav-link.active {
+  color: var(--fg-forest) !important;
+  font-weight: 600;
+}
+
+/* The one filled action in the bar */
+.btn-fedha-primary {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: .9375rem;
+  letter-spacing: 0;
+  background-color: var(--fg-ochre);
+  border: 1px solid var(--fg-ochre);
+  color: var(--fg-ink);
+  padding: .5625rem 1.25rem;
+  border-radius: var(--fg-radius);
+  white-space: nowrap;
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.btn-fedha-primary:hover,
+.btn-fedha-primary:focus {
+  background-color: #C68A2C;
+  border-color: #C68A2C;
+  color: var(--fg-ink);
+}
+
+/* Toggler: ink burger, no default blue-tinted border */
+.fedha-topbar .navbar-toggler {
+  border: 1px solid var(--fg-border);
+  border-radius: var(--fg-radius-sm);
+  padding: .4rem .55rem;
+}
+.fedha-topbar .navbar-toggler:focus {
+  box-shadow: none;
+  outline: 2px solid var(--fg-ochre);
+  outline-offset: 2px;
+}
+.fedha-topbar .navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3E%3Cpath stroke='rgba(34,30,26,0.85)' stroke-width='2' stroke-linecap='round' stroke-miterlimit='10' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E");
+}
+
+/* Collapsed / mobile: stack, full-width CTA, comfortable hit targets */
+@media (max-width: 991.98px) {
+  .fedha-topbar .navbar-collapse {
+    padding-top: 1rem;
+    margin-top: .875rem;
+    border-top: 1px solid var(--fg-border);
+  }
+  .fedha-topbar .nav-link {
+    padding: .75rem .25rem;   /* >= 44px tall touch target */
+  }
+  .fedha-topbar .fedha-nav-auth {
+    margin-top: .75rem;
+    padding-top: .75rem;
+    border-top: 1px solid var(--fg-border);
+  }
+  .fedha-topbar .btn-fedha-primary {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: .8125rem 1.25rem;
+    margin-top: .5rem;
+  }
+}
+
+/* ---------- Cards ---------- */
+.card {
+  background-color: var(--fg-cream-panel);
+  border: 1px solid var(--fg-border);
+  border-radius: var(--fg-radius);
+  box-shadow: var(--fg-shadow);
+}
+.card-header {
+  background-color: transparent;
+  border-bottom: 1px solid var(--fg-border);
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+}
+.card .card-title,
+.card h5, .card h4 { color: var(--fg-ink); }
+
+/* Retire the template's blue left-accent bar on feature cards */
+.card.border-left-primary,
+.card.border-left-info,
+.card.border-left-success,
+.card.border-left-warning {
+  border-left-width: 1px !important;
+  border-left-color: var(--fg-border) !important;
+}
+
+
+/* ---------- Forms (BS4 .custom-select | BS5 .form-select) ---------- */
+.form-control,
+.custom-select,
+.form-select {
+  background-color: var(--fg-cream-panel);
+  border: 1px solid var(--fg-border);
+  border-radius: var(--fg-radius-sm);
+  color: var(--fg-ink);
+}
+.form-control:focus,
+.custom-select:focus,
+.form-select:focus {
+  background-color: #fff;
+  border-color: var(--fg-leaf);
+  box-shadow: 0 0 0 3px rgba(47, 130, 85, .14);
+  color: var(--fg-ink);
+}
+.form-control::placeholder { color: rgba(34, 30, 26, .42); }
+label, .col-form-label, .form-label { font-weight: 500; color: var(--fg-ink); }
+
+.input-group-text {
+  background-color: rgba(34, 30, 26, .04);
+  border-color: var(--fg-border);
+  color: var(--fg-muted);
+}
+
+/* Checks, radios, switches — BS4 .custom-control, BS5 .form-check */
+.form-check-input:checked,
+.custom-control-input:checked ~ .custom-control-label::before {
+  background-color: var(--fg-leaf);
+  border-color: var(--fg-leaf);
+}
+.form-check-input:focus,
+.custom-control-input:focus ~ .custom-control-label::before {
+  border-color: var(--fg-leaf);
+  box-shadow: 0 0 0 3px rgba(47, 130, 85, .14);
+}
+.form-switch .form-check-input:checked { background-color: var(--fg-leaf); }
+
+/* BS5 toggle buttons */
+.btn-check:checked + .btn,
+.btn-check:active + .btn {
+  background-color: var(--fg-forest);
+  border-color: var(--fg-forest);
+  color: var(--fg-cream);
+}
+
+.form-range::-webkit-slider-thumb { background-color: var(--fg-leaf); }
+.form-range::-moz-range-thumb     { background-color: var(--fg-leaf); }
+
+
+/* ---------- Badges (BS4 .badge-* | BS5 dropped them for .text-bg-*) ---------- */
+.badge { font-family: var(--fg-font-display); font-weight: 600; border-radius: var(--fg-radius-pill); padding: .4em .85em; }
+.badge-primary, .text-bg-primary { background-color: var(--fg-forest) !important; color: var(--fg-cream) !important; }
+.badge-success, .text-bg-success { background-color: rgba(47,130,85,.16) !important; color: var(--fg-forest-800) !important; }
+.badge-warning, .text-bg-warning { background-color: rgba(214,154,60,.22) !important; color: var(--fg-ochre-700) !important; }
+.badge-danger,  .text-bg-danger  { background-color: rgba(166,64,42,.14) !important; color: var(--fg-danger) !important; }
+.badge-info,    .text-bg-info    { background-color: rgba(31,107,69,.14) !important; color: var(--fg-forest-800) !important; }
+.badge-light,   .text-bg-light   { background-color: var(--fg-cream-panel) !important; color: var(--fg-ink) !important; }
+.badge-dark,    .text-bg-dark    { background-color: var(--fg-ink) !important; color: var(--fg-cream) !important; }
+
+/* ---------- Alerts ---------- */
+.alert-primary { background-color: rgba(20,64,45,.08);  border-color: rgba(20,64,45,.18);  color: var(--fg-forest); }
+.alert-success { background-color: rgba(47,130,85,.10); border-color: rgba(47,130,85,.22); color: var(--fg-forest-800); }
+.alert-warning { background-color: rgba(214,154,60,.14); border-color: rgba(214,154,60,.3); color: var(--fg-ochre-700); }
+.alert-danger  { background-color: rgba(166,64,42,.09); border-color: rgba(166,64,42,.22); color: var(--fg-danger); }
+
+/* ---------- Tables (BS5 resolves these from --bs-table-* vars) ---------- */
+.table {
+  --bs-table-color: var(--fg-ink);
+  --bs-table-bg: transparent;
+  --bs-table-border-color: var(--fg-border);
+  --bs-table-hover-bg: rgba(47, 130, 85, .05);
+  --bs-table-hover-color: var(--fg-ink);
+  --bs-table-striped-bg: rgba(34, 30, 26, .028);
+  --bs-table-striped-color: var(--fg-ink);
+  --bs-table-active-bg: rgba(214, 154, 60, .12);
+}
+.table thead th {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: .8125rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  border-bottom: 1px solid var(--fg-border);
+  border-top: 0;
+}
+.table td, .table th { border-top-color: var(--fg-border); }
+.table-hover tbody tr:hover { background-color: rgba(47, 130, 85, .05); }
+
+.progress { background-color: rgba(34, 30, 26, .08); border-radius: var(--fg-radius-pill); }
+.progress-bar { background-color: var(--fg-leaf); }
+
+
+/* ---------- Sidebar (dashboard) ---------- */
+.sidebar,
+.sidebar.bg-gradient-primary {
+  background: var(--fg-forest) !important;
+}
+.sidebar .nav-item .nav-link           { color: rgba(246, 241, 231, .78); font-weight: 500; }
+.sidebar .nav-item .nav-link:hover,
+.sidebar .nav-item.active .nav-link    { color: var(--fg-cream); }
+.sidebar .nav-item.active .nav-link    { background-color: rgba(246, 241, 231, .10); }
+.sidebar-brand-text                    { font-family: var(--fg-font-display); letter-spacing: -0.01em; }
+.sidebar-divider                       { border-top-color: rgba(246, 241, 231, .16); }
+
+
+/* ---------- Footer ---------- */
+footer.sticky-footer,
+footer {
+  background-color: var(--fg-ink);
+  color: rgba(246, 241, 231, .7);
+}
+footer a { color: rgba(246, 241, 231, .85); }
+footer a:hover { color: var(--fg-ochre); }
+
+
+/* ==========================================================================
+   PART 3 — COMPONENTS THAT DIFFER BETWEEN BOOTSTRAP 4 AND 5
+   Both selector spellings are listed. Whichever version is loaded, one of the
+   pair matches and the other is inert — so this file works on either, and
+   keeps working when the landing page and the dashboard are finally unified.
+   ========================================================================== */
+
+/* ---------- Close button (BS4 .close | BS5 .btn-close) ---------- */
+.close {
+  color: var(--fg-ink);
+  opacity: .5;
+  text-shadow: none;
+}
+.close:hover { color: var(--fg-ink); opacity: .9; }
+.btn-close {
+  /* BS5 draws the X as a background SVG — recolour to ink */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23221E1A'%3E%3Cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3E%3C/svg%3E");
+  opacity: .6;
+}
+.btn-close:hover  { opacity: 1; }
+.btn-close:focus  { box-shadow: 0 0 0 3px rgba(214, 154, 60, .35); }
+
+/* ---------- Nav tabs & pills ---------- */
+.nav-tabs { border-bottom-color: var(--fg-border); }
+.nav-tabs .nav-link {
+  color: var(--fg-muted);
+  font-weight: 500;
+  border: 1px solid transparent;
+  border-top-left-radius: var(--fg-radius-sm);
+  border-top-right-radius: var(--fg-radius-sm);
+}
+.nav-tabs .nav-link:hover { color: var(--fg-forest); border-color: transparent; }
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-item.show .nav-link {
+  color: var(--fg-forest);
+  font-weight: 600;
+  background-color: var(--fg-cream-panel);
+  border-color: var(--fg-border) var(--fg-border) var(--fg-cream-panel);
+}
+.nav-pills .nav-link { color: var(--fg-muted); font-weight: 500; border-radius: var(--fg-radius-sm); }
+.nav-pills .nav-link.active,
+.nav-pills .show > .nav-link {
+  background-color: var(--fg-forest);
+  color: var(--fg-cream);
+}
+
+/* ---------- Dropdowns ---------- */
+.dropdown-menu {
+  background-color: var(--fg-cream-panel);
+  border: 1px solid var(--fg-border);
+  border-radius: var(--fg-radius);
+  box-shadow: var(--fg-shadow-lg);
+  padding: .375rem;
+}
+.dropdown-item {
+  color: var(--fg-ink);
+  border-radius: var(--fg-radius-sm);
+  padding: .5rem .75rem;
+  font-size: .9375rem;
+}
+.dropdown-item:hover,
+.dropdown-item:focus { background-color: rgba(20, 64, 45, .07); color: var(--fg-forest); }
+.dropdown-item.active,
+.dropdown-item:active { background-color: var(--fg-forest); color: var(--fg-cream); }
+.dropdown-divider { border-top-color: var(--fg-border); }
+.dropdown-header {
+  font-family: var(--fg-font-display);
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+/* ---------- Pagination ---------- */
+.page-link {
+  color: var(--fg-forest);
+  background-color: var(--fg-cream-panel);
+  border-color: var(--fg-border);
+}
+.page-link:hover { color: var(--fg-forest); background-color: rgba(20, 64, 45, .07); border-color: var(--fg-border); }
+.page-item.active .page-link {
+  background-color: var(--fg-forest);
+  border-color: var(--fg-forest);
+  color: var(--fg-cream);
+}
+.page-item.disabled .page-link { color: rgba(34, 30, 26, .35); background-color: transparent; border-color: var(--fg-border); }
+
+/* ---------- List groups ---------- */
+.list-group-item {
+  background-color: var(--fg-cream-panel);
+  border-color: var(--fg-border);
+  color: var(--fg-ink);
+}
+.list-group-item.active {
+  background-color: var(--fg-forest);
+  border-color: var(--fg-forest);
+  color: var(--fg-cream);
+}
+.list-group-item-action:hover { background-color: rgba(20, 64, 45, .05); }
+
+/* ---------- Modals & offcanvas (offcanvas is BS5-only) ---------- */
+.modal-content,
+.offcanvas {
+  background-color: var(--fg-cream-panel);
+  border: 1px solid var(--fg-border);
+  border-radius: var(--fg-radius);
+  color: var(--fg-ink);
+}
+.modal-header,
+.offcanvas-header { border-bottom-color: var(--fg-border); }
+.modal-footer      { border-top-color: var(--fg-border); }
+.modal-title,
+.offcanvas-title   { font-family: var(--fg-font-display); font-weight: 600; letter-spacing: -0.01em; }
+.modal-backdrop, .offcanvas-backdrop { background-color: var(--fg-ink); }
+
+/* ---------- Accordion (BS5-only) ---------- */
+.accordion {
+  --bs-accordion-bg: var(--fg-cream-panel);
+  --bs-accordion-border-color: var(--fg-border);
+  --bs-accordion-btn-color: var(--fg-ink);
+  --bs-accordion-active-color: var(--fg-forest);
+  --bs-accordion-active-bg: rgba(20, 64, 45, .06);
+  --bs-accordion-btn-focus-box-shadow: 0 0 0 3px rgba(214, 154, 60, .3);
+  --bs-accordion-border-radius: var(--fg-radius);
+}
+.accordion-button { font-family: var(--fg-font-display); font-weight: 600; }
+
+/* ---------- Tooltips & popovers ---------- */
+.tooltip-inner {
+  background-color: var(--fg-ink);
+  color: var(--fg-cream);
+  font-size: .8125rem;
+  border-radius: var(--fg-radius-sm);
+}
+.bs-tooltip-top .arrow::before,    .bs-tooltip-top .tooltip-arrow::before    { border-top-color: var(--fg-ink); }
+.bs-tooltip-bottom .arrow::before, .bs-tooltip-bottom .tooltip-arrow::before { border-bottom-color: var(--fg-ink); }
+.bs-tooltip-start .tooltip-arrow::before, .bs-tooltip-left .arrow::before    { border-left-color: var(--fg-ink); }
+.bs-tooltip-end .tooltip-arrow::before,   .bs-tooltip-right .arrow::before   { border-right-color: var(--fg-ink); }
+.popover {
+  background-color: var(--fg-cream-panel);
+  border-color: var(--fg-border);
+  border-radius: var(--fg-radius);
+  box-shadow: var(--fg-shadow-lg);
+}
+.popover-header { background-color: transparent; border-bottom-color: var(--fg-border); font-family: var(--fg-font-display); font-weight: 600; }
+
+/* ---------- Spinners ---------- */
+.spinner-border, .spinner-grow { color: var(--fg-leaf); }
+
+/* ---------- Screen-reader utility (BS4 .sr-only | BS5 .visually-hidden) ----- */
+/* Both ship their own definition; nothing to restyle. Listed for reference. */
+

@@ -1,7 +1,51 @@
 {% load static %}
 <!-- Responsive navbar-->
 
-<nav class="navbar navbar-expand navbar-light bg-primary topbar mb-4 static-top shadow">
+<nav class="navbar navbar-expand-lg navbar-light fedha-topbar static-top mb-4">
+    <div class="container px-lg-5">
+
+        <a class="navbar-brand" href="{% url 'landing' %}">
+            <svg class="fedha-mark" viewBox="0 0 100 100" width="30" height="30" aria-hidden="true" focusable="false">
+                <circle cx="50" cy="50" r="36" fill="none" stroke="#14402D" stroke-width="12" stroke-dasharray="28 9.5"/>
+                <circle cx="50" cy="50" r="11.5" fill="#D69A3C"/>
+            </svg>
+            <span>Fedha-Grow</span>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+            <ul class="navbar-nav ml-lg-4 mr-lg-auto fedha-nav-main">
+                <li class="nav-item"><a class="nav-link" href="#lender-compliance">Lender Compliance</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'groups:groups_landing' %}">Group Schemes</a></li>
+                {# TODO: replace '#' with the real regulators view once it exists #}
+                <li class="nav-item"><a class="nav-link" href="#">Regulators</a></li>
+                <li class="nav-item"><a class="nav-link" href="#how-it-works">How It Works</a></li>
+                <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+                <li class="nav-item"><a class="nav-link" href="#testimonials">Testimonials</a></li>
+            </ul>
+
+            <ul class="navbar-nav align-items-lg-center fedha-nav-auth">
+                {% if user.is_authenticated %}
+                    <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
+                {% else %}
+                    {% if user.role == 'borrower' %}
+                        <li class="nav-item"><a class="nav-link" href="{% url 'login' %}?next=/borrowers/borrower_index/">Login</a></li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="{% url 'login' %}?next=/lenders/lender_index/">Login</a></li>
+                    {% endif %}
+                    <li class="nav-item ml-lg-3"><a class="btn btn-fedha-primary" href="{% url 'register' %}">Register</a></li>
+                {% endif %}
+            </ul>
+
+        </div>
+    </div>
+</nav>
+
+<!--<nav class="navbar navbar-expand navbar-light bg-primary topbar mb-4 static-top shadow">
 
             <div class="container px-lg-5">
                 <a class="navbar-brand" href="{% url 'landing' %}">Fedha-Grow</a>
@@ -36,40 +80,5 @@
                     </ul>
                 
             </div>
-
-            
-
-        </nav>
+        </nav>-->
         
-        <!--<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-            <div class="container px-lg-5">
-                <a class="navbar-brand" href="{% url 'landing' %}">Fedha-Grow</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
-                <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                    <ul class="navbar-nav ms-auto">-->
-
-                        <!--<li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#how-it-works">How It Works</a></li>
-                        <li class="nav-item"><a class="nav-link" href="#testimonials">Testimonials</a></li>-->
-                        
-                        
-                        <!--<li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="#!">Register as Borrower</a></li>-->
-                        <!--<li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="#!">Register as Lender</a></li>-->
-                        
-                        <!--{% if user.is_authenticated %}                        
-                        <li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="{% url 'logout' %}">Logout</a></li>
-                        {% else %}
-                            
-                        <li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="{% url 'register' %}">Register</a></li>
-                              
-                        {% if user.role == 'borrower' %}
-                        <li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="{% url 'login' %}?next=/borrowers/borrower_index/">Login</a></li>
-                            {% else %}
-                        <li class="nav-item"><a class="nav-link btn btn-light text-primary ms-2" href="{% url 'login' %}?next=/lenders/lender_index/">Login</a></li>
-                                {% endif %}
-                            
-                        {% endif %}
-                    </ul>
-                </div>
-            </div>
-        </nav> -->
