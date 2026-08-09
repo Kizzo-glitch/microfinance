@@ -42,106 +42,6 @@
                   </div>
                 {% endfor %}
 
-
-
-                  <!--<div class="mb-4">
-  <label>ID Proof</label><br>
-  {% if existing_docs.id_proof %}
-    <a href="{{ existing_docs.id_proof.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-      View Uploaded
-    </a>
-    <small class="text-muted">You may upload a new file to replace it.</small><br>
-  {% endif %}
-  {{ form.id_proof }}
-</div>
-
-<div class="mb-4">
-  <label>Bank Statement</label><br>
-  {% if existing_docs.bank_statement %}
-    <a href="{{ existing_docs.bank_statement.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-      View Uploaded
-    </a>
-    <small class="text-muted">You may upload a new file to replace it.</small><br>
-  {% endif %}
-  {{ form.bank_statement }}
-</div>
-
-<div class="mb-4">
-  <label>Payslip</label><br>
-  {% if existing_docs.payslip %}
-    <a href="{{ existing_docs.payslip.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-      View Uploaded
-    </a>
-    <small class="text-muted">You may upload a new file to replace it.</small><br>
-  {% endif %}
-  {{ form.payslip }}
-</div>
-
-<div class="mb-4">
-  <label>Chief Letter</label><br>
-  {% if existing_docs.chief_letter %}
-    <a href="{{ existing_docs.chief_letter.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-      View Uploaded
-    </a>
-    <small class="text-muted">You may upload a new file to replace it.</small><br>
-  {% endif %}
-  {{ form.chief_letter }}
-</div>-->
-
-
-
-                  <!--<div class="mb-4">
-                    <label>ID Proof</label><br>
-                    {% with existing=existing_docs|get_item:"id_proof" %}
-                      {% if existing %}
-                        <a href="{{ existing.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                          View Uploaded
-                        </a>
-                        <small class="text-muted">You may upload a new file to replace it.</small><br>
-                      {% endif %}
-                    {% endwith %}
-                    {{ form.id_proof }}
-                  </div>
-
-                  <div class="mb-4">
-                    <label>Bank Statement</label><br>
-                    {% with existing=existing_docs|get_item:"bank_statement" %}
-                      {% if existing %}
-                        <a href="{{ existing.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                          View Uploaded
-                        </a>
-                        <small class="text-muted">You may upload a new file to replace it.</small><br>
-                      {% endif %}
-                    {% endwith %}
-                    {{ form.bank_statement }}
-                  </div>
-
-                  <div class="mb-4">
-                    <label>Payslip</label><br>
-                    {% with existing=existing_docs|get_item:"payslip" %}
-                      {% if existing %}
-                        <a href="{{ existing.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                          View Uploaded
-                        </a>
-                        <small class="text-muted">You may upload a new file to replace it.</small><br>
-                      {% endif %}
-                    {% endwith %}
-                    {{ form.payslip }}
-                  </div>
-
-                  <div class="mb-4">
-                    <label>Chief Letter</label><br>
-                    {% with existing=existing_docs|get_item:"chief_letter" %}
-                      {% if existing %}
-                        <a href="{{ existing.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                          View Uploaded
-                        </a>
-                        <small class="text-muted">You may upload a new file to replace it.</small><br>
-                      {% endif %}
-                    {% endwith %}
-                    {{ form.chief_letter }}
-                  </div>-->
-
                   <div class="progress mb-4">
                         <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                     </div>
@@ -160,69 +60,72 @@
 
                 <div id="response" class="mt-3"></div>
 
-
-                <!--<form id="uploadForm" method="post" enctype="multipart/form-data">
-                    {% csrf_token %}
-                    
-                   
-                    <div class="border p-3 mb-4">
-                        <div class="form-group">
-                            <label for="idProof" class="form-label">ID Proof:</label>
-                            {{ form.id_proof }}
-                        </div>
-                    </div>
-
-                   
-                    <div class="border p-3 mb-4">
-                        <div class="form-group">
-                            <label for="bankStatement" class="form-label">Bank Statement:</label>
-                            {{ form.bank_statement }}
-                        </div>
-                    </div>
-
-                   
-                    <div class="border p-3 mb-4">
-                        <div class="form-group">
-                            <label for="payslip" class="form-label">Payslip:</label>
-                            {{ form.payslip }}
-                        </div>
-                    </div>
-
-                   
-                    <div class="border p-3 mb-4">
-                        <div class="form-group">
-                            <label for="chief_letter" class="form-label">Chief's Letter:</label>
-                            {{ form.chief_letter }}
-                        </div>
-                    </div>
-
-                  
-                    <div class="progress mb-4">
-                        <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                    </div>
-
-                   
-                    <center>
-                        <div class="form-actions">
-                            <button type="submit" name="action" value="continue" class="btn btn-primary">
-                              Save & Continue
-                            </button>
-
-                            <button type="submit" name="action" value="exit" class="btn btn-secondary">
-                              Save & Exit
-                            </button>
-                        </div>
-                  
-
-                    </center>
-                </form>-->
-
                 
             </div>
-
-
-
             <script>
+    const form = document.getElementById('uploadForm');
+    const progressBar = document.querySelector('.progress-bar');
+    const responseDiv = document.getElementById('response');
+    const submitButtons = form.querySelectorAll('button[type="submit"]');
+    let isSubmitting = false;                    // <-- guard flag
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        if (isSubmitting) return;                // <-- block re-entry
+        isSubmitting = true;
+
+        // capture which button was clicked (save_continue vs save_exit)
+        const action = (document.activeElement && document.activeElement.name === 'action')
+            ? document.activeElement.value : 'save_continue';
+
+        const formData = new FormData(form);
+        formData.append('action', action);       // <-- send the action explicitly
+
+        // lock the buttons
+        submitButtons.forEach(b => b.disabled = true);   // <-- disable
+        document.getElementById('loadingSpinner').style.display = 'block';
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+
+        fetch("{% url 'borrowers:upload_documents_employed' %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData
+        }).then(response => response.json())
+          .then(data => {
+              document.getElementById('loadingSpinner').style.display = 'none';
+              if (data.success) {
+                  progressBar.style.width = '100%';
+                  progressBar.textContent = '100%';
+                  responseDiv.innerHTML = `<div class="alert alert-success">${data.success}</div>`;
+                  // keep buttons disabled — we're navigating away
+                  setTimeout(() => { window.location.href = data.redirect_url; }, 2000);
+              } else if (data.error) {
+                  responseDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                  submitButtons.forEach(b => b.disabled = false);  // <-- re-enable on error
+                  isSubmitting = false;                            // <-- allow retry
+              }
+          }).catch(error => {
+              document.getElementById('loadingSpinner').style.display = 'none';
+              responseDiv.innerHTML = `<div class="alert alert-danger">An error occurred. Please try again later.</div>`;
+              submitButtons.forEach(b => b.disabled = false);      // <-- re-enable on failure
+              isSubmitting = false;
+          });
+    });
+
+    // progress bar based on how many file inputs are filled
+    form.addEventListener('change', function () {
+        const totalFiles = form.querySelectorAll('input[type="file"]').length;
+        const uploadedFiles = Array.from(form.querySelectorAll('input[type="file"]'))
+            .filter(input => input.files.length > 0).length;
+        const progress = totalFiles ? Math.floor((uploadedFiles / totalFiles) * 100) : 0;
+        progressBar.style.width = `${progress}%`;
+        progressBar.textContent = `${progress}%`;
+    });
+</script>
+
+            <!--<script>
                 const form = document.getElementById('uploadForm');
                 const progressBar = document.querySelector('.progress-bar');
                 const responseDiv = document.getElementById('response');
@@ -274,7 +177,7 @@
                     progressBar.textContent = `${progress}%`;
                 });
 
-            </script>
+            </script>-->
 
            
   <style>

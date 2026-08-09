@@ -30,6 +30,7 @@ urlpatterns = [
 	path('groups/', include('groups.urls', namespace='groups')),
     path('compliance/', include('compliance.urls', namespace='compliance')),
     path('regulation/', include('regulation.urls', namespace='regulation')),
+    path("integrations/", include('integrations.urls', namespace='integrations')),
 
 	path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
 	path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

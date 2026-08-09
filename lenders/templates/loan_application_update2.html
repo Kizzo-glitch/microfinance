@@ -1,0 +1,294 @@
+{% extends 'lender_base.html' %}
+{% load static %}
+
+{% block content %}
+
+        <!-- Begin Page Content -->
+        <div class="container-fluid">
+         <center>
+            <div class="card-header bg-secondary text-white">
+            <h1>Review Loan Application</h1>
+            </div>
+            <br><br>
+         </center>
+            <div class="card-header bg-primary text-white">
+                <h2>Borrower Information</h2>
+            </div>
+            <div class="card shadow">
+             <table class="table table-bordered">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Borrower</th>
+                        <th>Title</th>
+                        <th>Marital Status</th>
+                        <th>Date of Birth</th>
+                        <th>Phone Number</th>
+                        <th>Email Address</th>                           
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>{{ borrower.full_name }}</td>
+                        <td>{{ borrower.title }}</td>
+                        <td>{{ borrower.marital_status }}</td> 
+                        <td>{{ borrower.date_of_birth }}</td> 
+                        <td>{{ borrower.phone_number }}</td> 
+                        <td>{{ borrower.email_address }}</td>                 
+                    </tr>
+                  
+                </tbody>
+            </table>
+            </div> 
+            <br>
+            <div class="card shadow">
+            <table class="table table-bordered">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Identity Number</th>
+                        <th>Home Address</th>
+                        <th>Work Address</th>
+                        <th>Pay Day</th>
+                        <th>Type of Income</th>
+                        <th>Type of Employent</th>
+                                                  
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>{{ borrower.id_number }}</td>
+                        <td>{{ borrower.home_address }}</td>
+                        <td>{{ borrower.employer_address }}</td> 
+                        <td>{{ borrower.pay_day }}</td> 
+                        <td>{{ borrower.income_type }}</td>
+                        <td>{{ borrower.employment_type }}</td>  
+                                    
+                    </tr>
+                  
+                </tbody>
+            </table>
+            </div>
+            <br>
+
+            <div class="card-header bg-primary text-white">
+                <h2>Loan Details</h2>
+            </div>
+            <div class="card shadow">
+            <table class="table table-bordered">
+                <thead class="table-primary">
+                    <tr>
+                        <th>Loan Amount:</th>
+                        <th>Loan Term:</th>
+                        <th>First Payment:</th>
+                        <th>Monthly Installment:</th>
+                        <th>Total Repayable:</th>
+                                                  
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td>R{{ loan_amount }}</td>
+                        <td>{{ loan_term }} months</td>
+                        <td>R{{ first_payment }}</td> 
+                        <td>R{{ monthly_installment }}</td> 
+                        <td>R{{ total_repayable }}</td> 
+                                   
+                    </tr>
+                  
+                </tbody>
+            </table>
+            </div>
+            <br> 
+            
+            <div class="card-header bg-primary text-white">
+                <h2>Uploaded Documents</h2>
+            </div>
+            {% if documents %}
+            <div class="card shadow">
+                <table class="table table-bordered">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>Document Type</th>
+                            <th>View</th>
+                            <th>Download</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in documents %}
+                        <tr>
+                            <td>{{ doc.get_document_type_display }}</td>
+                            <td>
+                                <a href="{{ doc.file.url }}" target="_blank" class="btn btn-sm btn-outline-info">View</a>
+                            </td>
+                            <td>
+                                <a href="{{ doc.file.url }}" download class="btn btn-sm btn-outline-primary">Download</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">No documents uploaded for this application.</div>
+            {% endif %}
+            <br> 
+
+            
+             <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h2>Past / Pending Loan Issues</h2>
+                </div>
+                <center> 
+                    {% if overdue_loans > 0 %}
+                        <p class="text-danger"><strong>Warning:</strong> This Borrower has {{ overdue_loans }} overdue loans!</p>
+                    {% elif outstanding_loans > 0 %}
+                        <p class="text-warning" style="font-size:18px"><strong>Note:</strong> This Borrower already has {{ outstanding_loans }} outstanding loans.</p>
+                    {% else %}
+                        <p class="text-success"><strong>No Issues:</strong> Borrower has no outstanding loans.</p>
+                    {% endif %}
+                </center>  
+            </div>
+            <br>
+
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4>Affordability Assessment</h4>
+                </div>
+                <table class="table table-bordered mt-3">
+                    <thead class="thead-light">
+                      <tr>
+                        <th></th>
+                        <th class="text-center">Before Loan Installment</th>
+                        <th class="text-center">After Loan Installment</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <th>Monthly Net Income</th>
+                        <td colspan="2" class="text-center">R{{ income }}</td>
+                      </tr>
+                      <tr>
+                        <th>Total Monthly Expenses</th>
+                        <td colspan="2" class="text-center">R{{ total_expenses }}</td>
+                      </tr>
+                      <tr>
+                        <th>Proposed Monthly Installment</th>
+                        <td colspan="2" class="text-center">R{{ monthly_installment }}</td>
+                      </tr>
+                      <tr>
+                        <th>Surplus</th>
+                        <td class="text-center">R{{ surplus_before_loan }}</td>
+                        <td class="text-center">R{{ surplus_after_loan }}</td>
+                      </tr>
+                      <tr>
+                        <th>Affordability Index</th>
+                        <td>{{ index_before }}% ({{ affordability_before_flag }})</td>
+                        <td>{{ index_after }}% ({{ affordability_after_flag }})</td>
+                      </tr>
+                    </tbody>
+                  </table>
+            <!--<table class="table table-bordered">
+                <tr><th>Net Monthly Income</th><td>R{{ affordability.income }}</td></tr>
+                <tr><th>Total Expenses</th><td>R{{ affordability.total_expenses }}</td></tr>
+                <tr><th>Disposable Income</th><td>R{{ affordability.disposable_income }}</td></tr>
+                <tr><th>Loan Monthly Installment</th><td>R{{ affordability.monthly_installment }}</td></tr>
+                <tr>
+                    <th>Can Afford</th>
+                    <td>
+                        {% if affordability.can_afford %}
+                            <span class="badge bg-success">Yes</span>
+                        {% else %}
+                            <span class="badge bg-danger">No</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>-->
+            </div>
+
+            <br> 
+
+        <center>
+            <div class="card shadow">
+               <form method="post">
+                    {% csrf_token %}
+                    <div class="card-header bg-primary text-white">
+                       <h4>
+                       Update Application {{ form.status.label_tag }} {{ form.status }}
+                    </h4>
+                    </div>
+
+                    <div id="rejectionReasons" style="display: none;">
+                        <strong><h5>Rejection Reasons:</h5></strong>
+                        {{ form.rejection_reasons }}
+                    </div>
+
+                    <div id="pendingReasons" style="display: none;">
+                        <strong><h5>Pending Reasons:</h5></strong>
+                        {{ form.pending_reasons }}
+                    </div>
+                    <button type="submit" id="statusButton" class="btn btn-success mt-3">
+                        Approve Loan
+                    </button>
+
+                    <!--<button type="submit" class="btn btn-success mt-3">Approve/Reject Loan</button>-->
+                </form>
+            </div>
+        </center>
+
+        </div>
+        <!-- /.container-fluid -->
+        
+        <script>
+            function toggleReasonFields() {
+                const status = document.querySelector('select[name="status"]').value;
+                document.getElementById('rejectionReasons').style.display = (status === 'rejected') ? 'block' : 'none';
+                document.getElementById('pendingReasons').style.display = (status === 'pending') ? 'block' : 'none';
+            }
+
+            document.querySelector('select[name="status"]').addEventListener('change', toggleReasonFields);
+
+            // Run on page load in case of form re-render
+            window.onload = toggleReasonFields;
+
+            document.addEventListener('DOMContentLoaded', function () {
+                const dropdown = document.getElementById('statusDropdown');
+                const statusButton = document.getElementById('statusButton');
+
+                function updateButton() {
+                    const selectedStatus = dropdown.value;
+
+                    if (selectedStatus === 'approved') {
+                        statusButton.textContent = 'Approve Loan';
+                        statusButton.className = 'btn btn-success mt-3';
+                    } else if (selectedStatus === 'pending') {
+                        statusButton.textContent = 'Mark as Pending';
+                        statusButton.className = 'btn btn-warning mt-3';
+                    } else if (selectedStatus === 'rejected') {
+                        statusButton.textContent = 'Reject Loan';
+                        statusButton.className = 'btn btn-danger mt-3';
+                    } else {
+                        statusButton.textContent = 'Approve/Reject Loan';
+                        statusButton.className = 'btn btn-secondary mt-3';
+                    }
+                }
+
+                // Trigger on load (in case form is pre-populated)
+                updateButton();
+
+                // Trigger on change
+                dropdown.addEventListener('change', updateButton);
+            });
+        </script>
+
+        <style>
+            .small-dropdown {
+                max-width: 300px;  /* You can adjust this */
+                width: 100%;
+                display: inline-block;
+            }
+        </style>
+
+   
+{% endblock %}

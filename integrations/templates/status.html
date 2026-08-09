@@ -1,0 +1,84 @@
+{% extends 'micro_base.html' %}
+{% comment %}
+  Integration status panel. Standalone styles so it renders even without the
+  project's CSS. Swap {% extends 'base.html' %} for your admin/base template.
+{% endcomment %}
+
+{% block content %}
+<div class="ig-wrap">
+
+  <div class="ig-head">
+    <div>
+      <div class="ig-kicker">INTEROPERABILITY</div>
+      <h1 class="ig-title">Integration status</h1>
+    </div>
+    <div class="ig-count">
+      <span class="ig-count-num">{{ connected_count }}/{{ total_count }}</span>
+      <span class="ig-count-lbl">connected</span>
+    </div>
+  </div>
+
+  {% for group in groups %}
+    <div class="ig-group-label">{{ group.label }}</div>
+    <div class="ig-grid">
+      {% for item in group.items %}
+        <div class="ig-card {% if item.connected %}is-on{% else %}is-off{% endif %}">
+          <div class="ig-card-top">
+            <span class="ig-dot"></span>
+            <span class="ig-badge">
+              {% if item.connected %}Connected{% else %}Awaiting integration{% endif %}
+            </span>
+          </div>
+          <div class="ig-card-name">{{ item.label }}</div>
+          <div class="ig-card-sub">
+            {% if item.connected %}
+              Live provider configured.
+            {% else %}
+              Provisioned and wired — awaiting provider endpoint &amp; credentials.
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% endfor %}
+
+  <p class="ig-note">
+    All integrations are built into the platform. Categories shown as
+    <em>awaiting integration</em> are ready to connect once the provider supplies
+    an endpoint and credentials — no code changes to the application are required.
+  </p>
+</div>
+
+<style>
+  .ig-wrap { max-width: 960px; margin: 2rem auto; padding: 0 1rem;
+             font-family: Calibri, "Segoe UI", system-ui, sans-serif; color: #17323F; }
+  .ig-head { display:flex; align-items:flex-end; justify-content:space-between;
+             border-bottom:3px solid #028090; padding-bottom:.75rem; margin-bottom:1.25rem; }
+  .ig-kicker { font-size:.72rem; font-weight:700; letter-spacing:.14em; color:#028090; }
+  .ig-title { font-family:Cambria, Georgia, serif; font-size:1.9rem; color:#0B2B3C; margin:.15rem 0 0; }
+  .ig-count { text-align:right; }
+  .ig-count-num { display:block; font-size:1.6rem; font-weight:700; color:#0B2B3C; }
+  .ig-count-lbl { font-size:.75rem; color:#5C7683; }
+
+  .ig-group-label { font-size:.72rem; font-weight:700; letter-spacing:.12em;
+                    color:#5C7683; text-transform:uppercase; margin:1.25rem 0 .6rem; }
+  .ig-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:.9rem; }
+
+  .ig-card { border-radius:12px; padding:1rem 1.1rem; background:#E8F1F2; }
+  .ig-card.is-on  { background:#0B2B3C; color:#E8F1F2; }
+  .ig-card-top { display:flex; align-items:center; gap:.5rem; margin-bottom:.55rem; }
+  .ig-dot { width:.6rem; height:.6rem; border-radius:50%; background:#9AA9B0; }
+  .ig-card.is-on  .ig-dot { background:#02C39A; box-shadow:0 0 0 4px rgba(2,195,154,.18); }
+  .ig-card.is-off .ig-dot { background:#E9B44C; }
+  .ig-badge { font-size:.68rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; }
+  .ig-card.is-on  .ig-badge { color:#02C39A; }
+  .ig-card.is-off .ig-badge { color:#B5791F; }
+  .ig-card-name { font-size:1.1rem; font-weight:700; color:#0B2B3C; margin-bottom:.2rem; }
+  .ig-card.is-on .ig-card-name { color:#FFFFFF; }
+  .ig-card-sub { font-size:.82rem; line-height:1.35; color:#5C7683; }
+  .ig-card.is-on .ig-card-sub { color:#AED0D5; }
+
+  .ig-note { margin-top:1.5rem; font-size:.82rem; color:#5C7683; line-height:1.5;
+             background:#F3F7F8; border-left:3px solid #028090; padding:.75rem 1rem; border-radius:6px; }
+</style>
+{% endblock %}

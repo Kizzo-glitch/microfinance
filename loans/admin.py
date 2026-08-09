@@ -1,6 +1,8 @@
 from django.contrib import admin
 
-from .models import Loan, LoanApplication, RiskNotification, InterestRate, LoanPayment, CreditHistory, Rating, Notification
+from .models import (Loan, LoanApplication, RiskNotification, 
+                     InterestRate, LoanPayment, CreditHistory, 
+                     Rating, Notification, ResponsibleLendingAssessment)
 
 
 
@@ -15,7 +17,7 @@ admin.site.register(LoanPayment)
 admin.site.register(CreditHistory)
 admin.site.register(Notification)
 admin.site.register(Rating)
-
+admin.site.register(ResponsibleLendingAssessment)
 
 '''class LoanApplicationAdmin(admin.ModelAdmin):
     list_display = ('borrower', 'status', 'date_applied', 'status_last_updated')

@@ -1,0 +1,69 @@
+{% extends 'borrower_base.html' %}
+{% load static %}
+
+{% block content %}
+
+	<div class="container mt-4">
+
+		<h2>Review Your Loan Application</h2>
+
+		<p><strong>Lender:</strong> {{ loan_app.lender.company_name }}</p>
+		<p><strong>Loan Amount:</strong> R{{ loan_app.loan_amount }}</p>
+		<p><strong>Loan Term:</strong> {{ loan_app.loan_term }} month(s)</p>
+		<p><strong>Monthly Payments:</strong> R{{ loan_app.monthly_installment }}</p>
+		<p><strong>Total Repayable:</strong> R{{ loan_app.total_repayable }}</p>
+		<p><strong>Interest Rate:</strong> {{ loan_app.lender.interest_rate }}%</p>
+
+		<h3>Affordability Assessment</h3>
+		<table class="table table-bordered">
+		  <thead>
+		    <tr>
+		      <th></th>
+		      <th>Before Loan Installment</th>
+		      <th>After Loan Installment</th>
+		    </tr>
+		  </thead>
+		  <tbody>
+		    <tr>
+		      <td>Monthly Net Income</td>
+		      <td>R{{ monthly_income|floatformat:2 }}</td>
+		      <td>R{{ monthly_income|floatformat:2 }}</td>
+		    </tr>
+		    <tr>
+		      <td>Total Monthly Expenses</td>
+		      <td>R{{ total_expenses|floatformat:2 }}</td>
+		      <td>R{{ total_expenses|floatformat:2 }}</td>
+		    </tr>
+		    <tr>
+		      <td>Proposed Installment</td>
+		      <td>-</td>
+		      <td>R{{ installment|floatformat:2 }}</td>
+		    </tr>
+		    <tr>
+		      <td>Surplus</td>
+		      <td>R{{ surplus_before|floatformat:2 }}</td>
+		      <td>R{{ surplus_after|floatformat:2 }}</td>
+		    </tr>
+		    <tr>
+		      <td>Affordability Index</td>
+		      <td>{{ affordability_index_before|floatformat:2 }}%</td>
+		      <td>{{ affordability_index_after|floatformat:2 }}%</td>
+		    </tr>
+		  </tbody>
+		</table>
+
+	
+
+		<div class="alert alert-info">
+		    Please confirm the above details before submitting.
+		</div>
+
+		<form method="POST">
+		    {% csrf_token %}
+		    <button type="submit" class="btn btn-success">
+		        Submit Application
+		    </button>
+		    <a href="{% url 'borrowers:borrower_index' %}" class="btn btn-secondary">Cancel</a>
+		</form>
+</div>
+{% endblock %}

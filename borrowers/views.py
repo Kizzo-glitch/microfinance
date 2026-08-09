@@ -1,24 +1,12 @@
 import json
+import random
+import os
+
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 
-from groups.forms import BorrowerJoinRequestForm, GroupJoinRequestForm
-from lenders.models import LenderProfile
-from loans.models import LoanApplication, Loan, LoanPayment, Notification, Rating
-from micro.models import OTP
-
-from .forms import (
-	RatingForm, BorrowerProfileForm, LoanApplicationForm, BorrowerDocumentsForm, 
-	LoanPaymentForm, OTPForm, EmploymentTypeForm, EmployedDocumentsForm, SelfEmployedDocumentsForm, 
-	RegisteredBusinessDocumentsForm, ExpenseForm, DynamicExpenseForm
-	)
-
-import random
 
 from django.contrib import messages
-
-from .models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
-from groups.models import BorrowerGroup, GroupActivity, GroupDocument, GroupInvitation, GroupJoinRequest, GroupMembership
 
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg
@@ -26,7 +14,7 @@ from django.db.models import Avg
 from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.utils.timezone import now
 from datetime import date
@@ -42,17 +30,48 @@ from dateutil.relativedelta import relativedelta
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-import os
+
 from django.conf import settings
 from micro.utils import generate_otp 
 from loans.utils import send_sms_smsportal
 from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
 
-from .utils import handle_stage_navigation
-from groups.utils import is_group_admin, is_sub_admin, can_manage_operations, is_group_member
+
 from django.utils.safestring import mark_safe
 
 from django.db.models.functions import TruncMonth
+
+
+from decimal import Decimal, InvalidOperation
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils.timezone import now
+
+
+
+from lenders.models import LenderProfile
+from loans.models import LoanApplication, Loan, LoanPayment, Notification, Rating, ResponsibleLendingAssessment
+from micro.models import OTP
+
+from .models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
+from .services import AffordabilityAdvisor
+from .utils import handle_stage_navigation
+
+from groups.utils import is_group_admin, is_sub_admin, can_manage_operations, is_group_member
+from groups.models import BorrowerGroup, GroupActivity, GroupDocument, GroupInvitation, GroupJoinRequest, GroupMembership
+from groups.forms import BorrowerJoinRequestForm, GroupJoinRequestForm
+
+
+
+
+from .forms import (
+	RatingForm, BorrowerProfileForm, LoanApplicationForm, BorrowerDocumentsForm, 
+	LoanPaymentForm, OTPForm, EmploymentTypeForm, EmployedDocumentsForm, SelfEmployedDocumentsForm, 
+	RegisteredBusinessDocumentsForm, ExpenseForm, DynamicExpenseForm
+	)
+
 
 
 
@@ -302,7 +321,7 @@ def borrower_group_detail(request, group_id):
 		'chart_data_json': mark_safe(json.dumps(chart_data)),
 
 		"growth_labels": labels,
-        "growth_data": data,
+		"growth_data": data,
 	}
 
 	return render(request, 'borrower_group_detail.html', context)
@@ -680,76 +699,6 @@ def select_employment_type(request):
 		"form": form,
 		"required_docs": REQUIRED_DOCS,})
 
-
-@login_required
-def resume_application(request, app_id):
-	lender_id = request.session.get('lender_id')
-	lender = LenderProfile.objects.get(id=lender_id)
-	loan_app = LoanApplication.objects.get(id=app_id, borrower=request.user.borrower, lender=lender)
-
-	if loan_app.current_stage == "employment":
-		return redirect("borrowers:employment_type")
-
-	elif loan_app.current_stage == "documents":
-		if loan_app.borrower.employment_type == "employed":
-			return redirect("borrowers:upload_documents_employed")
-		elif loan_app.employment_type == "self_employed":
-			return redirect("borrowers:upload_documents_self_employed")
-		elif loan_app.employment_type == "registered_business":
-			return redirect("borrowers:upload_documents_registered_business")
-		else:
-			# fallback if employment_type is missing/corrupt
-			return redirect("borrowers:select_employment_type")
-
-	elif loan_app.current_stage == "affordability":
-		return redirect("borrowers:update_expenses")
-
-	elif loan_app.current_stage == "loan_calculator":
-		return redirect("borrowers:loan-calculator")
-
-	elif loan_app.current_stage == "apply_loan":
-		return redirect("borrowers:apply-loan")
-
-	else:
-		# unknown stage → fallback to dashboard
-		return redirect("borrowers:borrower_index")
-
-
-
-
-@login_required
-def resume_application22(request, app_id):
-	loan_app = LoanApplication.objects.get(id=app_id, borrower=request.user.borrower)
-
-	if loan_app.current_stage == "employment":
-		return redirect("borrowers:select_employment_type")
-	elif loan_app.current_stage == "documents":
-		return redirect("borrowers:upload_documents_employed")
-	elif loan_app.current_stage == "affordability":
-		return redirect("borrowers:update_expenses")
-	elif loan_app.current_stage == "loan_calculator":
-		return redirect("borrowers:loan-calculator")
-	else:
-		return redirect("borrowers:borrower_index")
-
-
-
-
-@login_required
-def delete_draft_application(request, pk):
-	loan_app = get_object_or_404(LoanApplication, pk=pk, borrower=request.user.borrower)
-
-	if loan_app.is_draft():  # ✅ Only drafts can be deleted
-		loan_app.delete()
-		messages.success(request, "Your draft loan application has been deleted successfully.")
-	else:
-		messages.error(request, "Only draft applications can be deleted.")
-
-	return redirect('borrowers:borrower_index')
-
-
-
-
 @login_required
 def upload_documents_employed(request):
 	borrower = request.user.borrower
@@ -786,9 +735,6 @@ def upload_documents_employed(request):
 				messages.success(request, "Progress saved. You can resume later.")
 				#return redirect("borrower_index")
 				return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/borrower_index/'})
-
-
-
 
 			# ✅ Handle Save & Continue
 			missing_docs = []
@@ -830,11 +776,6 @@ def upload_documents_employed(request):
 		'existing_docs': existing_docs
 
 	})
-
-
-
-
-
 
 
 @login_required
@@ -1068,8 +1009,6 @@ def loan_application(request):
 
 		lender = LenderProfile.objects.get(id=lender_id)
 
-		#lender = LenderProfile.objects.get(id=lender_id)
-
 		if request.method == 'POST':
 			form = LoanApplicationForm(request.POST)
 			if form.is_valid():
@@ -1108,54 +1047,6 @@ def loan_application(request):
 	except BorrowerProfile.DoesNotExist:
 		messages.error(request, "You do not have a Profile. Please complete your profile first.")
 		return redirect('borrowers:borrower_profile')
-
-
-'''@login_required
-def loan_calculator2(request):
-	borrower = request.user.borrower
-	lender_id = request.session.get('lender_id')
-	lender = LenderProfile.objects.get(id=lender_id)
-
-	# Get borrower's latest pending loan draft
-	loan_app, created = LoanApplication.objects.get_or_create(
-		borrower=borrower,
-		lender=lender,
-		status="draft",   # keep drafts separate from "pending"
-		defaults={"current_stage": "loan_calculator"}
-	)
-
-	if request.method == "POST":
-		action = request.POST.get("action")
-
-		if action == "save_exit":
-			loan_app.current_stage = "loan_calculator"
-			loan_app.save(update_fields=["current_stage"])
-			return redirect('borrower_index')
-			
-
-		elif action == "save_continue":
-			# Move forward to apply_loan page (review & confirm)
-			loan_app.current_stage = "apply_loan"
-			loan_app.save(update_fields=["current_stage"])
-			return redirect('apply-loan')
-			
-
-	return render(request, "loan_calculator.html", {
-		"lender": lender,
-		"available_terms": lender.loan_terms or [],
-		"loan_app": loan_app
-	})
-
-
-
-def loan_calculator3(request):
-	lender_id = request.session.get('lender_id')
-	lender = LenderProfile.objects.get(id=lender_id)
-	return render(request, 'loan_calculator.html', {
-			'lender': lender,
-			'available_terms': lender.loan_terms or []
-		})'''
-
 
 
 @login_required
@@ -1224,8 +1115,375 @@ def loan_calculator(request):
 	})
 
 
+"""
+Fedha-Grow — loan calculator + apply views (cleaned)
+Currency: Maloti (M). Interest: flat, matching the existing calculator.
+"""
 
+
+# =====================================================================
+# Loan calculator (AJAX endpoint)
+# =====================================================================
 def calculate_loan(request):
+	lender_id = request.session.get("lender_id")
+	if not lender_id:
+		return JsonResponse({"error": "No lender selected."}, status=400)
+ 
+	lender = get_object_or_404(LenderProfile, id=lender_id)
+ 
+	# --- parse inputs defensively ---
+	try:
+		amount = Decimal(request.GET.get("amount", "0"))
+		term = int(request.GET.get("term", "0"))
+	except (InvalidOperation, ValueError, TypeError):
+		return JsonResponse({"error": "Invalid amount or term."}, status=400)
+ 
+	if amount <= 0 or term <= 0:
+		return JsonResponse({"error": "Amount and term must be greater than zero."}, status=400)
+ 
+	# --- validate term against the lender's allowed terms ---
+	allowed_terms = [str(t) for t in lender.loan_terms]
+	if str(term) not in allowed_terms:
+		return JsonResponse(
+			{"error": f"Invalid loan term. Allowed terms: {', '.join(allowed_terms)}."},
+			status=400,
+		)
+ 
+	# --- flat-interest calculation ---
+	interest_rate = Decimal(lender.interest_rate or 0)
+	total_repayable = amount * (Decimal("1") + interest_rate / Decimal("100"))
+	monthly_installment = total_repayable / Decimal(term)
+ 
+	return JsonResponse({
+		"currency": "M",
+		"amount": round(amount, 2),
+		"term": term,
+		"interest_rate": round(interest_rate, 2),
+		"total_repayable": round(total_repayable, 2),
+		"monthly_installment": round(monthly_installment, 2),
+	})
+ 
+ 
+# =====================================================================
+# Apply for a loan
+#   GET  -> run the advisor (advice only, nothing persisted)
+#   POST -> validate, snapshot the assessment, submit the application
+# =====================================================================
+@login_required
+def apply_loan(request):
+	borrower = request.user.borrower
+	lender_id = request.session.get("lender_id")
+	lender = get_object_or_404(LenderProfile, id=lender_id)
+ 
+	loan_app, _ = LoanApplication.objects.get_or_create(
+		borrower=borrower,
+		lender=lender,
+		status="draft",
+		defaults={"current_stage": "affordability"},
+	)
+ 
+	# Attach any loose docs/expenses captured before the app existed.
+	BorrowerDocs.objects.filter(borrower=borrower, loan_application=None).update(loan_application=loan_app)
+	ExpenseAnalysis.objects.filter(borrower=borrower, loan_application=None).update(loan_application=loan_app)
+ 
+	advisor = AffordabilityAdvisor(loan_app)
+ 
+	# ---------------- POST: submit ----------------
+	if request.method == "POST":
+		# Block second concurrent application.
+		if LoanApplication.objects.filter(borrower=borrower, status="pending").exists():
+			messages.error(request, "You cannot apply for a new loan while you have a pending one.")
+			return redirect("borrowers:pending_loan")
+ 
+		result = advisor.build()
+ 
+		# Don't let an unaffordable loan through — send them back to adjust.
+		if result["outcome"] == "unaffordable":
+			messages.error(
+				request,
+				"This loan doesn't fit your budget yet. "
+				"Please adjust the amount or term before submitting.",
+			)
+			return redirect("loans:apply_loan")
+ 
+		# Immutable audit snapshot (created once, never overwritten).
+		# Optionally fold in OCR document verification if a statement was uploaded.
+		reconciliation = _run_document_verification(borrower, loan_app, result)
+		advisor.snapshot(result, reconciliation=reconciliation)
+ 
+		loan_app.status = "pending"
+		loan_app.date_applied = now()
+		loan_app.current_stage = "submitted"
+		loan_app.save(update_fields=["status", "date_applied", "current_stage"])
+ 
+		Notification.objects.create(
+			user=lender.user,
+			message=(
+				f"New loan application from {borrower.full_name} "
+				f"for M{loan_app.loan_amount}."
+			),
+			category="loan_application",
+			loan_application=loan_app,
+		)
+ 
+		sms = (
+			f"Hello {borrower.full_name}, your loan application for "
+			f"M{loan_app.loan_amount} was submitted to {lender.company_name}. "
+			f"They'll review it and update you on the status."
+		)
+		# send_sms_smsportal(borrower.phone_number, sms)
+ 
+		messages.success(request, f"Loan application submitted to {lender.company_name}.")
+		return redirect("borrowers:borrower_index")
+ 
+	# ---------------- GET: advise ----------------
+	assessment = advisor.build()  # advisory only, not persisted
+	return render(request, "apply_loan.html", {
+		"loan_app": loan_app,
+		"assessment": assessment,
+	})
+ 
+ 
+def _run_document_verification(borrower, loan_app, result):
+	"""
+	If the borrower uploaded a bank statement, OCR it and reconcile declared
+	vs observed expenses. Returns a ReconciliationResult or None.
+ 
+	Fails safe: any error (no statement, OCR unavailable, unreadable scan)
+	returns None, and the assessment proceeds on self-declared figures — the
+	absence of verification is never treated as a red flag by itself.
+ 
+	NOTE: OCR can take a few seconds per page. For production, consider running
+	this as a background task and attaching the result when it completes, rather
+	than blocking submission. Kept inline here for clarity.
+	"""
+	try:
+		from integrations.registry import get_adapter
+ 
+		statement_doc = (
+			BorrowerDocs.objects
+			.filter(borrower=borrower, loan_application=loan_app,
+					doc_type="bank_statement")
+			.order_by("-uploaded_at")
+			.first()
+		)
+		if not statement_doc or not statement_doc.file:
+			return None
+ 
+		adapter = get_adapter("document_analysis")
+		# Pending adapter (no OCR configured) won't have analyse_statement;
+		# only the real Tesseract adapter does.
+		if not hasattr(adapter, "analyse_statement"):
+			return None
+ 
+		analysis = adapter.analyse_statement(
+			statement_doc.file.path,
+			declared_expenses=result["expenses"],
+			profile_name=getattr(borrower, "full_name", ""),
+			id_name=getattr(borrower, "full_name", ""),
+		)
+		return analysis.reconciliation if analysis.ok else None
+	except Exception:
+		# Never let document analysis break loan submission.
+		return None
+ 
+ 
+@login_required
+def abandon_draft(request, application_id):
+	"""
+	Delete a DRAFT loan application when the borrower chooses to apply
+	elsewhere. Reusable data (expenses, docs) is DETACHED, not destroyed,
+	so the borrower doesn't re-enter it at the next lender.
+ 
+	POST-only and ownership-checked: deleting on GET would let a prefetch
+	or crawler silently wipe a borrower's saved draft.
+	"""
+	if request.method != "POST":
+		return redirect("borrowers:borrower_index")
+ 
+	borrower = request.user.borrower
+	draft = get_object_or_404(
+		LoanApplication,
+		id=application_id,
+		borrower=borrower,      # ownership: can only delete your own
+		status="draft",         # safety: never delete a submitted application
+	)
+ 
+	# Detach reusable data so it survives for the next application.
+	ExpenseAnalysis.objects.filter(loan_application=draft).delete()
+	BorrowerDocs.objects.filter(loan_application=draft).delete()
+	#ExpenseAnalysis.objects.filter(loan_application=draft).update(loan_application=None)
+	#BorrowerDocs.objects.filter(loan_application=draft).update(loan_application=None)
+ 
+	# Clear the lender selection so they start fresh.
+	request.session.pop("lender_id", None)
+ 
+	draft.delete()
+ 
+	messages.info(request, "Your draft was cleared. You can now choose another lender.")
+	return redirect("borrowers:borrower_index")
+
+
+
+# =====================================================================
+# Loan calculator (AJAX endpoint)
+# =====================================================================
+def calculate_loan3(request):
+	lender_id = request.session.get("lender_id")
+	if not lender_id:
+		return JsonResponse({"error": "No lender selected."}, status=400)
+ 
+	lender = get_object_or_404(LenderProfile, id=lender_id)
+ 
+	# --- parse inputs defensively ---
+	try:
+		amount = Decimal(request.GET.get("amount", "0"))
+		term = int(request.GET.get("term", "0"))
+	except (InvalidOperation, ValueError, TypeError):
+		return JsonResponse({"error": "Invalid amount or term."}, status=400)
+ 
+	if amount <= 0 or term <= 0:
+		return JsonResponse({"error": "Amount and term must be greater than zero."}, status=400)
+ 
+	# --- validate term against the lender's allowed terms ---
+	allowed_terms = [str(t) for t in lender.loan_terms]
+	if str(term) not in allowed_terms:
+		return JsonResponse(
+			{"error": f"Invalid loan term. Allowed terms: {', '.join(allowed_terms)}."},
+			status=400,
+		)
+ 
+	# --- flat-interest calculation ---
+	interest_rate = Decimal(lender.interest_rate or 0)
+	total_repayable = amount * (Decimal("1") + interest_rate / Decimal("100"))
+	monthly_installment = total_repayable / Decimal(term)
+ 
+	return JsonResponse({
+		"currency": "M",
+		"amount": round(amount, 2),
+		"term": term,
+		"interest_rate": round(interest_rate, 2),
+		"total_repayable": round(total_repayable, 2),
+		"monthly_installment": round(monthly_installment, 2),
+	})
+ 
+ 
+# =====================================================================
+# Apply for a loan
+#   GET  -> run the advisor (advice only, nothing persisted)
+#   POST -> validate, snapshot the assessment, submit the application
+# =====================================================================
+@login_required
+def apply_loan3(request):
+	borrower = request.user.borrower
+	lender_id = request.session.get("lender_id")
+	lender = get_object_or_404(LenderProfile, id=lender_id)
+ 
+	loan_app, _ = LoanApplication.objects.get_or_create(
+		borrower=borrower,
+		lender=lender,
+		status="draft",
+		defaults={"current_stage": "affordability"},
+	)
+ 
+	# Attach any loose docs/expenses captured before the app existed.
+	BorrowerDocs.objects.filter(borrower=borrower, loan_application=None).update(loan_application=loan_app)
+	ExpenseAnalysis.objects.filter(borrower=borrower, loan_application=None).update(loan_application=loan_app)
+ 
+	advisor = AffordabilityAdvisor(loan_app)
+ 
+	# ---------------- POST: submit ----------------
+	if request.method == "POST":
+		# Block second concurrent application.
+		if LoanApplication.objects.filter(borrower=borrower, status="pending").exists():
+			messages.error(request, "You cannot apply for a new loan while you have a pending one.")
+			return redirect("borrowers:pending_loan")
+ 
+		result = advisor.build()
+ 
+		# Don't let an unaffordable loan through — send them back to adjust.
+		if result["outcome"] == "unaffordable":
+			messages.error(
+				request,
+				"This loan doesn't fit your budget yet. "
+				"Please adjust the amount or term before submitting.",
+			)
+			return redirect("loans:apply_loan")
+ 
+		# Immutable audit snapshot (created once, never overwritten).
+		advisor.snapshot(result)
+ 
+		loan_app.status = "pending"
+		loan_app.date_applied = now()
+		loan_app.current_stage = "submitted"
+		loan_app.save(update_fields=["status", "date_applied", "current_stage"])
+ 
+		Notification.objects.create(
+			user=lender.user,
+			message=(
+				f"New loan application from {borrower.full_name} "
+				f"for M{loan_app.loan_amount}."
+			),
+			category="loan_application",
+			loan_application=loan_app,
+		)
+ 
+		sms = (
+			f"Hello {borrower.full_name}, your loan application for "
+			f"M{loan_app.loan_amount} was submitted to {lender.company_name}. "
+			f"They'll review it and update you on the status."
+		)
+		# send_sms_smsportal(borrower.phone_number, sms)
+ 
+		messages.success(request, f"Loan application submitted to {lender.company_name}.")
+		return redirect("borrowers:borrower_index")
+ 
+	# ---------------- GET: advise ----------------
+	assessment = advisor.build()  # advisory only, not persisted
+	return render(request, "apply_loan.html", {
+		"loan_app": loan_app,
+		"assessment": assessment,
+	})
+ 
+ 
+@login_required
+def abandon_draft2(request, application_id):
+	"""
+	Delete a DRAFT loan application when the borrower chooses to apply
+	elsewhere. Reusable data (expenses, docs) is DETACHED, not destroyed,
+	so the borrower doesn't re-enter it at the next lender.
+ 
+	POST-only and ownership-checked: deleting on GET would let a prefetch
+	or crawler silently wipe a borrower's saved draft.
+	"""
+	if request.method != "POST":
+		return redirect("borrowers:borrower_index")
+ 
+	borrower = request.user.borrower
+	draft = get_object_or_404(
+		LoanApplication,
+		id=application_id,
+		borrower=borrower,      # ownership: can only delete your own
+		status="draft",         # safety: never delete a submitted application
+	)
+ 
+	# Detach reusable data so it survives for the next application.
+	ExpenseAnalysis.objects.filter(loan_application=draft).update(loan_application=None)
+	BorrowerDocs.objects.filter(loan_application=draft).update(loan_application=None)
+ 
+	# Clear the lender selection so they start fresh.
+	request.session.pop("lender_id", None)
+ 
+	draft.delete()
+ 
+	messages.info(request, "Your draft was cleared. You can now choose another lender.")
+	return redirect("borrowers:borrower_index")
+
+
+
+
+
+def calculate_loan2(request):
 	try:
 		lender_id = request.session.get('lender_id')
 		lender = LenderProfile.objects.get(id=lender_id)
@@ -1265,7 +1523,7 @@ def calculate_loan(request):
 
 
 @login_required
-def apply_loan(request):
+def apply_loan2(request):
 	borrower = request.user.borrower
 	lender_id = request.session.get('lender_id')
 	lender = get_object_or_404(LenderProfile, id=lender_id)
@@ -1291,6 +1549,28 @@ def apply_loan(request):
 			messages.error(request, "You cannot apply for a new loan while you have a pending loan.")
 			return redirect("borrowers:pending_loan")
 
+		ResponsibleLendingAssessment.objects.create(
+
+			borrower=borrower,
+
+			lender=lender,
+
+			loan_application=loan_app,
+
+			monthly_income=assessment["income"],
+
+			monthly_expenses=assessment["expenses"],
+
+			disposable_income=assessment["surplus_before"],
+
+			monthly_installment=assessment["installment"],
+
+			affordability_ratio=assessment["affordability_after"],
+
+			risk_score=assessment["risk_score"],
+
+			recommendation=assessment["recommendation"],
+		)
 		# ✅ Move draft to submitted
 		loan_app.status = "pending"
 		loan_app.date_applied = now()
@@ -1329,6 +1609,10 @@ def apply_loan(request):
 		loan_application=None
 	).update(loan_application=loan_app)
 
+	#assessment = ResponsibleLendingService(borrower, lender, loan_app).build()
+	assessment = ResponsibleLendingService(loan_app).build()
+
+	"""
 	ExpenseAnalysis.objects.filter(
 		borrower=borrower,
 		loan_application=None
@@ -1344,21 +1628,69 @@ def apply_loan(request):
 
 	affordability_index_before = (surplus_before / monthly_income * 100) if monthly_income else 0
 	affordability_index_after = (surplus_after / monthly_income * 100) if monthly_income else 0
+	"""
 
 	context = {
 		"loan_app": loan_app,
-		"expenses": expenses,
-		"total_expenses": total_expenses,
-		"monthly_income": monthly_income,
-		"installment": installment,
-		"surplus_before": surplus_before,
-		"surplus_after": surplus_after,
-		"affordability_index_before": affordability_index_before,
-		"affordability_index_after": affordability_index_after,
+		"assessment": assessment,
+		#"total_expenses": total_expenses,
+		#"monthly_income": monthly_income,
+		#"installment": installment,
+		#"surplus_before": surplus_before,
+		#"surplus_after": surplus_after,
+		#"affordability_index_before": affordability_index_before,
+		#"affordability_index_after": affordability_index_after,
 	}
 
 	return render(request, "apply_loan.html", context)
 	
+
+@login_required
+def resume_application(request, app_id):
+	lender_id = request.session.get('lender_id')
+	lender = LenderProfile.objects.get(id=lender_id)
+	loan_app = LoanApplication.objects.get(id=app_id, borrower=request.user.borrower, lender=lender)
+
+	if loan_app.current_stage == "employment":
+		return redirect("borrowers:employment_type")
+
+	elif loan_app.current_stage == "documents":
+		if loan_app.borrower.employment_type == "employed":
+			return redirect("borrowers:upload_documents_employed")
+		elif loan_app.employment_type == "self_employed":
+			return redirect("borrowers:upload_documents_self_employed")
+		elif loan_app.employment_type == "registered_business":
+			return redirect("borrowers:upload_documents_registered_business")
+		else:
+			# fallback if employment_type is missing/corrupt
+			return redirect("borrowers:select_employment_type")
+
+	elif loan_app.current_stage == "affordability":
+		return redirect("borrowers:update_expenses")
+
+	elif loan_app.current_stage == "loan_calculator":
+		return redirect("borrowers:loan-calculator")
+
+	elif loan_app.current_stage == "apply_loan":
+		return redirect("borrowers:apply-loan")
+
+	else:
+		# unknown stage → fallback to dashboard
+		return redirect("borrowers:borrower_index")
+
+
+
+@login_required
+def delete_draft_application(request, pk):
+	loan_app = get_object_or_404(LoanApplication, pk=pk, borrower=request.user.borrower)
+
+	if loan_app.is_draft():  # ✅ Only drafts can be deleted
+		loan_app.delete()
+		messages.success(request, "Your draft loan application has been deleted successfully.")
+	else:
+		messages.error(request, "Only draft applications can be deleted.")
+
+	return redirect('borrowers:borrower_index')
 
 @login_required
 def view_documents(request):
@@ -1390,6 +1722,7 @@ def download_document(request, document_type):
 		response = HttpResponse(f.read(), content_type="application/octet-stream")
 		response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
 		return response
+
 
 
 @login_required

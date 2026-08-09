@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     'django.contrib.humanize',
     'compliance',
     'regulation',
+    'integrations',
+    
     'widget_tweaks',
     #'drf-yasg', 
 ]

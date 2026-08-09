@@ -6,7 +6,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 #from micro.models import User
 from django.contrib.auth import get_user_model
-from decimal import Decimal
+
 from micro.models import User
 from datetime import date, timedelta
 from django.db.models import Sum
@@ -14,20 +14,25 @@ from django.utils.timezone import now
 from datetime import date
 from multiselectfield import MultiSelectField
 
+from decimal import Decimal
+
+
 
 
 # Choices
 LOAN_TERM_CHOICES = [
-		#('', ''),
-		#('6 Months', '6 Months'),
-		#('12 Months', '12 Months'),
-		#('24 Months', '24 Months'),
-		#('36 Months', '36 Months'),
 
 		(1, '1 Month'),
+		(2, '2 Months'),
 		(3, '3 Months'),
+		(4, '4 Months'),
+		(5, '5 Months'),
 		(6, '6 Months'),
+		(7, '7 Months'),
+		(8, '8 Months'),
 		(9, '9 Months'),
+		(10, '10 Months'),
+		(11, '11 Months'),
 		(12, '12 Months'),
 		(24, '24 Months'),
 		(36, '36 Months'),
@@ -52,7 +57,6 @@ PENDING_REASONS = [
 	('inconsistent_info', 'Inconsistent or mismatched information'),
 	('recent_activity', 'Recent application activity'),
 	('income_instability', 'Income instability or unclear source of funds'),
-	('kyc_checks', 'KYC/AML Compliance checks'),
 	('unverified_contact', 'Unverified contact details'),
 ]
 
@@ -79,6 +83,7 @@ class LoanApplication(models.Model):
 		("submitted", "Final Review"),
 				
 	]
+
 	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE, null=True, blank=True)
 	lender = models.ForeignKey(LenderProfile, on_delete=models.CASCADE, null=True, blank=True)
 	loan_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
@@ -128,7 +133,6 @@ class LoanApplication(models.Model):
 
 	def get_pending_reasons_display(self):
 		return [dict(self.PENDING_REASONS).get(reason, reason) for reason in self.pending_reasons]
-
 
 
 
@@ -372,5 +376,84 @@ class Rating(models.Model):
 
 
 
-
-
+# =====================================================================
+# 2. IMMUTABLE SNAPSHOT MODEL
+#    One assessment per application, created at submission, never edited.
+# =====================================================================
+class ResponsibleLendingAssessment(models.Model):
+    """
+    Immutable snapshot of the affordability assessment captured at the moment
+    a loan application is submitted. Audit record — never edited after create.
+    """
+ 
+    OUTCOME_CHOICES = [
+        ("comfortable",  "Comfortable"),
+        ("tight",        "Tight"),
+        ("unaffordable", "Unaffordable"),
+    ]
+ 
+    borrower = models.ForeignKey(
+        "borrowers.BorrowerProfile", on_delete=models.PROTECT,
+        related_name="affordability_assessments",
+    )
+    lender = models.ForeignKey(
+        "lenders.LenderProfile", on_delete=models.PROTECT,
+        related_name="affordability_assessments",
+    )
+    loan_application = models.OneToOneField(
+        "loans.LoanApplication", on_delete=models.CASCADE,
+        related_name="affordability_assessment",
+    )
+ 
+    # --- financial snapshot ---
+    monthly_income               = models.DecimalField(max_digits=12, decimal_places=2)
+    monthly_expenses             = models.DecimalField(max_digits=12, decimal_places=2)
+    existing_monthly_commitments = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    monthly_installment          = models.DecimalField(max_digits=12, decimal_places=2)
+ 
+    disposable_income_before     = models.DecimalField(max_digits=12, decimal_places=2)
+    disposable_income_after      = models.DecimalField(max_digits=12, decimal_places=2)
+ 
+    # --- ratios (percentages of income) ---
+    installment_to_income        = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0.00"))
+    debt_to_income_ratio         = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0.00"))
+    affordability_index_after    = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0.00"),
+                                                       help_text="Percentage of income remaining after the new loan.")
+ 
+    # --- existing exposure ---
+    existing_active_loans        = models.PositiveIntegerField(default=0)
+ 
+    # --- outcome & advice ---
+    outcome                      = models.CharField(max_length=20, choices=OUTCOME_CHOICES, default='comfortable')
+    recommended_max_loan         = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    recommended_term             = models.PositiveIntegerField(null=True, blank=True)
+    advice                       = models.JSONField(default=list, blank=True,
+                                                    help_text="Plain-language recommendations for the borrower.")
+	# --- document verification (from OCR reconciliation; optional) ---
+    expenses_verified            = models.BooleanField(default=False,
+                                       help_text="True only if a statement was read and outflows were parsed.")
+    observed_outflows            = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True,
+                                       help_text="Total outflows read from an uploaded statement, if any.")
+    expense_discrepancy_flag     = models.BooleanField(default=False,
+                                       help_text="Declared expenses appear well below observed spending.")
+    name_match_flag              = models.BooleanField(default=False,
+                                       help_text="Statement/ID name did not match the profile name.")
+    review_signals               = models.JSONField(default=list, blank=True,
+                                       help_text="Human-readable flags for lender review. Advisory, not a verdict.")
+    # --- audit ---
+    engine_version = models.CharField(max_length=20, default="2.0")
+    assessed_at    = models.DateTimeField(default=timezone.now)
+    created_at     = models.DateTimeField(auto_now_add=True)
+ 
+    class Meta:
+        ordering = ["-assessed_at"]
+        verbose_name = "Affordability Assessment"
+        verbose_name_plural = "Affordability Assessments"
+ 
+    def __str__(self):
+        return f"{self.loan_application.reference_number} — {self.get_outcome_display()}"
+ 
+    @property
+    def is_affordable(self) -> bool:
+        return self.disposable_income_after >= 0 and self.outcome != "unaffordable"
+ 

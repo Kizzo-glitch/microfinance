@@ -146,6 +146,7 @@ def send_sms_smsportal(destination_number, message_content):
 
 
 
+
 def calculate_affordability(borrower, loan_application, monthly_installment):
 	income = borrower.income or Decimal('0.00')
 	

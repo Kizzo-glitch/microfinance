@@ -29,3 +29,6 @@ def handle_stage_navigation(request, form, loan_app, next_stage_redirect=None):
 			return redirect("borrowers:borrower_index")
 
 	return None
+
+
+

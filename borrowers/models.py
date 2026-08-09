@@ -138,6 +138,11 @@ class BorrowerProfile(models.Model):
 def upload_to(instance, filename):
 	return f'documents/{instance.borrower.user.username}/{instance.document_type}/{filename}'
 
+
+
+
+
+
 class BorrowerDocs(models.Model):
 	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE)
 	loan_application = models.ForeignKey('loans.LoanApplication', on_delete=models.CASCADE, related_name='loan_documents', null=True, blank=True)

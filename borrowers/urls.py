@@ -9,7 +9,7 @@ urlpatterns = [
    
     path('layout_sidenav_light/', views.layout_sidenav_light, name='layout_sidenav_light'),
     path('layout_static/', views.layout_static, name='layout_static'),
-    #path('login/', views.login, name='login'),
+
     path('password/', views.password, name='password'),
   
     path('tables/', views.tables, name='tables'),
@@ -22,8 +22,8 @@ urlpatterns = [
     
     path('employment-type/', views.select_employment_type, name='employment_type'),
     path('resume-application/<int:app_id>/', views.resume_application, name='resume_application'),
-    #path('resume-application/<int:pk>/', views.resume_application, name='resume_application'),
     path('delete-draft/<int:pk>/', views.delete_draft_application, name='delete_draft_application'),
+    path('abandon-draft/<int:application_id>/', views.abandon_draft, name='abandon_draft'),
    
     path('upload_documents_employed/', views.upload_documents_employed, name='upload_documents_employed'),
     path('upload_documents_self_employed/', views.upload_documents_self_employed, name='upload_documents_self_employed'),

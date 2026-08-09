@@ -40,76 +40,6 @@
                         {{ field }}
                       </div>
                     {% endfor %}
-                   
-                    <!--<div class="border p-3 mb-4">
-                        <div class="form-group">
-                            <label for="idProof" class="form-label">Director's ID Proof:</label>
-                            {{ form.id_proof }}
-      
-                        </div>
-                    </div>
-                    
-                    <div class="border p-3 mb-4">
-                        <div class="form-group">
-                            <label for="business_address" class="form-label">Proof of Business Address:</label>
-                            {{ form.business_address }}
-                           
-                        </div>
-                    </div>
-
-                   
-                    <div class="border p-3 mb-4">
-                        <div class="form-group">
-                            <label for="bank_statement" class="form-label">Personal Bank Statement:</label>
-                            {{ form.bank_statement }}
-                            
-                        </div>
-                    </div>
-
-                    
-                    <div class="border p-3 mb-4">
-                        <div class="form-group">
-                            <label for="business_statements" class="form-label">Business Bank Statement:</label>
-                            {{ form.business_statements }}
-                            
-                        </div>
-                    </div>
-                    
-                    <div class="border p-3 mb-4">
-                        <div class="form-group">
-                            <label for="business_registration" class="form-label">Business Registration Certificate:</label>
-                            {{ form.business_registration }}
-                            
-                        </div>
-                    </div>
-
-                  
-                    <div class="border p-3 mb-4">
-                        <div class="form-group">
-                            <label for="customer_invoice" class="form-label">Customer Invoices:</label>
-                            {{ form.customer_invoice }}
-                            
-                        </div>
-                    </div>
-
-                   
-                    <div class="border p-3 mb-4">
-                        <div class="form-group">
-                            <label for="supplier_invoice" class="form-label">Supplier Invoices:</label>
-                            {{ form.supplier_invoice }}
-                            
-                        </div>
-                    </div>
-
-                   
-                    <div class="border p-3 mb-4">
-                        <div class="form-group">
-                            <label for="tax_clearance" class="form-label">Tax Clearance Certificate:</label>
-                            {{ form.tax_clearance }}
-                            
-                        </div>
-                    </div>-->
-
 
                     <!-- Progress Bar -->
                     <div class="progress mb-4">
@@ -135,6 +65,69 @@
             </div>
 
             <script>
+    const form = document.getElementById('uploadForm');
+    const progressBar = document.querySelector('.progress-bar');
+    const responseDiv = document.getElementById('response');
+    const submitButtons = form.querySelectorAll('button[type="submit"]');
+    let isSubmitting = false;                    // <-- guard flag
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        if (isSubmitting) return;                // <-- block re-entry
+        isSubmitting = true;
+
+        // capture which button was clicked (save_continue vs save_exit)
+        const action = (document.activeElement && document.activeElement.name === 'action')
+            ? document.activeElement.value : 'save_continue';
+
+        const formData = new FormData(form);
+        formData.append('action', action);       // <-- send the action explicitly
+
+        // lock the buttons
+        submitButtons.forEach(b => b.disabled = true);   // <-- disable
+        document.getElementById('loadingSpinner').style.display = 'block';
+        progressBar.style.width = '0%';
+        progressBar.textContent = '0%';
+
+        fetch("{% url 'borrowers:upload_documents_registered_business' %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: formData
+        }).then(response => response.json())
+          .then(data => {
+              document.getElementById('loadingSpinner').style.display = 'none';
+              if (data.success) {
+                  progressBar.style.width = '100%';
+                  progressBar.textContent = '100%';
+                  responseDiv.innerHTML = `<div class="alert alert-success">${data.success}</div>`;
+                  // keep buttons disabled — we're navigating away
+                  setTimeout(() => { window.location.href = data.redirect_url; }, 2000);
+              } else if (data.error) {
+                  responseDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                  submitButtons.forEach(b => b.disabled = false);  // <-- re-enable on error
+                  isSubmitting = false;                            // <-- allow retry
+              }
+          }).catch(error => {
+              document.getElementById('loadingSpinner').style.display = 'none';
+              responseDiv.innerHTML = `<div class="alert alert-danger">An error occurred. Please try again later.</div>`;
+              submitButtons.forEach(b => b.disabled = false);      // <-- re-enable on failure
+              isSubmitting = false;
+          });
+    });
+
+    // progress bar based on how many file inputs are filled
+    form.addEventListener('change', function () {
+        const totalFiles = form.querySelectorAll('input[type="file"]').length;
+        const uploadedFiles = Array.from(form.querySelectorAll('input[type="file"]'))
+            .filter(input => input.files.length > 0).length;
+        const progress = totalFiles ? Math.floor((uploadedFiles / totalFiles) * 100) : 0;
+        progressBar.style.width = `${progress}%`;
+        progressBar.textContent = `${progress}%`;
+    });
+</script>
+
+            <!--<script>
                 const form = document.getElementById('uploadForm');
                 const progressBar = document.querySelector('.progress-bar');
                 const responseDiv = document.getElementById('response');
@@ -186,7 +179,7 @@
                     progressBar.textContent = `${progress}%`;
                 });
 
-            </script>
+            </script>-->
 
   <style>
         .form-control::placeholder {
