@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'compliance',
     'regulation',
     'integrations',
+    'comms',
     
     'widget_tweaks',
     #'drf-yasg', 

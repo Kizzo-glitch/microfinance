@@ -57,3 +57,4 @@ class WebhookEvent(models.Model):
         if status == "processed":
             self.processed_at = timezone.now()
         self.save(update_fields=["status", "note", "processed_at"])
+

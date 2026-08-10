@@ -58,6 +58,7 @@ PENDING_REASONS = [
 	('recent_activity', 'Recent application activity'),
 	('income_instability', 'Income instability or unclear source of funds'),
 	('unverified_contact', 'Unverified contact details'),
+	('unverifiable_documentation', 'Expenses Self-declared (Unverifiable documents)'),
 ]
 
 
