@@ -16,10 +16,10 @@ from .document_generators import (
     ScheduleIGenerator,  
     BusinessPlanGenerator,  
     AMLPolicyGenerator,
-    RiskManualGenerator,
-    GovernanceDocumentGenerator,
-    GovernanceDocumentGenerator,
-    GovernanceDocumentGenerator,  
+    #RiskManualGenerator,
+    #GovernanceDocumentGenerator,
+    #GovernanceDocumentGenerator,
+    #GovernanceDocumentGenerator,  
 )
 
 
@@ -55,25 +55,25 @@ class DocumentGenerationService:
             'estimated_time': 150,
         },
         'risk_management_policy': {
-            'generator_class': RiskManualGenerator,
+            'generator_class': AMLPolicyGenerator, #RiskManualGenerator,
             'confidence_threshold': 0.85,
             'required_data': ['company_info', 'financial_data', 'business_activities'],
             'estimated_time': 180,
         },
         'internal_audit_charter': {
-            'generator_class': GovernanceDocumentGenerator,
+            'generator_class': AMLPolicyGenerator,
             'confidence_threshold': 0.80,
             'required_data': ['company_info', 'cbl_tier'],
             'estimated_time': 120,
         },
         'audit_committee_charter': {
-            'generator_class': GovernanceDocumentGenerator,
+            'generator_class': AMLPolicyGenerator,
             'confidence_threshold': 0.80,
             'required_data': ['company_info', 'cbl_tier', 'personnel_basic'],
             'estimated_time': 120,
         },
         'credit_committee_charter': {
-            'generator_class': GovernanceDocumentGenerator,
+            'generator_class': AMLPolicyGenerator,
             'confidence_threshold': 0.80,
             'required_data': ['company_info', 'cbl_tier', 'personnel_basic'],
             'estimated_time': 120,

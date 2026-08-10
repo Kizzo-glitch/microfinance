@@ -1,0 +1,343 @@
+/* ==========================================================================
+   Fedha-Grow brand overrides for SB Admin 2 / Bootstrap 4
+   --------------------------------------------------------------------------
+   Load AFTER the template's css/sb-admin-2.min.css (and after bootstrap).
+   Nothing else needs editing. Do NOT hand-edit the compiled template CSS.
+
+   IMPORTANT: Bootstrap 4 compiles its colours into class rules at build time,
+   so redefining the :root custom properties alone does NOT repaint .btn-primary,
+   .text-primary, .bg-primary etc. That's why this file does both:
+     PART 1 — the tokens (for your own new markup)
+     PART 2 — explicit overrides for the compiled classes already in the template
+   If you ever move to compiling Sass yourself, PART 2 becomes unnecessary:
+   just set $primary, $success, $font-family-sans-serif before importing Bootstrap.
+   ========================================================================== */
+
+/* ---------- Fonts ---------- */
+@import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap');
+
+
+/* ==========================================================================
+   PART 1 — BRAND TOKENS
+   ========================================================================== */
+:root {
+  /* --- Fedha-Grow palette --- */
+  --fg-forest:        #14402D;  /* deep trust anchor: nav, hero, headings   */
+  --fg-forest-800:    #1F6B45;  /* hover / secondary surfaces               */
+  --fg-leaf:          #2F8255;  /* primary green: links, active states      */
+  --fg-ochre:         #D69A3C;  /* accent: CTAs, highlights, focus          */
+  --fg-ochre-700:     #A8782B;  /* ochre text on light (AA-safe)            */
+  --fg-ink:           #221E1A;  /* body text, authority                     */
+  --fg-cream:         #F6F1E7;  /* page background                          */
+  --fg-cream-panel:   #FBF6EC;  /* cards, panels                            */
+
+  /* --- Semantic --- */
+  --fg-success:       #2F8255;
+  --fg-warning:       #D69A3C;
+  --fg-danger:        #A6402A;  /* warm red, sits in-palette                */
+  --fg-info:          #1F6B45;
+  --fg-muted:         rgba(34, 30, 26, .62);
+  --fg-border:        rgba(34, 30, 26, .12);
+
+  /* --- Remap Bootstrap's own tokens onto the brand --- */
+  --primary:   #14402D;
+  --secondary: #6E675E;
+  --success:   #2F8255;
+  --info:      #1F6B45;
+  --warning:   #D69A3C;
+  --danger:    #A6402A;
+  --light:     #FBF6EC;
+  --dark:      #221E1A;
+
+  --blue:   #14402D;   /* legacy names still referenced by the template */
+  --green:  #2F8255;
+  --yellow: #D69A3C;
+  --red:    #A6402A;
+  --gray:   #6E675E;
+  --gray-dark: #221E1A;
+
+  --font-family-sans-serif: 'Hanken Grotesk', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --fg-font-display: 'Schibsted Grotesk', var(--font-family-sans-serif);
+
+  /* --- Shape & depth: flatter and squarer than the template default --- */
+  --fg-radius:    6px;
+  --fg-radius-sm: 4px;
+  --fg-radius-pill: 100px;
+  --fg-shadow:    0 1px 2px rgba(34, 30, 26, .06);
+  --fg-shadow-lg: 0 12px 32px rgba(34, 30, 26, .10);
+}
+
+
+/* ==========================================================================
+   PART 2 — OVERRIDES FOR THE TEMPLATE'S COMPILED CLASSES
+   ========================================================================== */
+
+/* ---------- Base ---------- */
+body {
+  font-family: var(--font-family-sans-serif);
+  color: var(--fg-ink);
+  background-color: var(--fg-cream);
+  text-wrap: pretty;
+}
+
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+  font-family: var(--fg-font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--fg-ink);
+  text-wrap: balance;
+}
+
+a            { color: var(--fg-leaf); }
+a:hover,
+a:focus      { color: var(--fg-forest); }
+
+hr           { border-top-color: var(--fg-border); }
+
+::selection  { background: rgba(214, 154, 60, .28); }
+
+
+/* ---------- Focus ring (accessibility: keep it visible) ---------- */
+a:focus-visible,
+button:focus-visible,
+.btn:focus-visible,
+.form-control:focus-visible {
+  outline: 2px solid var(--fg-ochre);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+
+/* ---------- Buttons ---------- */
+.btn {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  letter-spacing: 0;            /* kills the template's wide tracking */
+  border-radius: var(--fg-radius);
+  padding: .625rem 1.375rem;
+  text-transform: none;         /* no ALL-CAPS buttons */
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+
+/* Primary action = ochre. One accent, used sparingly. */
+.btn-primary {
+  background-color: var(--fg-ochre);
+  border-color: var(--fg-ochre);
+  color: var(--fg-ink);
+}
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active,
+.btn-primary:not(:disabled):not(.disabled):active {
+  background-color: #C68A2C;
+  border-color: #C68A2C;
+  color: var(--fg-ink);
+}
+
+/* Secondary action = outlined forest */
+.btn-outline-primary {
+  color: var(--fg-forest);
+  border-color: rgba(20, 64, 45, .35);
+  background-color: transparent;
+}
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+  background-color: var(--fg-forest);
+  border-color: var(--fg-forest);
+  color: var(--fg-cream);
+}
+
+/* On dark surfaces (hero, footer) */
+.btn-on-dark {
+  background-color: var(--fg-ochre);
+  border-color: var(--fg-ochre);
+  color: var(--fg-ink);
+}
+.btn-outline-on-dark {
+  background-color: transparent;
+  border-color: rgba(246, 241, 231, .45);
+  color: var(--fg-cream);
+}
+.btn-outline-on-dark:hover {
+  background-color: rgba(246, 241, 231, .12);
+  border-color: rgba(246, 241, 231, .7);
+  color: var(--fg-cream);
+}
+
+.btn-success { background-color: var(--fg-leaf);    border-color: var(--fg-leaf);    color: #fff; }
+.btn-info    { background-color: var(--fg-forest-800); border-color: var(--fg-forest-800); color: #fff; }
+.btn-warning { background-color: var(--fg-ochre);   border-color: var(--fg-ochre);   color: var(--fg-ink); }
+.btn-danger  { background-color: var(--fg-danger);  border-color: var(--fg-danger);  color: #fff; }
+.btn-light   { background-color: var(--fg-cream-panel); border-color: var(--fg-border); color: var(--fg-ink); }
+.btn-dark    { background-color: var(--fg-ink);     border-color: var(--fg-ink);     color: var(--fg-cream); }
+.btn-link    { color: var(--fg-leaf); }
+
+
+/* ---------- Text & background utilities ---------- */
+.text-primary   { color: var(--fg-forest) !important; }
+.text-secondary { color: var(--fg-muted) !important; }
+.text-success   { color: var(--fg-leaf) !important; }
+.text-info      { color: var(--fg-forest-800) !important; }
+.text-warning   { color: var(--fg-ochre-700) !important; }
+.text-danger    { color: var(--fg-danger) !important; }
+.text-dark      { color: var(--fg-ink) !important; }
+.text-muted     { color: var(--fg-muted) !important; }
+.text-gray-300  { color: rgba(34, 30, 26, .28) !important; }
+.text-gray-400  { color: rgba(34, 30, 26, .4)  !important; }
+.text-gray-600  { color: rgba(34, 30, 26, .6)  !important; }
+.text-gray-800  { color: var(--fg-ink) !important; }
+.text-gray-900  { color: var(--fg-ink) !important; }
+
+.bg-primary   { background-color: var(--fg-forest) !important; }
+.bg-secondary { background-color: #6E675E !important; }
+.bg-success   { background-color: var(--fg-leaf) !important; }
+.bg-info      { background-color: var(--fg-forest-800) !important; }
+.bg-warning   { background-color: var(--fg-ochre) !important; }
+.bg-danger    { background-color: var(--fg-danger) !important; }
+.bg-light     { background-color: var(--fg-cream-panel) !important; }
+.bg-dark      { background-color: var(--fg-ink) !important; }
+.bg-white     { background-color: var(--fg-cream-panel) !important; }
+
+/* The template's gradient utilities — flatten them, no aggressive gradients */
+.bg-gradient-primary { background: var(--fg-forest) !important; }
+.bg-gradient-success { background: var(--fg-leaf) !important; }
+.bg-gradient-info    { background: var(--fg-forest-800) !important; }
+.bg-gradient-warning { background: var(--fg-ochre) !important; }
+.bg-gradient-danger  { background: var(--fg-danger) !important; }
+.bg-gradient-dark    { background: var(--fg-ink) !important; }
+.bg-gradient-light   { background: var(--fg-cream-panel) !important; }
+
+.border-primary { border-color: var(--fg-forest) !important; }
+.border-left-primary { border-left-color: var(--fg-forest) !important; }
+.border-left-success { border-left-color: var(--fg-leaf) !important; }
+.border-left-info    { border-left-color: var(--fg-forest-800) !important; }
+.border-left-warning { border-left-color: var(--fg-ochre) !important; }
+.border-left-danger  { border-left-color: var(--fg-danger) !important; }
+
+
+/* ---------- Navbar ---------- */
+.navbar {
+  background-color: var(--fg-cream-panel) !important;
+  border-bottom: 1px solid var(--fg-border);
+  box-shadow: none;
+  padding-top: .875rem;
+  padding-bottom: .875rem;
+}
+.navbar-brand,
+.navbar .navbar-brand {
+  font-family: var(--fg-font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--fg-ink) !important;
+  display: inline-flex;
+  align-items: center;
+  gap: .625rem;
+}
+.navbar .nav-link,
+.navbar-nav .nav-link {
+  color: rgba(34, 30, 26, .78) !important;
+  font-weight: 500;
+  font-size: .9375rem;
+}
+.navbar .nav-link:hover,
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-item.active .nav-link {
+  color: var(--fg-forest) !important;
+}
+
+
+/* ---------- Cards ---------- */
+.card {
+  background-color: var(--fg-cream-panel);
+  border: 1px solid var(--fg-border);
+  border-radius: var(--fg-radius);
+  box-shadow: var(--fg-shadow);
+}
+.card-header {
+  background-color: transparent;
+  border-bottom: 1px solid var(--fg-border);
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+}
+.card .card-title,
+.card h5, .card h4 { color: var(--fg-ink); }
+
+/* Retire the template's blue left-accent bar on feature cards */
+.card.border-left-primary,
+.card.border-left-info,
+.card.border-left-success,
+.card.border-left-warning {
+  border-left-width: 1px !important;
+  border-left-color: var(--fg-border) !important;
+}
+
+
+/* ---------- Forms ---------- */
+.form-control {
+  background-color: var(--fg-cream-panel);
+  border: 1px solid var(--fg-border);
+  border-radius: var(--fg-radius-sm);
+  color: var(--fg-ink);
+}
+.form-control:focus {
+  background-color: #fff;
+  border-color: var(--fg-leaf);
+  box-shadow: 0 0 0 3px rgba(47, 130, 85, .14);
+  color: var(--fg-ink);
+}
+.form-control::placeholder { color: rgba(34, 30, 26, .42); }
+label, .col-form-label { font-weight: 500; color: var(--fg-ink); }
+
+
+/* ---------- Badges, alerts, tables, progress ---------- */
+.badge { font-family: var(--fg-font-display); font-weight: 600; border-radius: var(--fg-radius-pill); padding: .4em .85em; }
+.badge-primary { background-color: var(--fg-forest); color: var(--fg-cream); }
+.badge-success { background-color: rgba(47,130,85,.16); color: var(--fg-forest-800); }
+.badge-warning { background-color: rgba(214,154,60,.22); color: var(--fg-ochre-700); }
+.badge-danger  { background-color: rgba(166,64,42,.14); color: var(--fg-danger); }
+
+.alert-primary { background-color: rgba(20,64,45,.08);  border-color: rgba(20,64,45,.18);  color: var(--fg-forest); }
+.alert-success { background-color: rgba(47,130,85,.10); border-color: rgba(47,130,85,.22); color: var(--fg-forest-800); }
+.alert-warning { background-color: rgba(214,154,60,.14); border-color: rgba(214,154,60,.3); color: var(--fg-ochre-700); }
+.alert-danger  { background-color: rgba(166,64,42,.09); border-color: rgba(166,64,42,.22); color: var(--fg-danger); }
+
+.table thead th {
+  font-family: var(--fg-font-display);
+  font-weight: 600;
+  font-size: .8125rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  border-bottom: 1px solid var(--fg-border);
+  border-top: 0;
+}
+.table td, .table th { border-top-color: var(--fg-border); }
+.table-hover tbody tr:hover { background-color: rgba(47, 130, 85, .05); }
+
+.progress { background-color: rgba(34, 30, 26, .08); border-radius: var(--fg-radius-pill); }
+.progress-bar { background-color: var(--fg-leaf); }
+
+
+/* ---------- Sidebar (dashboard) ---------- */
+.sidebar,
+.sidebar.bg-gradient-primary {
+  background: var(--fg-forest) !important;
+}
+.sidebar .nav-item .nav-link           { color: rgba(246, 241, 231, .78); font-weight: 500; }
+.sidebar .nav-item .nav-link:hover,
+.sidebar .nav-item.active .nav-link    { color: var(--fg-cream); }
+.sidebar .nav-item.active .nav-link    { background-color: rgba(246, 241, 231, .10); }
+.sidebar-brand-text                    { font-family: var(--fg-font-display); letter-spacing: -0.01em; }
+.sidebar-divider                       { border-top-color: rgba(246, 241, 231, .16); }
+
+
+/* ---------- Footer ---------- */
+footer.sticky-footer,
+footer {
+  background-color: var(--fg-ink);
+  color: rgba(246, 241, 231, .7);
+}
+footer a { color: rgba(246, 241, 231, .85); }
+footer a:hover { color: var(--fg-ochre); }
