@@ -28,24 +28,27 @@ adapter=None (or a missing/blank config) => PendingAdapter for that category.
 from django.conf import settings
 from django.utils.module_loading import import_string
 
-#from .base import VerificationAdapter, PaymentAdapter
-#from .pending import PendingVerificationAdapter, PendingPaymentAdapter
-
+from .base import VerificationAdapter, PaymentAdapter
 from .verification.pending import PendingVerificationAdapter
 from .payments.pending import PendingPaymentAdapter
+from .messaging.pending import PendingMessagingAdapter
 
 
 # Category -> which base shape it uses.
-_VERIFICATION_CATEGORIES = {"credit_bureau", "government_identity"}
+_VERIFICATION_CATEGORIES = {"credit_bureau", "government_identity", "document_analysis"}
 _PAYMENT_CATEGORIES = {"mobile_money", "bank", "payment_provider"}
+_MESSAGING_CATEGORIES = {"sms", "whatsapp"}
 
 # Sensible default labels if settings doesn't override them.
 _DEFAULT_LABELS = {
     "credit_bureau": "Credit bureau",
     "government_identity": "Home Affairs ID",
+    "document_analysis": "Document analysis (OCR)",
     "mobile_money": "Mobile money",
     "bank": "Bank rails",
     "payment_provider": "Payment provider",
+    "sms": "SMS",
+    "whatsapp": "WhatsApp",
 }
 
 
@@ -67,7 +70,9 @@ def get_adapter(category: str):
     Return the adapter for a category — live if configured, else pending.
     Raises ValueError for an unknown category (fail loud on typos).
     """
-    if category not in _VERIFICATION_CATEGORIES and category not in _PAYMENT_CATEGORIES:
+    if (category not in _VERIFICATION_CATEGORIES
+            and category not in _PAYMENT_CATEGORIES
+            and category not in _MESSAGING_CATEGORIES):
         raise ValueError(f"Unknown integration category: {category!r}")
 
     cfg = _category_config(category)
@@ -81,6 +86,8 @@ def get_adapter(category: str):
     # Not configured -> honest pending adapter of the right shape.
     if category in _VERIFICATION_CATEGORIES:
         return PendingVerificationAdapter(provider_name=provider_name, label=label)
+    if category in _MESSAGING_CATEGORIES:
+        return PendingMessagingAdapter(provider_name=provider_name, label=label)
     return PendingPaymentAdapter(provider_name=provider_name, label=label)
 
 
@@ -90,7 +97,7 @@ def provider_status() -> dict:
     Feeds an admin/status view so you can see at a glance what's live.
     """
     out = {}
-    for category in (_VERIFICATION_CATEGORIES | _PAYMENT_CATEGORIES):
+    for category in (_VERIFICATION_CATEGORIES | _PAYMENT_CATEGORIES | _MESSAGING_CATEGORIES):
         cfg = _category_config(category)
         out[category] = {"label": _label(category), "connected": _is_configured(cfg)}
     return out

@@ -16,6 +16,8 @@ from multiselectfield import MultiSelectField
 
 from decimal import Decimal
 
+from .references import generate_reference
+
 
 
 
@@ -85,17 +87,19 @@ class LoanApplication(models.Model):
 				
 	]
 
+	SOURCE_CHOICES = [
+		("app", "Mobile App"),
+		("ussd", "USSD"),
+		("web", "Web"),
+	]
+
+	source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default="web")
 	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE, null=True, blank=True)
 	lender = models.ForeignKey(LenderProfile, on_delete=models.CASCADE, null=True, blank=True)
 	loan_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-	
-	#collateral = models.CharField(max_length=500, null=False, default='')
-	#payment_plan = models.CharField(max_length=500, null=False, default='')
-
 	total_repayable = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 	first_payment = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 	monthly_installment = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-
 	loan_term = models.PositiveIntegerField(choices=LOAN_TERM_CHOICES, default=3)
 
 	status = models.CharField(max_length=50, choices=LOAN_STATUS_CHOICES, default='draft')
@@ -121,6 +125,18 @@ class LoanApplication(models.Model):
 		choices=LOAN_STAGE_CHOICES,
 		default="employment_type"
 	)
+	reference_number = models.CharField(
+		max_length=20, unique=True, editable=False, null=True, blank=True,
+		help_text="Public reference, e.g. FG-2026-A3F9K2. Safe to share; the "
+				  "handle borrower and lender cite for any query or dispute.",
+	)
+	def save(self, *args, **kwargs):
+		if not self.reference_number:
+			self.reference_number = generate_reference(
+				LoanApplication, "reference_number", prefix="FG"
+			)
+		super().save(*args, **kwargs)
+
 
 	def is_draft(self):
 		return self.status == "draft"
@@ -161,17 +177,31 @@ class Loan(models.Model):
 	
 	date_created = models.DateField(auto_now_add=True)
 	first_payment_day = models.DateField(null=True, blank=True)
+	reference_number = models.CharField(
+		max_length=20, unique=True, editable=False, null=True, blank=True,
+		help_text="Public loan reference, e.g. FGL-2026-B7Q4M9. Distinct from "
+				  "the application reference; linked via the application.",
+	)
 
 	def __str__(self):
-		return f"Loan {self.id} - {self.borrower.user.username} - {self.lender.user.username} - {self.status}"
+			return f"Loan {self.id} - {self.borrower.user.username} - {self.lender.user.username} - {self.status}"		
 
 	def save(self, *args, **kwargs):
-		"""Ensure total_repayable and outstanding_balance are properly set before saving"""
-		self.calculate_total_repayable()  # Ensures correct total repayable
+		# 1. Generate the reference number if it doesn't exist
+		if not self.reference_number:
+			self.reference_number = generate_reference(
+				Loan, "reference_number", prefix="FGL"
+			)
+		
+		# 2. Calculate totals and balances
+		self.calculate_total_repayable()
+		
 		if not self.outstanding_balance:
 			self.outstanding_balance = 0
+			
+		# 3. Call the parent save method EXACTLY ONCE
 		super().save(*args, **kwargs)
-		
+
 
 	def calculate_total_repayable(self):
 		"""Calculate the total amount to be repaid including interest."""
@@ -377,84 +407,83 @@ class Rating(models.Model):
 
 
 
-# =====================================================================
-# 2. IMMUTABLE SNAPSHOT MODEL
+# =====================================================================L
 #    One assessment per application, created at submission, never edited.
 # =====================================================================
 class ResponsibleLendingAssessment(models.Model):
-    """
-    Immutable snapshot of the affordability assessment captured at the moment
-    a loan application is submitted. Audit record — never edited after create.
-    """
+	"""
+	Immutable snapshot of the affordability assessment captured at the moment
+	a loan application is submitted. Audit record — never edited after create.
+	"""
  
-    OUTCOME_CHOICES = [
-        ("comfortable",  "Comfortable"),
-        ("tight",        "Tight"),
-        ("unaffordable", "Unaffordable"),
-    ]
+	OUTCOME_CHOICES = [
+		("comfortable",  "Comfortable"),
+		("tight",        "Tight"),
+		("unaffordable", "Unaffordable"),
+	]
  
-    borrower = models.ForeignKey(
-        "borrowers.BorrowerProfile", on_delete=models.PROTECT,
-        related_name="affordability_assessments",
-    )
-    lender = models.ForeignKey(
-        "lenders.LenderProfile", on_delete=models.PROTECT,
-        related_name="affordability_assessments",
-    )
-    loan_application = models.OneToOneField(
-        "loans.LoanApplication", on_delete=models.CASCADE,
-        related_name="affordability_assessment",
-    )
+	borrower = models.ForeignKey(
+		"borrowers.BorrowerProfile", on_delete=models.PROTECT,
+		related_name="affordability_assessments",
+	)
+	lender = models.ForeignKey(
+		"lenders.LenderProfile", on_delete=models.PROTECT,
+		related_name="affordability_assessments",
+	)
+	loan_application = models.OneToOneField(
+		"loans.LoanApplication", on_delete=models.CASCADE,
+		related_name="affordability_assessment",
+	)
  
-    # --- financial snapshot ---
-    monthly_income               = models.DecimalField(max_digits=12, decimal_places=2)
-    monthly_expenses             = models.DecimalField(max_digits=12, decimal_places=2)
-    existing_monthly_commitments = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
-    monthly_installment          = models.DecimalField(max_digits=12, decimal_places=2)
+	# --- financial snapshot ---
+	monthly_income               = models.DecimalField(max_digits=12, decimal_places=2)
+	monthly_expenses             = models.DecimalField(max_digits=12, decimal_places=2)
+	existing_monthly_commitments = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+	monthly_installment          = models.DecimalField(max_digits=12, decimal_places=2)
  
-    disposable_income_before     = models.DecimalField(max_digits=12, decimal_places=2)
-    disposable_income_after      = models.DecimalField(max_digits=12, decimal_places=2)
+	disposable_income_before     = models.DecimalField(max_digits=12, decimal_places=2)
+	disposable_income_after      = models.DecimalField(max_digits=12, decimal_places=2)
  
-    # --- ratios (percentages of income) ---
-    installment_to_income        = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0.00"))
-    debt_to_income_ratio         = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0.00"))
-    affordability_index_after    = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0.00"),
-                                                       help_text="Percentage of income remaining after the new loan.")
+	# --- ratios (percentages of income) ---
+	installment_to_income        = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0.00"))
+	debt_to_income_ratio         = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0.00"))
+	affordability_index_after    = models.DecimalField(max_digits=6, decimal_places=2, default=Decimal("0.00"),
+													   help_text="Percentage of income remaining after the new loan.")
  
-    # --- existing exposure ---
-    existing_active_loans        = models.PositiveIntegerField(default=0)
+	# --- existing exposure ---
+	existing_active_loans        = models.PositiveIntegerField(default=0)
  
-    # --- outcome & advice ---
-    outcome                      = models.CharField(max_length=20, choices=OUTCOME_CHOICES, default='comfortable')
-    recommended_max_loan         = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    recommended_term             = models.PositiveIntegerField(null=True, blank=True)
-    advice                       = models.JSONField(default=list, blank=True,
-                                                    help_text="Plain-language recommendations for the borrower.")
+	# --- outcome & advice ---
+	outcome                      = models.CharField(max_length=20, choices=OUTCOME_CHOICES, default='comfortable')
+	recommended_max_loan         = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+	recommended_term             = models.PositiveIntegerField(null=True, blank=True)
+	advice                       = models.JSONField(default=list, blank=True,
+													help_text="Plain-language recommendations for the borrower.")
 	# --- document verification (from OCR reconciliation; optional) ---
-    expenses_verified            = models.BooleanField(default=False,
-                                       help_text="True only if a statement was read and outflows were parsed.")
-    observed_outflows            = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True,
-                                       help_text="Total outflows read from an uploaded statement, if any.")
-    expense_discrepancy_flag     = models.BooleanField(default=False,
-                                       help_text="Declared expenses appear well below observed spending.")
-    name_match_flag              = models.BooleanField(default=False,
-                                       help_text="Statement/ID name did not match the profile name.")
-    review_signals               = models.JSONField(default=list, blank=True,
-                                       help_text="Human-readable flags for lender review. Advisory, not a verdict.")
-    # --- audit ---
-    engine_version = models.CharField(max_length=20, default="2.0")
-    assessed_at    = models.DateTimeField(default=timezone.now)
-    created_at     = models.DateTimeField(auto_now_add=True)
+	expenses_verified            = models.BooleanField(default=False,
+									   help_text="True only if a statement was read and outflows were parsed.")
+	observed_outflows            = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True,
+									   help_text="Total outflows read from an uploaded statement, if any.")
+	expense_discrepancy_flag     = models.BooleanField(default=False,
+									   help_text="Declared expenses appear well below observed spending.")
+	name_match_flag              = models.BooleanField(default=False,
+									   help_text="Statement/ID name did not match the profile name.")
+	review_signals               = models.JSONField(default=list, blank=True,
+									   help_text="Human-readable flags for lender review. Advisory, not a verdict.")
+	# --- audit ---
+	engine_version = models.CharField(max_length=20, default="2.0")
+	assessed_at    = models.DateTimeField(default=timezone.now)
+	created_at     = models.DateTimeField(auto_now_add=True)
  
-    class Meta:
-        ordering = ["-assessed_at"]
-        verbose_name = "Affordability Assessment"
-        verbose_name_plural = "Affordability Assessments"
+	class Meta:
+		ordering = ["-assessed_at"]
+		verbose_name = "Affordability Assessment"
+		verbose_name_plural = "Affordability Assessments"
  
-    def __str__(self):
-        return f"{self.loan_application.reference_number} — {self.get_outcome_display()}"
+	def __str__(self):
+		return f"{self.loan_application.reference_number} — {self.get_outcome_display()}"
  
-    @property
-    def is_affordable(self) -> bool:
-        return self.disposable_income_after >= 0 and self.outcome != "unaffordable"
+	@property
+	def is_affordable(self) -> bool:
+		return self.disposable_income_after >= 0 and self.outcome != "unaffordable"
  

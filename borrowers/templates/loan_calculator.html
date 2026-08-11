@@ -74,7 +74,7 @@
                     <br><br>
                     <div class="repayment-details">
                         <!--<h4>First repayment: <span id="first_repayment">R0</span></h4>-->
-                        <h4>Monthly repayments: <span id="next_repayments">R0</span></h4>
+                        <h4>Monthly repayments: <span id="monthly_installment">R0</span></h4>
                         <h3>Total repayment: <span id="total_repayable">R0</span></h3>
                     </div>
 
@@ -88,8 +88,8 @@
                     <!--<button type="submit" id="applyLoanBtn" class="btn btn-primary">Apply for Loan</button>-->
                 </div>
             </form>
-
     </div>
+
 
     <script>
         $(document).ready(function () {
@@ -124,7 +124,7 @@
                     data: { amount: amount, term: term, lender_id: lenderId },
                     success: function (data) {
                         $("#total_repayable").text("R" + data.total_repayable);
-                        $("#next_repayments").text("R" + data.next_repayments);
+                        $("#monthly_installment").text("R" + data.monthly_installment);
                     }
                 });
             }

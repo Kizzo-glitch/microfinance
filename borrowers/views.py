@@ -32,8 +32,10 @@ from django.views.decorators.http import require_POST
 
 
 from django.conf import settings
-from micro.utils import generate_otp 
 from loans.utils import send_sms_smsportal
+from micro.utils import generate_otp 
+from comms.sms.service import send_sms
+#from loans.utils import send_sms_smsportal
 from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
 
 
@@ -71,7 +73,6 @@ from .forms import (
 	LoanPaymentForm, OTPForm, EmploymentTypeForm, EmployedDocumentsForm, SelfEmployedDocumentsForm, 
 	RegisteredBusinessDocumentsForm, ExpenseForm, DynamicExpenseForm
 	)
-
 
 
 
@@ -581,7 +582,8 @@ def send_otp(request):
 	OTP.objects.create(user=request.user, phone_number=phone_number, otp_code=otp_code)
 
 	# Send SMS
-	message = f"Hello {borrower.full_name}, your FedhaGrow OTP code is: {otp_code}"
+	from loans.utils import send_sms_smsportal
+	message = f"Hello {borrower.full_name}, your Fedha-Grow OTP code is: {otp_code}"
 	send_sms_smsportal(phone_number, message)
 	
 	# Render the email content
@@ -589,7 +591,7 @@ def send_otp(request):
 	from_email = settings.EMAIL_HOST_USER
 	to_email = [borrower.email_address]
 
-	#send_mail(subject, message, from_email, to_email, fail_silently=False, )
+	send_mail(subject, message, from_email, to_email, fail_silently=False, )
 
 	return redirect('borrowers:verify_otp')
 
@@ -1166,8 +1168,6 @@ def calculate_loan(request):
  
 # =====================================================================
 # Apply for a loan
-#   GET  -> run the advisor (advice only, nothing persisted)
-#   POST -> validate, snapshot the assessment, submit the application
 # =====================================================================
 @login_required
 def apply_loan(request):
@@ -1215,7 +1215,27 @@ def apply_loan(request):
 		loan_app.date_applied = now()
 		loan_app.current_stage = "submitted"
 		loan_app.save(update_fields=["status", "date_applied", "current_stage"])
- 
+
+		Notification.objects.create(
+			user=lender.user,
+			message=(
+				f"New loan application from {borrower.full_name} "
+				f"for M{loan_app.loan_amount}."
+			),
+			category="loan_application",
+			loan_application=loan_app,
+		)
+
+		send_sms(
+			borrower.phone_number,
+			"loan_submitted",
+			{
+				"name": borrower.full_name,
+				"amount": loan_app.loan_amount,
+				"lender": lender.company_name,
+			},
+		)
+		"""
 		Notification.objects.create(
 			user=lender.user,
 			message=(
@@ -1231,6 +1251,7 @@ def apply_loan(request):
 			f"M{loan_app.loan_amount} was submitted to {lender.company_name}. "
 			f"They'll review it and update you on the status."
 		)
+		"""
 		# send_sms_smsportal(borrower.phone_number, sms)
  
 		messages.success(request, f"Loan application submitted to {lender.company_name}.")
@@ -1263,8 +1284,8 @@ def _run_document_verification(borrower, loan_app, result):
 		statement_doc = (
 			BorrowerDocs.objects
 			.filter(borrower=borrower, loan_application=loan_app,
-					doc_type="bank_statement")
-			.order_by("-uploaded_at")
+					document_type="bank_statement")
+			.order_by("-upload_date")
 			.first()
 		)
 		if not statement_doc or not statement_doc.file:

@@ -18,8 +18,9 @@ from .registry import provider_status
 # Group categories the way the interoperability slide does, so the panel reads
 # the same way the CBL saw it.
 _GROUPS = [
-    ("Verification", ["credit_bureau", "government_identity"]),
+    ("Verification", ["credit_bureau", "government_identity", "document_analysis"]),
     ("Payments",     ["mobile_money", "bank", "payment_provider"]),
+    ("Messaging",    ["sms", "whatsapp"]),
 ]
 
 

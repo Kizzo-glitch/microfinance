@@ -47,7 +47,9 @@ INSTALLED_APPS = [
     'compliance',
     'regulation',
     'integrations',
-    'comms',
+    #'comms',
+    "comms.ussd.apps.UssdConfig",
+    "comms.sms.apps.SmsConfig",
     
     'widget_tweaks',
     #'drf-yasg', 
@@ -216,3 +218,39 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')  
 EMAIL_USE_SSL = False
 
+INTEGRATIONS = {}
+INTEGRATIONS["sms"] = {
+    "label": "SMS",
+    "adapter": "comms.sms.smsportal.SmsPortalGateway",
+    "config": {"api_key": CLIENT_ID, 
+               "api_secret": SMS_API_SECRET,
+               "sender_id": CLIENT_ID
+               },
+}
+
+"""
+INTEGRATIONS = {
+    # ... any existing entries ...
+
+    "sms": {
+        "label": "SMS",
+        "adapter": "comms.sms.gateways.smsportal.SmsPortalGateway",
+        "config": {
+            "api_key": CLIENT_ID,          # your existing SMSPortal API key setting
+            "api_secret": SMS_API_SECRET,  # your existing secret setting
+            "sender_id": SMS_SENDER_ID,    # optional — omit the line if you don't have one
+        },
+    },
+}
+"""
+
+INTEGRATIONS["document_analysis"] = {
+    "label": "Document analysis (OCR)",
+    "adapter": "integrations.verification.documents.ocr.TesseractDocumentAdapter",
+    "config": {"lang": "eng", "dpi": 300},
+}
+
+INTEGRATIONS["whatsapp"] = {
+    "label": "WhatsApp",
+    "adapter": None,   # no provider yet -> registry serves PendingMessagingAdapter
+}
