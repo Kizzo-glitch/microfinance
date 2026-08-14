@@ -28,16 +28,10 @@ urlpatterns = [
     path('notifications/mark-pending-loan-updates-read/', views.mark_pending_loan_update_notifications_read, name='mark_pending_loan_update_notifications_read'),
 
     # Side-bar notification
-    #path('mark_loan_approved_read/', views.mark_loan_approved_read, name='mark_loan_approved_read'),
     path('notification/read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'), 
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
 
     path('lender_notifications/', LenderNotificationListView.as_view(), name='lender_notifications'),
-
-
-    #path('applied_loans/', views.applied_loans, name='applied_loans'),
-    #path('process_loan_application/<int:loan_id>/process/', views.process_loan_application, name='process_loan_application'),
-
     path('loan-applications/', LoanApplicationListView.as_view(), name='loan-application-list'),
     path('loan-application/<int:pk>/update/', LoanApplicationUpdateView.as_view(), name='loan-application-update'),
     path('loan/<int:pk>/update-status/', LoanStatusUpdateView.as_view(), name='loan-status-update'),
@@ -52,15 +46,15 @@ urlpatterns = [
 
     path('loans/', LoanListView.as_view(), name='loan-list'),
 
-
     path('loan/<int:loan_id>/borrower-payment-history/', views.my_borrower_payment_history, name='my-borrower-payment-history'),
+    path('confirm-payment/<payment_id>/', views.confirm_payment, name='confirm-payment'),
+    path('reject-payment/<payment_id>/', views.reject_payment, name='reject-payment'),
 
 
     path("lender/risk-customers/<str:category>/", views.risk_customer_list, name="risk_customers"),
 
     path('lender/dashboard/repayments-data/', views.lender_repayment_data, name='lender_repayment_data'),
     path('lender/dashboard/loan-statuses-data/', views.lender_loan_status_data, name='lender_loan_status_data'),
-    #path("dashboard/risk-customers/<str:category>/", views.risk_customer_list, name="risk_customer_list"),
 
     path('my-clients/', views.my_clients, name='my_clients'),
     path('loan/<int:loan_id>/documents/', views.view_borrower_documents, name='view_borrower_documents'),

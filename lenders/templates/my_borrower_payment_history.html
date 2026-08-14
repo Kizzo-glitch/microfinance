@@ -13,8 +13,10 @@
         <p><strong>Outstanding Balance:</strong> R{{ outstanding_balance }}</p>
         <p><strong>Months Left:</strong> {{ months_left }}</p>
 
-        <h4 class="card-header">Payments</h4>
-        {% if payments %}
+        {% include '_lender_payments_section.html' with loan=loan payments=loan.payments.all %}
+
+        <!--<h4 class="card-header">Payments</h4>
+ 
         <table class="table" border="1">
             <tr>
                 <th>Date Paid</th>
@@ -30,11 +32,10 @@
                 <td>{{ payment.get_payment_method_display }}</td>
             </tr>
             {% endfor %}
-        </table>
+        </table>-->
     </div>
-    {% else %}
-    <p>No payments made yet.</p>
-    {% endif %}
-</div>
+
+
+
 
 {% endblock %}

@@ -591,7 +591,7 @@ def send_otp(request):
 	from_email = settings.EMAIL_HOST_USER
 	to_email = [borrower.email_address]
 
-	send_mail(subject, message, from_email, to_email, fail_silently=False, )
+	#send_mail(subject, message, from_email, to_email, fail_silently=False, )
 
 	return redirect('borrowers:verify_otp')
 
@@ -1777,6 +1777,7 @@ def loan_details(request, loan_id):
 	})
 
 
+
 @login_required
 def record_payment(request, loan_id):
     """Borrower submits a payment CLAIM. It does not settle the loan —
@@ -1802,7 +1803,7 @@ def record_payment(request, loan_id):
                     f"M{payment.amount} for loan {loan.reference_number} "
                     f"(ref {payment.reference}). Please confirm receipt."
                 ),
-                category="payment_claim",
+                category="loan_payment",
                 loan=loan,
             )
 

@@ -44,6 +44,22 @@ MESSAGES = {
         f"Hi {c['name']}, your loan application {c['ref']} has been started "
         f"via USSD. Open the Fedha-Grow app to add documents and complete it."
     ),
+
+    
+    "payment_confirmed": lambda c: (
+        f"Hi {c['name']}, your payment of {_m(c['amount'])} (ref {c['ref']}) has "
+        f"been confirmed by {c['lender']}."
+        + (" Your loan is now fully paid." if c.get('fully_paid') else "")
+    ),
+    "payment_rejected": lambda c: (
+        f"Hi {c['name']}, your payment claim of {_m(c['amount'])} (ref {c['ref']}) "
+        f"could not be confirmed. {c.get('reason', 'Please check the details')}. "
+        f"You can correct and resubmit it in the app."
+    ),
+    "payment_claimed": lambda c: (
+        f"Hi {c['name']}, we've recorded your payment claim of {_m(c['amount'])} "
+        f"(ref {c['ref']}). {c['lender']} will confirm once they verify receipt."
+    ),
 }
 
 

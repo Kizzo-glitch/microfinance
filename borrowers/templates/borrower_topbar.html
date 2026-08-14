@@ -132,9 +132,9 @@
                   </div>
                 </li>
 
-                <!-- Loan Payments Notification -->
+                <!-- Loan Pending Notification -->
                 <li class="nav-item dropdown no-arrow mx-1">
-                    <a class="nav-link dropdown-toggle" href="#" id="loanPaymentDropdown" role="button"
+                    <a class="nav-link dropdown-toggle" href="#" id="loanPendingDropdown" role="button"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <i class="fas fa-hourglass-half text-warning"></i>
                         <span class="badge badge-danger badge-counter">
@@ -142,7 +142,7 @@
                         </span>
                     </a>
                     <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                        aria-labelledby="loanPaymentDropdown">
+                        aria-labelledby="loanPendingDropdown">
                         <h6 class="dropdown-header">Pending Loan Notifications</h6>
 
                         {% if unread_loan_pending %}
@@ -161,6 +161,48 @@
                         <h6 class="dropdown-header">Read Notifications</h6>
                         {% if read_loan_pending %}
                             {% for notification in read_loan_pending %}
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        {{ notification.message }}
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No read notifications</a>
+                        {% endif %}
+                    </div>
+                </li>
+
+                <!-- Loan Payments Notification -->
+                 <li class="nav-item dropdown no-arrow mx-1">
+                    <a class="nav-link dropdown-toggle" href="#" id="loanPaymentDropdown" role="button"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-money-bill-wave text-primary"></i>
+                        <span class="badge badge-danger badge-counter">
+                            {{ unread_payment_update_count }}
+                        </span>
+                    </a>
+                    <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                        aria-labelledby="loanPaymentDropdown">
+                        <h6 class="dropdown-header">Loan Payment  Updates</h6>
+
+                        {% if unread_payment_update %}
+                            {% for notification in unread_payment_update %}
+                                <a class="dropdown-item d-flex align-items-center" href="#">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        <span class="font-weight-bold">{{ notification.message }}</span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No new notifications</a>
+                        {% endif %}
+                        
+                        <h6 class="dropdown-header">Read Notifications</h6>
+                        {% if read_payment_update %}
+                            {% for notification in read_payment_update %}
                                 <a class="dropdown-item d-flex align-items-center" href="#">
                                     <div>
                                         <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>

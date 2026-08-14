@@ -50,6 +50,7 @@ from django.template.loader import render_to_string
 from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
 from django.http import HttpResponse
 from compliance.models import ComplianceProfile, PersonnelProfile
+from comms.sms.service import send_sms   
 
 
 
@@ -476,11 +477,6 @@ class LenderNotificationListView(ListView):
 		]
 		return context
 
-
-"""
-def loan_application_success(request):
-	return render(request, 'loan_application_success.html', {})
-"""
 
 def my_loan_list(request):
 	lender_id = request.session.get('lender_id')
@@ -1070,26 +1066,78 @@ def applied_loans(request):
 		messages.error(request, "You do not have a Lender Profile. Please complete your profile first.")
 		return redirect('lenders:lender_index')
 
+
 # ==================
 # Borrower Payments
 # ==================
 @login_required
+@require_POST
 def confirm_payment(request, payment_id):
+    """Lender confirms receipt of a claimed payment. This settles it."""
+    lender = request.user.lender
     payment = get_object_or_404(
-        LoanPayment, id=payment_id,
-        loan__lender=request.user.lender,   # ownership: lender owns the loan
-        status="claimed",
+        LoanPayment, id=payment_id, loan__lender=lender, status="claimed"
     )
-    if request.method == "POST":
-        action = request.POST.get("action")
-        if action == "confirm":
-            payment.confirm(by_lender=request.user.lender)   # <-- moves the balance
-            # notify borrower: confirmed; if loan.is_fully_paid() -> settled msg
-        elif action == "reject":
-            payment.reject(by_lender=request.user.lender, reason=request.POST.get("reason", ""))
-            # notify borrower: claim rejected, please check
-        return redirect(...)
-    ...
+ 
+    payment.confirm(by_lender=lender)   # moves the balance (confirmed-only)
+    loan = payment.loan
+ 
+    # Notify the borrower their payment is confirmed.
+    fully = loan.is_fully_paid()
+    Notification.objects.create(
+        user=loan.borrower.user,
+        message=(
+            f"Your payment of M{payment.amount} (ref {payment.reference}) for loan "
+            f"{loan.reference_number} has been confirmed."
+            + (" Your loan is now fully paid." if fully else "")
+        ),
+        category="loan_payment",
+        loan=loan,
+    )
+    send_sms(loan.borrower.phone_number, 
+			 "payment_confirmed",
+             {"name": loan.borrower.full_name, "amount": payment.amount,
+              "ref": payment.reference}
+			  )
+ 
+    messages.success(request, f"Payment {payment.reference} confirmed.")
+    return redirect("lenders:my-borrower-payment-history", loan.id)
+ 
+ 
+@login_required
+@require_POST
+def reject_payment(request, payment_id):
+    """
+    Lender rejects a claimed payment (e.g. not received, wrong reference).
+    The borrower can then edit and resubmit — this does NOT delete the record.
+    """
+    lender = request.user.lender
+    payment = get_object_or_404(
+        LoanPayment, id=payment_id, loan__lender=lender, status="claimed"
+    )
+ 
+    reason = (request.POST.get("reason") or "").strip()
+    payment.reject(by_lender=lender, reason=reason)
+    loan = payment.loan
+ 
+    Notification.objects.create(
+        user=loan.borrower.user,
+        message=(
+            f"Your payment claim of M{payment.amount} (ref {payment.reference}) for "
+            f"loan {loan.reference_number} could not be confirmed. "
+            f"{('Reason: ' + reason + '. ') if reason else ''}"
+            f"Please check the details and resubmit."
+        ),
+        category="loan_payment",
+        loan=loan,
+    )
+    send_sms(loan.borrower.phone_number, "payment_rejected",
+              {"name": loan.borrower.full_name, "amount": payment.amount,
+               "ref": payment.reference, "reason": reason or "details did not match"})
+ 
+    messages.info(request, f"Payment {payment.reference} rejected. The borrower can correct and resubmit.")
+    return redirect("lenders:my-borrower-payment-history", loan.id)
+
 
 def borrower_payment_history(request, borrower_id):
 	borrower_loans = Loan.objects.filter(borrower_id=borrower_id)

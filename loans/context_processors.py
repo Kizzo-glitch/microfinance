@@ -10,7 +10,7 @@ from django.db.models import Q
 def topbar_notifications(request):
 	if request.user.is_authenticated and hasattr(request.user, 'lender'):
 		
-		# Filter notifications by type
+		# Unread notifications
 		unread_loan_applications = Notification.objects.filter(category="loan_application", is_read=False, user=request.user).order_by('-date_created')
 		unread_loan_payments = Notification.objects.filter(category="loan_payment", is_read=False, user=request.user).order_by('-date_created')
 
@@ -19,31 +19,14 @@ def topbar_notifications(request):
 		read_loan_payments = Notification.objects.filter(category="loan_payment", is_read=True, user=request.user).order_by('-date_created')
 	
 		return {
-
 			'unread_loan_applications': unread_loan_applications,
 			'unread_loan_payments': unread_loan_payments,
-			#'unread_loan_approved': unread_loan_approved,
-
 			'unread_loan_applications_count': unread_loan_applications.count(),
 			'unread_loan_payments_count': unread_loan_payments.count(),
-			#'unread_loan_approved_count': unread_loan_approved.count(),
-
 			'read_loan_applications': read_loan_applications,
 			'read_loan_payments': read_loan_payments,
-			#'read_loan_approved': read_loan_approved,
-
-			#'read_loan_approved_count': read_loan_approved.count(),
-
-
-			#'notifications': notifications,
-			#'unread_notifications': unread_notifications,
-			#'read_notifications': read_notifications,
-			#'unread_count': unread_count,
-			#'read_count': read_count,
 		}
 	return {}
-
-
 
 def pending_loan_update_notifications(request):
 	if request.user.is_authenticated and hasattr(request.user, 'lender'):
@@ -59,34 +42,42 @@ def pending_loan_update_notifications(request):
 			is_read=True
 		).select_related('loan_application', 'loan_application__borrower').order_by('-date_created')
 
-		'''grouped_unread = defaultdict(list)
-		for note in notifications:
-			if note.loan_application and note.loan_application.borrower:
-				borrower_name = note.loan_application.borrower.user.get_full_name()
-			else:
-				borrower_name = "Unknown Borrower"
-			grouped_unread[borrower_name].append(note)
-
-		grouped_read = defaultdict(list)
-		for note in read_notifications:
-			if note.loan_application and note.loan_application.borrower:
-				borrower_name = note.loan_application.borrower.full_name
-			else:
-				borrower_name = "Unknown Borrower"
-			grouped_read[borrower_name].append(note)'''
-
 		return {
 			'unread_loan_pending': unread_notifications,
 			'unread_loan_pending_count': unread_notifications.count(),
 			'read_loan_pending': read_notifications,
-			#'grouped_pending_loan_updates': grouped_unread,
-			#'unread_pending_loan_updates_count': notifications.count(),
-			#'read_loan_update_notifications': grouped_read,
 		}
 	return {}
 
 
+def borrower_notifications(request):
+    if request.user.is_authenticated and hasattr(request.user, 'borrower'):
+        User = request.user
 
+        def unread(cat): return Notification.objects.filter(user=User, category=cat, is_read=False).order_by('-date_created')
+        def read(cat):   return Notification.objects.filter(user=User, category=cat, is_read=True).order_by('-date_created')
+
+        return {
+            'unread_loan_approved': unread('loan_approved')[:3],
+            'read_loan_approved':   read('loan_approved')[:3],
+            'unread_loan_approved_count': unread('loan_approved').count(),
+
+            'unread_loan_rejected': unread('loan_rejected')[:3],
+            'read_loan_rejected':   read('loan_rejected')[:3],
+            'unread_loan_rejected_count': unread('loan_rejected').count(),
+
+            'unread_loan_pending': unread('loan_pending')[:3],
+            'read_loan_pending':   read('loan_pending')[:3],
+            'unread_loan_pending_count': unread('loan_pending').count(),
+
+            # NEW — payment outcomes (confirmed / rejected)
+            'unread_payment_update': unread('payment_update')[:3],
+            'read_payment_update':   read('payment_update')[:3],
+            'unread_payment_update_count': unread('payment_update').count(),
+        }
+    return {}
+
+"""
 def borrower_notifications(request):
 	if request.user.is_authenticated and hasattr(request.user, 'borrower'):
 		borrower = request.user.borrower
@@ -134,8 +125,7 @@ def borrower_notifications(request):
 		}
 
 	return {}
-
-
+"""
 
 
 

@@ -2,8 +2,73 @@
 {% load static %}
 
 {% block content %}
-
 <div class="container-fluid">
+    <h2>Report a Payment for Loan #{{ loan.id }}</h2>
+
+    <p>Loan Reference: {{ loan.reference_number }} | Total Repayable: M{{ loan.total_repayable }}</p>
+    <p><strong>Monthly Payment:</strong> M{{ loan.monthly_installment }}</p>
+    <p><strong>Outstanding Balance:</strong> M{{ loan.outstanding_balance }}
+       <small class="text-muted">(reflects confirmed payments only)</small></p>
+
+    {% if loan.total_pending_claims %}
+        <div class="alert alert-warning">
+            You have <strong>M{{ loan.total_pending_claims }}</strong> in payment(s)
+            awaiting {{ loan.lender.company_name }}'s confirmation. These aren't
+            reflected in your balance until the lender confirms receipt.
+        </div>
+    {% endif %}
+
+    {% if loan.outstanding_balance == 0 %}
+        <p class="text-success"><strong>This loan is fully paid. No further payments are required.</strong></p>
+    {% else %}
+        <div class="alert alert-info">
+            Pay {{ loan.lender.company_name }} using your usual method (bank, M-Pesa,
+            EcoCash or cash), then report it here with your transaction reference and
+            proof. The lender confirms receipt — your balance updates once they do.
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="js-lock-on-submit">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <label for="id_amount">Amount paid (M):</label>
+                {{ form.amount }}
+                {% if form.amount.errors %}<small class="text-danger">{{ form.amount.errors|striptags }}</small>{% endif %}
+            </div>
+            <br>
+            <div class="form-group">
+                <label for="id_method">How did you pay?</label>
+                {{ form.method }}
+            </div>
+            <br>
+            <div class="form-group">
+                <label for="id_external_reference">Your transaction reference:</label>
+                {{ form.external_reference }}
+                <small class="text-muted">The reference from your bank or mobile-money
+                    payment. Helps the lender match it quickly.</small>
+            </div>
+            <br>
+            <div class="form-group">
+                <label for="id_proof">Proof of payment:</label>
+                {{ form.proof }}
+                <small class="text-muted">Screenshot, receipt, or statement showing the payment.</small>
+            </div>
+            <br><br>
+            <button type="submit" class="btn btn-primary" data-loading-text="Submitting…">
+                Submit payment claim
+            </button>
+        </form>
+    {% endif %}
+
+    <a href="{% url 'borrowers:loan-details' loan.id %}" class="btn btn-secondary mt-3">Back to Loan Details</a>
+</div>
+
+<style>
+    .form-control::placeholder { color: #999; font-style: italic; }
+    label { display: block; margin-bottom: 5px; font-weight: bold; }
+</style>
+
+<!--<div class="container-fluid">
     <h2>Record Payment for Loan #{{ loan.id }}</h2>
 
     <p>Loan Reference: {{ loan.reference_number }} | Total Repayable: R{{ loan.total_repayable }}</p>
@@ -51,7 +116,7 @@
         margin-bottom: 5px;
         font-weight: bold;
     }
-</style>
+</style>-->
 
 
 {% endblock %}

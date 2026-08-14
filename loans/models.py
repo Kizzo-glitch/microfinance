@@ -467,46 +467,12 @@ class LoanPayment(models.Model):
 		return self.date_paid.date() > (expected_due + timedelta(days=grace_days)).date()
 
 
-"""
-class LoanPayment(models.Model):
-	PAYMENT_CHOICES = [
-		('bank_account', 'Bank Account'),
-		('mpesa', 'Mpesa'),
-		('cash', 'Cash'),
-	]
-
-	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE)
-	loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name='payments')
-	amount = models.DecimalField(max_digits=12, decimal_places=2)
-	date_paid = models.DateTimeField(default=timezone.now)
-	payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES, default='')
-
-	def __str__(self):
-		return f"Payment of R{self.amount} for Loan {self.loan.id} on {self.date_paid.date()}"
-
-	@staticmethod
-	def get_total_paid(loan):
-		# Get total amount paid towards a loan.
-		return loan.payments.aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-
-	def save(self, *args, **kwargs):
-		# Update loan outstanding balance on payment.
-		super().save(*args, **kwargs)
-		self.loan.update_outstanding_balance()
-
-
-	def was_late_payment(self):
-		# Returns True if payment was made more than 7 days after due date.
-		expected_due = self.loan.date_created + timedelta(days=30 * self.loan.payments.count())
-		grace_period = expected_due + timedelta(days=7)
-		return self.date_paid.date() > grace_period
-"""
-
 
 class Notification(models.Model):
 	CATEGORY_CHOICES = [
 		('loan_application', 'Loan Application'),
 		('loan_payment', 'Loan Payment'),
+		('payment_update', 'Payment Update'),
 		('loan_approved', 'Loan Approved'),
 		('loan_rejected', 'Loan Rejected'),
 		
