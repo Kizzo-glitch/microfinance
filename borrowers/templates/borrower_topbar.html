@@ -90,9 +90,9 @@
                     </div>
                 </li>
 
-
-                    <li class="nav-item dropdown no-arrow mx-1">
-                    <a class="nav-link dropdown-toggle" href="#" id="pendingLoanUpdateDropdown" role="button"
+                <!-- Loan Rejected Notification -->
+                <li class="nav-item dropdown no-arrow mx-1">
+                    <a class="nav-link dropdown-toggle" href="#" id="loanRejectedDropdown" role="button"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <i class="fas fa-thumbs-down text-danger"></i>
                         <span class="badge badge-danger badge-counter">
@@ -100,7 +100,7 @@
                         </span>
                     </a>
                     <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                        aria-labelledby="pendingLoanUpdateDropdown">
+                        aria-labelledby="loanRejectedDropdown">
                         <h6 class="dropdown-header">Rejected Loan Notifications</h6>
 
                         {% if unread_loan_rejected %}
@@ -174,9 +174,9 @@
                     </div>
                 </li>
 
-                <!-- Loan Payments Notification -->
+                <!-- Loan Payments Update Notification -->
                  <li class="nav-item dropdown no-arrow mx-1">
-                    <a class="nav-link dropdown-toggle" href="#" id="loanPaymentDropdown" role="button"
+                    <a class="nav-link dropdown-toggle" href="#" id="loanPaymentUpdateDropdown" role="button"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         <i class="fas fa-money-bill-wave text-primary"></i>
                         <span class="badge badge-danger badge-counter">
@@ -184,7 +184,7 @@
                         </span>
                     </a>
                     <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
-                        aria-labelledby="loanPaymentDropdown">
+                        aria-labelledby="loanPaymentUpdateDropdown">
                         <h6 class="dropdown-header">Loan Payment  Updates</h6>
 
                         {% if unread_payment_update %}
@@ -302,8 +302,7 @@
             }
         });
     });
-
-    document.getElementById('loanPaymentDropdown').addEventListener('click', function () {
+    document.getElementById('loanRejectedDropdown').addEventListener('click', function () {
         fetch("{% url 'borrowers:mark_loan_rejected_read' %}", {
             method: 'POST',
             headers: {
@@ -316,6 +315,7 @@
             }
         });
     });
+    
 
     document.getElementById('pendingLoanUpdateDropdown').addEventListener('click', function () {
         fetch("{% url 'borrowers:mark_loan_pending_read' %}", {
@@ -327,6 +327,20 @@
         .then(data => {
             if (data.success) {
                 console.log("Pending loan update notifications marked as read");
+            }
+        });
+    });
+
+    document.getElementById('loanPaymentUpdateDropdown').addEventListener('click', function () {
+        fetch("{% url 'borrowers:mark_payment_update_read' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            }
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log("Loan payment updates notifications marked as read");
             }
         });
     });

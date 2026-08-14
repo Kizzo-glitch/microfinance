@@ -570,7 +570,9 @@ def rate_lender(request, lender_id):
 			messages.error(request, "Invalid rating. Please select a value between 1 and 5.")
 		return redirect('borrowers:lender_details', lender_id=lender.id)
 
-
+# =======================================
+# Start of Application Process Views
+# =======================================
 
 def send_otp(request):
 	borrower = request.user.borrower
@@ -763,10 +765,6 @@ def upload_documents_employed(request):
 	else:
 		form = EmployedDocumentsForm()
 
-	# Preload already uploaded docs
-	#existing_docs = BorrowerDocs.objects.filter(borrower=borrower, loan_application=loan_app)
-	#uploaded_map = {doc.document_type: doc for doc in existing_docs}
-
 	docs_qs = BorrowerDocs.objects.filter(
 		borrower=borrower,
 		loan_application=loan_app
@@ -779,7 +777,9 @@ def upload_documents_employed(request):
 
 	})
 
-
+# ======================================
+# Start of documents uploads
+#=======================================
 @login_required
 def upload_documents_self_employed(request):
 	borrower = request.user.borrower
@@ -835,7 +835,6 @@ def upload_documents_self_employed(request):
 			else:
 				loan_app.current_stage = "affordability"
 				loan_app.save(update_fields=["current_stage"])
-				#return redirect("update_expenses")
 				return JsonResponse({'success': 'Documents uploaded successfully!', 'redirect_url': '/borrowers/update-expenses/'})
 
 		else:
@@ -993,8 +992,8 @@ def update_expenses(request):
 	})
 
 
-
-
+# =============================================
+# Loan Application Submission
 @login_required
 def loan_application(request):
 	try:
@@ -1340,7 +1339,9 @@ def abandon_draft(request, application_id):
 	return redirect("borrowers:borrower_index")
 
 
-	
+# ==========================================
+# Resume Application
+# =========================================	
 
 @login_required
 def resume_application(request, app_id):
@@ -1389,6 +1390,11 @@ def delete_draft_application(request, pk):
 
 	return redirect('borrowers:borrower_index')
 
+
+# =============================================
+# documents seeing
+# =============================================
+
 @login_required
 def view_documents(request):
 	borrower = request.user.borrower
@@ -1431,7 +1437,9 @@ def pending_loan_application(request):
 		'pending_loan': pending_loan
 	})
 
-
+# =========================================
+# Loan updates
+# =========================================
 
 def update_loan_application(request, application_id):
 	application = get_object_or_404(LoanApplication, id=application_id, borrower__user=request.user)
@@ -1580,7 +1588,9 @@ def delete_loan_application(request, application_id):
 
 
 
-
+# ========================
+# Calculations
+# ========================
 
 def calculate_first_and_next_payment_dates(loan):
 		pay_day = loan.borrower.pay_day or 1  # default to 1st if not set
@@ -1619,8 +1629,9 @@ def calculate_adjusted_payment(loan):
 		return recalculate_simple(loan, months_missed)
 
 
-
+# ===========================
 # Top-bar notifications
+# ===========================
 def mark_loan_approved_read(request):
 	Notification.objects.filter(category="loan_approved", is_read=False).update(is_read=True)
 	return JsonResponse({"success": True})
@@ -1635,6 +1646,9 @@ def mark_loan_pending_read(request):
 	Notification.objects.filter(category="loan_pending", is_read=False).update(is_read=True)
 	return JsonResponse({"success": True})
 
+def mark_payment_update_read(request):
+	Notification.objects.filter(category="payment_update", is_read=False).update(is_read=True)
+	return JsonResponse({"success": True})
 
 
 # Remember to add this to individual clicks of notification
@@ -1653,11 +1667,14 @@ def mark_notification_read(request, notification_id):
 
 	return redirect('borrowers:notifications')
 
+
 @require_POST
 @login_required
 def mark_all_notifications_read(request):
 	request.user.notifications.filter(is_read=False).update(is_read=True)
 	return JsonResponse({'status': 'success'})
+
+
 
 
 def loan_application_success(request):

@@ -1078,32 +1078,39 @@ def confirm_payment(request, payment_id):
     payment = get_object_or_404(
         LoanPayment, id=payment_id, loan__lender=lender, status="claimed"
     )
- 
+
     payment.confirm(by_lender=lender)   # moves the balance (confirmed-only)
     loan = payment.loan
- 
+
     # Notify the borrower their payment is confirmed.
     fully = loan.is_fully_paid()
     Notification.objects.create(
         user=loan.borrower.user,
+        category="payment_update",      
         message=(
             f"Your payment of M{payment.amount} (ref {payment.reference}) for loan "
             f"{loan.reference_number} has been confirmed."
             + (" Your loan is now fully paid." if fully else "")
         ),
-        category="loan_payment",
         loan=loan,
     )
-    send_sms(loan.borrower.phone_number, 
-			 "payment_confirmed",
-             {"name": loan.borrower.full_name, "amount": payment.amount,
-              "ref": payment.reference}
-			  )
- 
+
+    send_sms(
+        loan.borrower.phone_number,
+        "payment_confirmed",
+        {
+            "name": loan.borrower.full_name,
+            "amount": payment.amount,
+            "lender": loan.lender.company_name,
+            "ref": payment.reference,
+            "fully_paid": fully,        # so the SMS can add "fully paid" too
+        },
+    )
+
     messages.success(request, f"Payment {payment.reference} confirmed.")
-    return redirect("lenders:my-borrower-payment-history", loan.id)
+    return redirect("lenders:approved-loans")
  
- 
+
 @login_required
 @require_POST
 def reject_payment(request, payment_id):
@@ -1136,7 +1143,7 @@ def reject_payment(request, payment_id):
                "ref": payment.reference, "reason": reason or "details did not match"})
  
     messages.info(request, f"Payment {payment.reference} rejected. The borrower can correct and resubmit.")
-    return redirect("lenders:my-borrower-payment-history", loan.id)
+    return redirect("lenders:approved-loans")
 
 
 def borrower_payment_history(request, borrower_id):
