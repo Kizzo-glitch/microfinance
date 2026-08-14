@@ -4,9 +4,6 @@ Fedha-Grow — integrations status view
 =====================================
 A read-only panel showing each integration category and whether a live provider
 is connected. Backed by registry.provider_status(). Staff-only.
-
-Mount in integrations/urls.py:
-    path("status/", views.integration_status, name="integration_status"),
 """
 
 from django.contrib.admin.views.decorators import staff_member_required
@@ -15,12 +12,10 @@ from django.shortcuts import render
 from .registry import provider_status
 
 
-# Group categories the way the interoperability slide does, so the panel reads
-# the same way the CBL saw it.
 _GROUPS = [
     ("Verification", ["credit_bureau", "government_identity", "document_analysis"]),
     ("Payments",     ["mobile_money", "bank", "payment_provider"]),
-    ("Messaging",    ["sms", "whatsapp"]),
+    ("Messaging",    ["sms", "whatsapp", "ussd"]),
 ]
 
 

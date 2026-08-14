@@ -22,15 +22,12 @@
         <h2>Loan Details</h2>
         
         <div class="card p-3">
+            <p><strong>Loan Reference:</strong> {{ loan.reference_number }}</p>
             <p><strong>Loan Amount:</strong> R{{ loan.amount }}</p>
             <p><strong>Loan Term:</strong> {{ loan.loan_term }} Months</p>
             <p><strong>First Payment:</strong> R{{ loan.first_payment|floatformat:2 }}</p>
             <p><strong>Total Repayable:</strong> R{{ loan.total_repayable }}</p>
-            <!--<p><strong>Status:</strong> 
-                <span class="badge {% if loan.status == 'approved' %}badge-success{% elif loan.status == 'pending' %}badge-warning{% else %}badge-danger{% endif %}">
-                    {{ loan.status|title }}
-                </span>
-            </p>-->
+ 
             <p><strong>Due Date:</strong> {{ loan.due_date }}</p>
             <p><strong>Outstanding Balance:</strong> R{{ outstanding_balance }}</p>
         </div>
@@ -63,7 +60,7 @@
         {% else %}
         <a href="{% url 'borrowers:record-payment' loan.id %}" class="btn btn-success mt-3">Record Payment</a>
         {% endif %}
-        <a href="{% url 'borrowers:my-loan-list' %}" class="btn btn-primary mt-3">Back to Loans</a>
+        <a href="{% url 'borrowers:my_active_loans' %}" class="btn btn-primary mt-3">Back to Loans</a>
     </div>
 
 

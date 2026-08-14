@@ -25,6 +25,7 @@ Example settings block:
 adapter=None (or a missing/blank config) => PendingAdapter for that category.
 """
 
+
 from django.conf import settings
 from django.utils.module_loading import import_string
 
@@ -37,7 +38,7 @@ from .messaging.pending import PendingMessagingAdapter
 # Category -> which base shape it uses.
 _VERIFICATION_CATEGORIES = {"credit_bureau", "government_identity", "document_analysis"}
 _PAYMENT_CATEGORIES = {"mobile_money", "bank", "payment_provider"}
-_MESSAGING_CATEGORIES = {"sms", "whatsapp"}
+_MESSAGING_CATEGORIES = {"sms", "whatsapp", "ussd"}
 
 # Sensible default labels if settings doesn't override them.
 _DEFAULT_LABELS = {

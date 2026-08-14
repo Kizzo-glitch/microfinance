@@ -562,12 +562,12 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 							f"for M{loan_amount} has been approved.",
 					category="loan_approved",
 				)
-				send_sms(
-					phone_number,
-					"loan_approved",
-					{"name": borrower_user.full_name, "amount": loan_amount,
-					 "lender": loan_application.lender.company_name},
-				)
+				send_sms(phone_number, "loan_approved", {
+					"name": borrower_user.full_name, "amount": loan_amount,
+					"lender": loan_application.lender.company_name,
+					"ref": loan_application.reference_number})
+
+
 				"""
 				Notification.objects.create(
 					user=borrower_user.user,
@@ -588,11 +588,10 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 							f"Reasons: {reasons}",
 					category="loan_rejected",
 				)
-				send_sms(
-					phone_number,
-					"loan_rejected",
-					{"name": borrower_user.full_name, "amount": loan_amount,
-					 "lender": loan_application.lender.company_name, "reasons": reasons},)
+				send_sms(phone_number, "loan_rejected", {
+					"name": borrower_user.full_name, "amount": loan_amount,
+					"lender": loan_application.lender.company_name,
+					"reasons": reasons, "ref": loan_application.reference_number})
 	
  
 			elif loan_application.status == "pending":
@@ -603,12 +602,10 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 							f"is pending. Reasons: {reasons}",
 					category="loan_pending",
 				)
-				send_sms(
-					phone_number,
-					"loan_pending",
-					{"name": borrower_user.full_name, "amount": loan_amount,
-					 "lender": loan_application.lender.company_name, "reasons": reasons},
-				)
+				send_sms(phone_number, "loan_pending", {
+					"name": borrower_user.full_name, "amount": loan_amount,
+					"lender": loan_application.lender.company_name,
+					"reasons": reasons, "ref": loan_application.reference_number})
  
 		loan_application.save()
 		form.save_m2m()
@@ -1076,6 +1073,24 @@ def applied_loans(request):
 # ==================
 # Borrower Payments
 # ==================
+@login_required
+def confirm_payment(request, payment_id):
+    payment = get_object_or_404(
+        LoanPayment, id=payment_id,
+        loan__lender=request.user.lender,   # ownership: lender owns the loan
+        status="claimed",
+    )
+    if request.method == "POST":
+        action = request.POST.get("action")
+        if action == "confirm":
+            payment.confirm(by_lender=request.user.lender)   # <-- moves the balance
+            # notify borrower: confirmed; if loan.is_fully_paid() -> settled msg
+        elif action == "reject":
+            payment.reject(by_lender=request.user.lender, reason=request.POST.get("reason", ""))
+            # notify borrower: claim rejected, please check
+        return redirect(...)
+    ...
+
 def borrower_payment_history(request, borrower_id):
 	borrower_loans = Loan.objects.filter(borrower_id=borrower_id)
 	
@@ -1083,7 +1098,8 @@ def borrower_payment_history(request, borrower_id):
 		loan.remaining_months = loan.remaining_months()
 		loan.outstanding_balance = loan.outstanding_balance()
 		loan.monthly_installment = loan.monthly_installment
-		loan.payment_history = loan.payments.all().order_by("-date_paid")
+		#loan.payment_history = loan.payments.all().order_by("-date_paid")
+		loan.payment_history = loan.payments.filter(status="confirmed").all().order_by("-date_paid")
 
 	return render(request, 'borrower_payment_history.html', {'loans': borrower_loans})
 
@@ -1180,7 +1196,7 @@ def credit_reports(request):
 		total_loans = loans.count()
 		total_borrowed = loans.aggregate(Sum('amount'))['amount__sum'] or 0
 		outstanding_balance = loans.aggregate(Sum('outstanding_balance'))['outstanding_balance__sum'] or 0
-		total_paid = payments.aggregate(Sum('amount'))['amount__sum'] or 0
+		total_paid = payments.filter(status="confirmed").aggregate(Sum('amount'))['amount__sum'] or 0
 		missed_payments = payments.filter(on_time=False).count()  # adjust if you have late logic
 		repayment_rate = (total_paid / total_borrowed) * 100 if total_borrowed else 0
 

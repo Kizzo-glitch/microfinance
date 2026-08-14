@@ -55,7 +55,7 @@ def get_loans_by_risk_category(category):
 	elif category == "late":
 		late_loans = []
 		for loan in Loan.objects.filter(status="ongoing"):
-			for payment in loan.payments.all():
+			for payment in loan.payments.filter(status="confirmed").all():
 				if payment.date_paid.date() > (loan.due_date + grace_period):
 					late_loans.append(loan.id)
 					break

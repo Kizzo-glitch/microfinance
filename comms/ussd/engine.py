@@ -63,13 +63,18 @@ class UssdMenuEngine:
     remember, end) — kept duck-typed so it's testable without Django.
     """
 
-    def __init__(self, *, borrower_lookup=None, lender_lookup=None):
+    def __init__(self, *, borrower_lookup=None, lender_lookup=None,
+                 status_lookup=None, balance_lookup=None):
         # Injected callables so the engine has no hard Django import and is
         # unit-testable. In production the view passes real ones.
         #   borrower_lookup(phone) -> borrower-or-None
         #   lender_lookup() -> iterable of (id, name) for participating lenders
+        #   status_lookup(borrower) -> short status string or None
+        #   balance_lookup(borrower) -> Decimal/str outstanding balance or None
         self.borrower_lookup = borrower_lookup or (lambda phone: None)
         self.lender_lookup = lender_lookup or (lambda: [])
+        self.status_lookup = status_lookup or (lambda borrower: None)
+        self.balance_lookup = balance_lookup or (lambda borrower: None)
 
     def handle(self, session, text: str) -> UssdReply:
         text = (text or "").strip()
@@ -203,8 +208,7 @@ class UssdMenuEngine:
         if not borrower:
             return _end("We couldn't find an account for this number. "
                         "Please register on the Fedha-Grow app first.")
-        # The view injects a richer status; here we keep the engine generic.
-        status = session.context.get("latest_status")
+        status = self.status_lookup(borrower)
         if status:
             return _end(f"Your latest application status: {status}.")
         return _end("You have no active applications on record.")
@@ -213,7 +217,7 @@ class UssdMenuEngine:
         borrower = self.borrower_lookup(session.phone_number)
         if not borrower:
             return _end("We couldn't find an account for this number.")
-        balance = session.context.get("outstanding_balance")
+        balance = self.balance_lookup(borrower)
         if balance is None:
             return _end("You have no outstanding balance on record.")
         return _end(f"Your outstanding balance is M{balance}.")

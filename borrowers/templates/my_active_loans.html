@@ -2,12 +2,14 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2 class="mb-4">Summary Active Loans</h2>
+    <div class="card-header bg-primary text-white">
+        <h2 class="mb-4 text-white">Summary Active Loans</h2>
+    </div>
 
     {% if active_loans %}
         <div class="table-responsive">
             <table class="table table-bordered table-hover">
-                <thead class="table-dark">
+                <thead class="table-secondary">
                     <tr>
                         <th>Lender</th>
                         <th>Amount</th>
@@ -25,10 +27,10 @@
                     {% for loan in active_loans %}
                         <tr>
                             <td>{{ loan.lender.company_name }}</td>
-                            <td>R {{ loan.amount }}</td>
+                            <td>M {{ loan.amount }}</td>
                             <td>{{ loan.interest_rate }}%</td>
-                            <td>R {{ loan.total_repayable }}</td>
-                            <td>R {{ loan.outstanding_balance }}</td>
+                            <td>M {{ loan.total_repayable }}</td>
+                            <td>M {{ loan.outstanding_balance }}</td>
                             <td>{{ loan.loan_term }} months</td>
                             <td>{{ loan.due_date|date:"M d, Y" }}</td>
                             <td>
@@ -59,7 +61,8 @@
     {% for loan in active_loans %}
     <div class="card mb-4 p-3 shadow-sm">
         <h5>Lender: {{ loan.lender.company_name }}</h5>
-         <h5>Loan #{{ loan.id }} - R{{ loan.amount }}</h5>
+         <h5>Loan #{{ loan.id }} - Amount: M{{ loan.amount }}</h5>
+         <h5>Loan Reference: {{ loan.reference_number }}</h5>
         <p><strong>Total Repayable:</strong> R{{ loan.total_repayable }}</p>
         <p><strong>Outstanding Balance:</strong> R{{ loan.outstanding_balance }}</p>
         <p><strong>Monthly Installment:</strong> R{{ loan.monthly_installment }}</p>

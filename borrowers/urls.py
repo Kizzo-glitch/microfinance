@@ -41,7 +41,6 @@ urlpatterns = [
     
     path('apply-loan-list/', views.apply_for_loan_list, name='apply-for-loan-list'),
     
-
     path('pending-loan/', views.pending_loan_application, name='pending_loan'),
     path('update-application/<int:application_id>/', views.update_loan_application, name='update_loan_application'),
     path('update-documents/<int:loan_id>/', views.update_documents, name='update_documents'),

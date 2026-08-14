@@ -219,6 +219,7 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
 EMAIL_USE_SSL = False
 
 INTEGRATIONS = {}
+
 INTEGRATIONS["sms"] = {
     "label": "SMS",
     "adapter": "comms.sms.smsportal.SmsPortalGateway",
@@ -228,21 +229,6 @@ INTEGRATIONS["sms"] = {
                },
 }
 
-"""
-INTEGRATIONS = {
-    # ... any existing entries ...
-
-    "sms": {
-        "label": "SMS",
-        "adapter": "comms.sms.gateways.smsportal.SmsPortalGateway",
-        "config": {
-            "api_key": CLIENT_ID,          # your existing SMSPortal API key setting
-            "api_secret": SMS_API_SECRET,  # your existing secret setting
-            "sender_id": SMS_SENDER_ID,    # optional — omit the line if you don't have one
-        },
-    },
-}
-"""
 
 INTEGRATIONS["document_analysis"] = {
     "label": "Document analysis (OCR)",
@@ -252,5 +238,10 @@ INTEGRATIONS["document_analysis"] = {
 
 INTEGRATIONS["whatsapp"] = {
     "label": "WhatsApp",
+    "adapter": None,   # no provider yet -> registry serves PendingMessagingAdapter
+}
+
+INTEGRATIONS["ussd"] = {
+    "label": "USSD",
     "adapter": None,   # no provider yet -> registry serves PendingMessagingAdapter
 }

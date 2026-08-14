@@ -196,8 +196,6 @@ class LoanApplicationForm(forms.ModelForm):
 
 
 
-
-
 EMPLOYMENT_EXPENSE_TYPES = {
 	'employed': [
 		#'Net Income',
@@ -265,11 +263,26 @@ ExpenseFormSet = modelformset_factory(ExpenseAnalysis, form=ExpenseForm, extra=1
 
 
 
+class LoanPaymentClaimForm(forms.ModelForm):
+    class Meta:
+        model = LoanPayment
+        fields = ['amount', 'method', 'external_reference', 'proof']
+        widgets = {
+            'external_reference': forms.TextInput(attrs={
+                'placeholder': 'Your bank / M-Pesa transaction reference'}),
+        }
 
+    def clean_amount(self):
+        amount = self.cleaned_data['amount']
+        if amount <= 0:
+            raise forms.ValidationError("Amount must be greater than zero.")
+        return amount
+
+# To be deleted
 class LoanPaymentForm(forms.ModelForm):
 	class Meta:
 		model = LoanPayment
-		fields = ['amount', 'payment_method']
+		fields = ['amount']
 
 
 

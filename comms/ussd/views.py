@@ -54,6 +54,37 @@ def _lender_lookup():
         return []
 
 
+def _status_lookup(borrower):
+    """Most recent application's status for this borrower, as a short label."""
+    try:
+        from loans.models import LoanApplication
+        app = (LoanApplication.objects
+               .filter(borrower=borrower, is_deleted=False)
+               .order_by("-date_applied")
+               .first())
+        if not app:
+            return None
+        # Include the reference so the borrower can quote it.
+        label = app.get_status_display() if hasattr(app, "get_status_display") else app.status
+        ref = getattr(app, "reference_number", None)
+        return f"{label} ({ref})" if ref else label
+    except Exception:
+        return None
+
+
+def _balance_lookup(borrower):
+    """Total outstanding balance across the borrower's active loans."""
+    try:
+        from django.db.models import Sum
+        from loans.models import Loan
+        total = (Loan.objects
+                 .filter(borrower=borrower, outstanding_balance__gt=0)
+                 .aggregate(total=Sum("outstanding_balance"))["total"])
+        return total if total else None
+    except Exception:
+        return None
+
+
 @csrf_exempt          # the gateway can't send our CSRF token; authenticate by source instead
 @require_POST
 def ussd_callback(request):
@@ -77,6 +108,8 @@ def ussd_callback(request):
     engine = UssdMenuEngine(
         borrower_lookup=_borrower_lookup,
         lender_lookup=_lender_lookup,
+        status_lookup=_status_lookup,
+        balance_lookup=_balance_lookup,
     )
     reply = engine.handle(session, _latest_input(text))
 
@@ -94,25 +127,62 @@ def ussd_callback(request):
 
 def _dispatch_application(session):
     """
-    Bridge from a USSD-initiated application to the normal loan pipeline.
-    Deliberately thin and isolated: create/queue a draft LoanApplication from
-    the gathered context, then let the existing affordability + review flow run.
-    Kept in one place so wiring it to your real models is a single edit.
+    Bridge a completed USSD session into the normal loan pipeline: create a
+    draft LoanApplication from the gathered context so it flows into the same
+    affordability + lender-review process as an app-originated application.
+
+    Fails safe: any error is swallowed so it never breaks the USSD response.
     """
     try:
-        # from loans.models import LoanApplication
-        # ctx = session.context
-        # LoanApplication.objects.create(
-        #     borrower=_borrower_lookup(session.phone_number),
-        #     lender_id=ctx["chosen_lender"]["id"],
-        #     loan_amount=ctx["amount"],
-        #     loan_term=ctx["term"],
-        #     status="draft",
-        #     source="ussd",
-        #     reference_number=ctx.get("application_ref"),
-        # )
-        # Then trigger an SMS with the app link / document upload step.
-        pass
+        from loans.models import LoanApplication
+        from borrowers.models import BorrowerProfile
+
+        ctx = session.context
+        borrower = BorrowerProfile.objects.filter(
+            phone_number=session.phone_number
+        ).first()
+        if not borrower:
+            return
+
+        chosen = ctx.get("chosen_lender") or {}
+        lender_id = chosen.get("id")
+        if not lender_id:
+            return
+
+        # Don't create a second draft if the borrower already has one going.
+        existing = LoanApplication.objects.filter(
+            borrower=borrower, lender_id=lender_id, status="draft"
+        ).first()
+        if existing:
+            application = existing
+        else:
+            application = LoanApplication.objects.create(
+                borrower=borrower,
+                lender_id=lender_id,
+                loan_amount=ctx.get("amount"),
+                loan_term=int(ctx.get("term") or 3),
+                status="draft",
+                source="ussd",               # tag the channel of origin
+                current_stage="documents",   # docs/affordability come next, on the app
+                status_reason="Started via USSD",
+            )
+
+        # The real reference was assigned by the model's save(); use THAT
+        # everywhere (not the engine's placeholder), so USSD, the SMS, and the
+        # record all cite one identifier.
+        ref = application.reference_number
+        session.remember(application_ref=ref)
+
+        # Complete the USSD -> SMS handoff: tell the borrower how to finish.
+        try:
+            from comms.sms.service import send_sms
+            send_sms(session.phone_number, "ussd_application_started", {
+                "name": getattr(borrower, "full_name", "there"),
+                "ref": ref,
+            })
+        except Exception:
+            pass  # SMS failure must not break dispatch
+
     except Exception:
         # Never let dispatch failure break the USSD response.
         pass

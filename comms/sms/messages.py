@@ -24,23 +24,24 @@ def _m(amount) -> str:
 # ---- catalogue: message_type -> builder(context) -> str ----
 MESSAGES = {
     "loan_submitted": lambda c: (
-        f"Hi {c['name']}, your loan application for {_m(c['amount'])} was "
-        f"submitted to {c['lender']}. They'll review it and update you on the status."
+        f"Hi {c['name']}, your loan application {c['ref']} for {_m(c['amount'])} "
+        f"was submitted to {c['lender']}. They'll review it and update you. "
+        f"Quote {c['ref']} for any query."
     ),
     "loan_approved": lambda c: (
-        f"Hi {c['name']}, good news — your loan application for {_m(c['amount'])} "
+        f"Hi {c['name']}, good news — application {c['ref']} for {_m(c['amount'])} "
         f"from {c['lender']} has been approved."
     ),
     "loan_rejected": lambda c: (
-        f"Hi {c['name']}, your loan of {_m(c['amount'])} from {c['lender']} "
-        f"was not approved. Reasons: {c.get('reasons', 'n/a')}."
+        f"Hi {c['name']}, application {c['ref']} of {_m(c['amount'])} from "
+        f"{c['lender']} was not approved. Reasons: {c.get('reasons', 'n/a')}."
     ),
     "loan_pending": lambda c: (
-        f"Hi {c['name']}, your loan application of {_m(c['amount'])} from "
+        f"Hi {c['name']}, application {c['ref']} of {_m(c['amount'])} from "
         f"{c['lender']} is pending. Reasons: {c.get('reasons', 'n/a')}."
     ),
     "ussd_application_started": lambda c: (
-        f"Hi {c['name']}, your loan application (ref {c['ref']}) has been started "
+        f"Hi {c['name']}, your loan application {c['ref']} has been started "
         f"via USSD. Open the Fedha-Grow app to add documents and complete it."
     ),
 }

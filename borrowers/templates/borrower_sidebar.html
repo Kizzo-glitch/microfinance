@@ -148,3 +148,24 @@
             </div>
 
         </ul>
+
+        <style>
+            /* Sidebar nav text — force cream over SB Admin 2's default dark link colour */
+.sidebar .nav-item .nav-link {
+    color: rgba(246, 241, 231, .78) !important;
+}
+.sidebar .nav-item .nav-link:hover,
+.sidebar .nav-item.active .nav-link {
+    color: var(--fg-cream) !important;
+}
+/* icons inside the links, and the section dividers' text */
+.sidebar .nav-item .nav-link i,
+.sidebar .nav-link .fas,
+.sidebar .nav-link .fa {
+    color: rgba(246, 241, 231, .70) !important;
+}
+/* the little section headings like "GROUP DASHBOARD", "MY BOOK" */
+.sidebar .sidebar-heading {
+    color: rgba(246, 241, 231, .55) !important;
+}
+        </style>

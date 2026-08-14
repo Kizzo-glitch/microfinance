@@ -1,8 +1,10 @@
 {% extends 'lender_base.html' %}
+
 {% block content %}
-<div class="container mt-5">
+
+<div class="table-responsive container-fluid">
 	<div class="card-header bg-primary text-white">
-		<h2 class="mb-4">✅ Approved Loans</h2>
+		<h2 class="mb-4 text-white">✅ Approved Loans</h2>
 	</div>
 	{% if approved_loans %}
 		<table class="table table-hover">

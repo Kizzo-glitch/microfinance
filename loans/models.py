@@ -7,19 +7,21 @@ from django.utils import timezone
 #from micro.models import User
 from django.contrib.auth import get_user_model
 
-from micro.models import User
+#from micro.models import User
 from datetime import date, timedelta
 from django.db.models import Sum
 from django.utils.timezone import now
 from datetime import date
+from django.conf import settings
 from multiselectfield import MultiSelectField
 
 from decimal import Decimal
 
 from .references import generate_reference
 
+User = get_user_model()
 
-
+#User = settings.AUTH_USER_MODEL
 
 # Choices
 LOAN_TERM_CHOICES = [
@@ -202,25 +204,21 @@ class Loan(models.Model):
 		# 3. Call the parent save method EXACTLY ONCE
 		super().save(*args, **kwargs)
 
-
 	def calculate_total_repayable(self):
 		"""Calculate the total amount to be repaid including interest."""
 		self.total_repayable = self.amount * (1 + (self.interest_rate / 100))
-
-	def update_outstanding_balance2(self):
-		"""Update outstanding balance based on total payments made."""
-		total_paid = self.total_paid()
-		#total_paid = self.payments.aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
-		self.outstanding_balance = max(self.total_repayable - total_paid, Decimal('0.00'))
-		self.save()
 
 	def remaining_months(self):
 		"""Calculate months left until the due date."""
 		today = timezone.now().date()
 		return max((self.due_date.year - today.year) * 12 + (self.due_date.month - today.month), 0)
 
-	
 	def total_paid(self):
+		"""Calculate the total amount paid so far."""
+		return self.payments.filter(status="confirmed").aggregate(
+			total=Sum('amount'))['total'] or Decimal('0.00')
+	
+	def total_paid2(self):
 		"""Calculate the total amount paid so far."""
 		return self.payments.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
 
@@ -258,10 +256,13 @@ class Loan(models.Model):
 	def missed_payments(self):
 		"""Returns True if expected payments are missing (mid-risk behavior)."""
 		expected_payments = (timezone.now().date() - self.date_created).days // 30
-		actual_payments = self.payments.count()
+		#actual_payments = self.payments.count()
+		actual_payments = self.payments.filter(status="confirmed").count()
 		return actual_payments < expected_payments
 
-	def update_outstanding_balance(self):
+	
+
+	def update_outstanding_balance2(self):
 		total_paid = sum(payment.amount for payment in self.payments.all())
 		self.outstanding_balance = max(self.total_repayable - total_paid, 0)
 		self.save()
@@ -282,9 +283,191 @@ class Loan(models.Model):
 	def is_first_payment_overdue(self):
 		return self.first_payment_date < date.today()
 
+	def update_outstanding_balance(self):
+		"""
+		Recompute outstanding balance = total_repayable - sum(confirmed payments).
+		Called after a payment is confirmed (or a confirmation is reversed).
+		"""
+		confirmed = self.payments.filter(status="confirmed").aggregate(
+			total=models.Sum("amount")
+		)["total"] or Decimal("0.00")
+ 
+		total_repayable = self.total_repayable or Decimal("0.00")
+		self.outstanding_balance = max(total_repayable - confirmed, Decimal("0.00"))
+ 
+		# Optional: auto-close a fully-paid loan.
+		# if self.outstanding_balance <= 0 and self.status == "approved":
+		#     self.status = "settled"
+ 
+		self.save(update_fields=["outstanding_balance"])
+ 
+	@property
+	def total_confirmed_paid(self):
+		from loans.models import LoanPayment
+		return LoanPayment.confirmed_total(self)
+ 
+	@property
+	def total_pending_claims(self):
+		"""Claimed but not yet confirmed — show as 'pending', not as paid."""
+		from loans.models import LoanPayment
+		return LoanPayment.claimed_total(self)
+
+	
 
 
+"""
+Fedha-Grow — LoanPayment
+===================================
+Payments in a "funds never through us" model. Money moves borrower -> lender
+externally; the platform RECORDS and RECONCILES it. A payment is therefore a
+claim until the party who received the money (the lender) confirms it.
 
+Core rules:
+  - A CLAIM does not reduce the outstanding balance and does not count as arrears.
+  - Only CONFIRMATION (by the lender) settles a payment and updates the balance.
+  - Every payment carries its own reference, and can attach proof.
+  - `flow` separates how it was verified (external today / gateway later);
+	`method` is the human channel (bank / mpesa / ecocash / cash / gateway).
+	The two grow independently — a new channel is a method; a new rail is a flow.
+
+Group payments are not built yet (no group-payer today), but the design leaves
+room: a future `paid_by_group` FK is additive and changes nothing here.
+"""
+
+
+class LoanPayment(models.Model):
+
+	STATUS_CHOICES = [
+		("claimed",   "Claimed (awaiting lender confirmation)"),
+		("confirmed", "Confirmed by lender"),
+		("rejected",  "Rejected (not received)"),
+		("disputed",  "Disputed"),
+	]
+
+	FLOW_CHOICES = [
+		("external", "External (paid outside the platform)"),
+		("gateway",  "Gateway (confirmed by payment rail)"),
+	]
+
+	METHOD_CHOICES = [
+		("bank",    "Bank transfer"),
+		("mpesa",   "M-Pesa"),
+		("ecocash", "EcoCash"),
+		("cash",    "Cash"),
+		("gateway", "In-app payment"),
+	]
+
+	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE)
+	loan = models.ForeignKey(Loan, on_delete=models.CASCADE, related_name="payments")
+
+	amount = models.DecimalField(max_digits=12, decimal_places=2)
+
+	flow   = models.CharField(max_length=10, choices=FLOW_CHOICES, default="external")
+	method = models.CharField(max_length=20, choices=METHOD_CHOICES, default="bank")
+	status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="claimed")
+
+	# Shared reconciliation key, plus optional external txn ref from the channel.
+	reference          = models.CharField(max_length=24, unique=True, editable=False,
+										  null=True, blank=True)
+	external_reference = models.CharField(max_length=120, blank=True,
+										  help_text="The borrower's own transaction reference "
+													"from the bank/mobile-money channel, if any.")
+	proof = models.FileField(upload_to="payment_proofs/", null=True, blank=True,
+							 help_text="Borrower's proof of payment (screenshot, statement, receipt).")
+
+	# lifecycle timestamps
+	date_paid    = models.DateTimeField(default=timezone.now,
+										help_text="When the borrower says the payment was made.")
+	claimed_at   = models.DateTimeField(default=timezone.now)
+	confirmed_at = models.DateTimeField(null=True, blank=True)
+	confirmed_by = models.ForeignKey(LenderProfile, on_delete=models.SET_NULL,
+									 null=True, blank=True, related_name="confirmed_payments")
+
+	note = models.CharField(max_length=255, blank=True)
+	created_at = models.DateTimeField(default=timezone.now)
+
+	class Meta:
+		ordering = ["-date_paid"]
+
+	def __str__(self):
+		return f"{self.reference or 'payment'} — M{self.amount} on Loan {self.loan_id} ({self.status})"
+
+	# ---- lifecycle ----
+	def save(self, *args, **kwargs):
+		if not self.reference:
+			self.reference = generate_reference(LoanPayment, "reference", prefix="FGP")
+		# NOTE: saving does NOT touch the loan balance. Only confirm() does.
+		# If a payment is created already confirmed (lender-recorded), set
+		# confirmed_at first, then call refresh on the loan after save.
+		super().save(*args, **kwargs)
+
+	def confirm(self, by_lender=None):
+		"""Lender confirms receipt. This is what settles the payment."""
+		if self.status == "confirmed":
+			return
+		self.status = "confirmed"
+		self.confirmed_at = timezone.now()
+		if by_lender is not None:
+			self.confirmed_by = by_lender
+		self.save(update_fields=["status", "confirmed_at", "confirmed_by"])
+		self._apply_to_balance()
+
+	def reject(self, by_user=None, reason=""):
+		"""Lender says the payment was not received."""
+		self.status = "rejected"
+		if by_user is not None:
+			self.confirmed_by = by_user
+		if reason:
+			self.note = reason[:255]
+		self.save(update_fields=["status", "confirmed_by", "note"])
+		# A rejection never reduced the balance (only confirm does), so nothing
+		# to reverse unless it was previously confirmed — handled below.
+
+	def _apply_to_balance(self):
+		"""Recompute the loan balance from CONFIRMED payments only."""
+		if hasattr(self.loan, "update_outstanding_balance"):
+			self.loan.update_outstanding_balance()
+
+	@property
+	def is_settled(self) -> bool:
+		return self.status == "confirmed"
+
+	@property
+	def awaiting_confirmation(self) -> bool:
+		return self.status == "claimed"
+
+	# ---- totals ----
+	@staticmethod
+	def confirmed_total(loan) -> Decimal:
+		"""The real paid figure — drives the balance. Confirmed only."""
+		return loan.payments.filter(status="confirmed").aggregate(
+			total=models.Sum("amount"))["total"] or Decimal("0.00")
+
+	@staticmethod
+	def claimed_total(loan) -> Decimal:
+		"""Claimed-but-unconfirmed — for display ('pending'), NOT the balance."""
+		return loan.payments.filter(status="claimed").aggregate(
+			total=models.Sum("amount"))["total"] or Decimal("0.00")
+
+	# ---- lateness (provisional until a real schedule exists) ----
+	def was_late_payment(self, grace_days: int = 7) -> bool:
+		"""
+		Provisional lateness check based on CONFIRMED payment count and a flat
+		30-day cadence. This is a placeholder until the installment schedule is
+		built — at which point lateness is measured against scheduled due dates.
+		"""
+		if self.status != "confirmed":
+			return False
+		confirmed_before = self.loan.payments.filter(
+			status="confirmed", date_paid__lt=self.date_paid
+		).count()
+		
+		anchor = getattr(self.loan, "date_created", None) or self.loan.date_applied
+		expected_due = anchor + timedelta(days=30 * (confirmed_before + 1))
+		return self.date_paid.date() > (expected_due + timedelta(days=grace_days)).date()
+
+
+"""
 class LoanPayment(models.Model):
 	PAYMENT_CHOICES = [
 		('bank_account', 'Bank Account'),
@@ -303,21 +486,21 @@ class LoanPayment(models.Model):
 
 	@staticmethod
 	def get_total_paid(loan):
-		"""Get total amount paid towards a loan."""
+		# Get total amount paid towards a loan.
 		return loan.payments.aggregate(total=models.Sum('amount'))['total'] or Decimal('0.00')
 
 	def save(self, *args, **kwargs):
-		"""Update loan outstanding balance on payment."""
+		# Update loan outstanding balance on payment.
 		super().save(*args, **kwargs)
 		self.loan.update_outstanding_balance()
 
 
 	def was_late_payment(self):
-		"""Returns True if payment was made more than 7 days after due date."""
+		# Returns True if payment was made more than 7 days after due date.
 		expected_due = self.loan.date_created + timedelta(days=30 * self.loan.payments.count())
 		grace_period = expected_due + timedelta(days=7)
 		return self.date_paid.date() > grace_period
-
+"""
 
 
 class Notification(models.Model):

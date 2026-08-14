@@ -17,12 +17,16 @@
         .btn-pay { background-color: #28a745; }
     </style>
 
-    <div class="container">
-        <h2>My Approved Loan List</h2>
+    <div class="table-responsive container-fluid">
+        <div class="card-header bg-primary text-white">
+		    <h2 class="text-white">My Approved Loans ✅</h2>
+	    </div>
+        
         <table>
             <thead>
                 <tr>
                     <th>Loan ID</th>
+                    <th>Loan Reference</th>
                     <th>Borrower</th>
                     <th>Term</th>
                     <th>Amount</th>
@@ -39,6 +43,7 @@
                 {% for loan in loans %}
                     <tr>
                         <td>{{ loan.id }}</td>
+                        <td>{{ loan.reference_number }}</td>
                         <td>{{ loan.borrower.user.username }}</td>
                         <td>{{ loan.loan_term }} Months</td>
                         <td>R{{ loan.amount }}</td>

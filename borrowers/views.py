@@ -69,7 +69,7 @@ from groups.forms import BorrowerJoinRequestForm, GroupJoinRequestForm
 
 
 from .forms import (
-	RatingForm, BorrowerProfileForm, LoanApplicationForm, BorrowerDocumentsForm, 
+	LoanPaymentClaimForm, RatingForm, BorrowerProfileForm, LoanApplicationForm, BorrowerDocumentsForm, 
 	LoanPaymentForm, OTPForm, EmploymentTypeForm, EmployedDocumentsForm, SelfEmployedDocumentsForm, 
 	RegisteredBusinessDocumentsForm, ExpenseForm, DynamicExpenseForm
 	)
@@ -1117,12 +1117,6 @@ def loan_calculator(request):
 	})
 
 
-"""
-Fedha-Grow — loan calculator + apply views (cleaned)
-Currency: Maloti (M). Interest: flat, matching the existing calculator.
-"""
-
-
 # =====================================================================
 # Loan calculator (AJAX endpoint)
 # =====================================================================
@@ -1233,6 +1227,7 @@ def apply_loan(request):
 				"name": borrower.full_name,
 				"amount": loan_app.loan_amount,
 				"lender": lender.company_name,
+				"ref": loan_app.reference_number,      
 			},
 		)
 		"""
@@ -1345,325 +1340,6 @@ def abandon_draft(request, application_id):
 	return redirect("borrowers:borrower_index")
 
 
-
-# =====================================================================
-# Loan calculator (AJAX endpoint)
-# =====================================================================
-def calculate_loan3(request):
-	lender_id = request.session.get("lender_id")
-	if not lender_id:
-		return JsonResponse({"error": "No lender selected."}, status=400)
- 
-	lender = get_object_or_404(LenderProfile, id=lender_id)
- 
-	# --- parse inputs defensively ---
-	try:
-		amount = Decimal(request.GET.get("amount", "0"))
-		term = int(request.GET.get("term", "0"))
-	except (InvalidOperation, ValueError, TypeError):
-		return JsonResponse({"error": "Invalid amount or term."}, status=400)
- 
-	if amount <= 0 or term <= 0:
-		return JsonResponse({"error": "Amount and term must be greater than zero."}, status=400)
- 
-	# --- validate term against the lender's allowed terms ---
-	allowed_terms = [str(t) for t in lender.loan_terms]
-	if str(term) not in allowed_terms:
-		return JsonResponse(
-			{"error": f"Invalid loan term. Allowed terms: {', '.join(allowed_terms)}."},
-			status=400,
-		)
- 
-	# --- flat-interest calculation ---
-	interest_rate = Decimal(lender.interest_rate or 0)
-	total_repayable = amount * (Decimal("1") + interest_rate / Decimal("100"))
-	monthly_installment = total_repayable / Decimal(term)
- 
-	return JsonResponse({
-		"currency": "M",
-		"amount": round(amount, 2),
-		"term": term,
-		"interest_rate": round(interest_rate, 2),
-		"total_repayable": round(total_repayable, 2),
-		"monthly_installment": round(monthly_installment, 2),
-	})
- 
- 
-# =====================================================================
-# Apply for a loan
-#   GET  -> run the advisor (advice only, nothing persisted)
-#   POST -> validate, snapshot the assessment, submit the application
-# =====================================================================
-@login_required
-def apply_loan3(request):
-	borrower = request.user.borrower
-	lender_id = request.session.get("lender_id")
-	lender = get_object_or_404(LenderProfile, id=lender_id)
- 
-	loan_app, _ = LoanApplication.objects.get_or_create(
-		borrower=borrower,
-		lender=lender,
-		status="draft",
-		defaults={"current_stage": "affordability"},
-	)
- 
-	# Attach any loose docs/expenses captured before the app existed.
-	BorrowerDocs.objects.filter(borrower=borrower, loan_application=None).update(loan_application=loan_app)
-	ExpenseAnalysis.objects.filter(borrower=borrower, loan_application=None).update(loan_application=loan_app)
- 
-	advisor = AffordabilityAdvisor(loan_app)
- 
-	# ---------------- POST: submit ----------------
-	if request.method == "POST":
-		# Block second concurrent application.
-		if LoanApplication.objects.filter(borrower=borrower, status="pending").exists():
-			messages.error(request, "You cannot apply for a new loan while you have a pending one.")
-			return redirect("borrowers:pending_loan")
- 
-		result = advisor.build()
- 
-		# Don't let an unaffordable loan through — send them back to adjust.
-		if result["outcome"] == "unaffordable":
-			messages.error(
-				request,
-				"This loan doesn't fit your budget yet. "
-				"Please adjust the amount or term before submitting.",
-			)
-			return redirect("loans:apply_loan")
- 
-		# Immutable audit snapshot (created once, never overwritten).
-		advisor.snapshot(result)
- 
-		loan_app.status = "pending"
-		loan_app.date_applied = now()
-		loan_app.current_stage = "submitted"
-		loan_app.save(update_fields=["status", "date_applied", "current_stage"])
- 
-		Notification.objects.create(
-			user=lender.user,
-			message=(
-				f"New loan application from {borrower.full_name} "
-				f"for M{loan_app.loan_amount}."
-			),
-			category="loan_application",
-			loan_application=loan_app,
-		)
- 
-		sms = (
-			f"Hello {borrower.full_name}, your loan application for "
-			f"M{loan_app.loan_amount} was submitted to {lender.company_name}. "
-			f"They'll review it and update you on the status."
-		)
-		# send_sms_smsportal(borrower.phone_number, sms)
- 
-		messages.success(request, f"Loan application submitted to {lender.company_name}.")
-		return redirect("borrowers:borrower_index")
- 
-	# ---------------- GET: advise ----------------
-	assessment = advisor.build()  # advisory only, not persisted
-	return render(request, "apply_loan.html", {
-		"loan_app": loan_app,
-		"assessment": assessment,
-	})
- 
- 
-@login_required
-def abandon_draft2(request, application_id):
-	"""
-	Delete a DRAFT loan application when the borrower chooses to apply
-	elsewhere. Reusable data (expenses, docs) is DETACHED, not destroyed,
-	so the borrower doesn't re-enter it at the next lender.
- 
-	POST-only and ownership-checked: deleting on GET would let a prefetch
-	or crawler silently wipe a borrower's saved draft.
-	"""
-	if request.method != "POST":
-		return redirect("borrowers:borrower_index")
- 
-	borrower = request.user.borrower
-	draft = get_object_or_404(
-		LoanApplication,
-		id=application_id,
-		borrower=borrower,      # ownership: can only delete your own
-		status="draft",         # safety: never delete a submitted application
-	)
- 
-	# Detach reusable data so it survives for the next application.
-	ExpenseAnalysis.objects.filter(loan_application=draft).update(loan_application=None)
-	BorrowerDocs.objects.filter(loan_application=draft).update(loan_application=None)
- 
-	# Clear the lender selection so they start fresh.
-	request.session.pop("lender_id", None)
- 
-	draft.delete()
- 
-	messages.info(request, "Your draft was cleared. You can now choose another lender.")
-	return redirect("borrowers:borrower_index")
-
-
-
-
-
-def calculate_loan2(request):
-	try:
-		lender_id = request.session.get('lender_id')
-		lender = LenderProfile.objects.get(id=lender_id)
-
-		amount = Decimal(request.GET.get('amount', 0))
-		term = int(request.GET.get('term', 1))  
-
-		# ✅ Ensure the term is one of the lender's terms
-		if str(term) not in lender.loan_terms:
-			return JsonResponse({"error": f"Invalid loan term. Allowed terms: {lender.loan_terms}"}, status=400)
-		
-		
-		interest_rate = lender.interest_rate  
-
-		# Ensure valid calculations
-		if amount > 0 and term > 0:
-			total_repayable = amount * (1 + (Decimal(interest_rate) / 100))
-			monthly_installment = total_repayable / Decimal(term)
-
-			first_repayment = monthly_installment + (total_repayable * Decimal('0.1'))  # Example logic
-			next_repayments = monthly_installment
-
-			return JsonResponse({
-				"total_repayable": round(total_repayable, 2),
-				"monthly_installment": round(monthly_installment, 2),
-				"first_repayment": round(first_repayment, 2),
-				"next_repayments": round(next_repayments, 2),
-			})
-		else:
-			return JsonResponse({"error": "Invalid amount or term"}, status=400)
-	
-	except LenderProfile.DoesNotExist:
-		return JsonResponse({"error": "Lender not found"}, status=404)
-				
-	except Exception as e:
-		return JsonResponse({"error": str(e)}, status=400)
-
-
-@login_required
-def apply_loan2(request):
-	borrower = request.user.borrower
-	lender_id = request.session.get('lender_id')
-	lender = get_object_or_404(LenderProfile, id=lender_id)
-
-	loan_app, created = LoanApplication.objects.get_or_create(
-		borrower=borrower,
-		lender=lender,  # ✅ This is correct
-		status="draft",
-		defaults={"current_stage": "affordability"}
-	)
-
-	if not loan_app:
-		messages.error(request, "No draft loan application found.")
-		return redirect("borrowers:borrower_index")
-
-	if request.method == "POST":
-		# Before submission, check if borrower has any pending loan
-		existing_loans = LoanApplication.objects.filter(
-			borrower=borrower,
-			status="pending"
-		)
-		if existing_loans.exists():
-			messages.error(request, "You cannot apply for a new loan while you have a pending loan.")
-			return redirect("borrowers:pending_loan")
-
-		ResponsibleLendingAssessment.objects.create(
-
-			borrower=borrower,
-
-			lender=lender,
-
-			loan_application=loan_app,
-
-			monthly_income=assessment["income"],
-
-			monthly_expenses=assessment["expenses"],
-
-			disposable_income=assessment["surplus_before"],
-
-			monthly_installment=assessment["installment"],
-
-			affordability_ratio=assessment["affordability_after"],
-
-			risk_score=assessment["risk_score"],
-
-			recommendation=assessment["recommendation"],
-		)
-		# ✅ Move draft to submitted
-		loan_app.status = "pending"
-		loan_app.date_applied = now()
-		loan_app.current_stage = "submitted"
-		loan_app.save(update_fields=["status", "date_applied", "current_stage"])
-
-		# ✅ Notify the lender
-		Notification.objects.create(
-			user=loan_app.lender.user,
-			message=f"New loan application submitted by {loan_app.borrower.full_name} for R{loan_app.loan_amount}.",
-			category="loan_application",
-			loan_application=loan_app
-		)
-
-		# ✅ Send borrower confirmation
-		message = (
-			f"Hello {borrower.full_name}, your Loan Application for R{loan_app.loan_amount} "
-			f"was successfully submitted to {loan_app.lender.company_name}."
-			f" {loan_app.lender.company_name} will review your application and let you know of it's status."
-		)
-		send_sms_smsportal(borrower.phone_number, message)
-
-		# Render the email content
-		subject = f"Application Submitted successfully"
-		from_email = settings.EMAIL_HOST_USER
-		to_email = [borrower.email_address]
-
-		#send_mail(subject, message, from_email, to_email, fail_silently=False,)
-
-		messages.success(request, f"Loan application submitted successfully to {lender.company_name}")
-		return redirect("borrowers:borrower_index")
-
-
-	BorrowerDocs.objects.filter(
-		borrower=borrower,
-		loan_application=None
-	).update(loan_application=loan_app)
-
-	#assessment = ResponsibleLendingService(borrower, lender, loan_app).build()
-	assessment = ResponsibleLendingService(loan_app).build()
-
-	"""
-	ExpenseAnalysis.objects.filter(
-		borrower=borrower,
-		loan_application=None
-	).update(loan_application=loan_app)
-
-	# Always build affordability context for GET
-	expenses = ExpenseAnalysis.objects.filter(loan_application=loan_app)
-	total_expenses = sum(e.amount for e in expenses)
-	monthly_income = borrower.income or 0
-	installment = loan_app.monthly_installment or 0
-	surplus_before = monthly_income - total_expenses
-	surplus_after = surplus_before - installment
-
-	affordability_index_before = (surplus_before / monthly_income * 100) if monthly_income else 0
-	affordability_index_after = (surplus_after / monthly_income * 100) if monthly_income else 0
-	"""
-
-	context = {
-		"loan_app": loan_app,
-		"assessment": assessment,
-		#"total_expenses": total_expenses,
-		#"monthly_income": monthly_income,
-		#"installment": installment,
-		#"surplus_before": surplus_before,
-		#"surplus_after": surplus_after,
-		#"affordability_index_before": affordability_index_before,
-		#"affordability_index_after": affordability_index_after,
-	}
-
-	return render(request, "apply_loan.html", context)
 	
 
 @login_required
@@ -2087,7 +1763,6 @@ class BorrowerNotificationListView(ListView):
 		return context
 
 
-
 @login_required
 def loan_details(request, loan_id):
 	loan = get_object_or_404(Loan, id=loan_id, borrower__user=request.user)
@@ -2102,9 +1777,54 @@ def loan_details(request, loan_id):
 	})
 
 
-
 @login_required
 def record_payment(request, loan_id):
+    """Borrower submits a payment CLAIM. It does not settle the loan —
+    the lender confirms receipt separately."""
+    loan = get_object_or_404(Loan, id=loan_id, borrower__user=request.user)
+    borrower = loan.borrower
+
+    if request.method == "POST":
+        form = LoanPaymentClaimForm(request.POST, request.FILES)   # FILES for proof
+        if form.is_valid():
+            payment = form.save(commit=False)
+            payment.loan = loan
+            payment.borrower = borrower
+            payment.flow = "external"       # paid outside the platform
+            payment.status = "claimed"      # NOT settled — awaits lender confirmation
+            payment.save()                  # reference auto-generated; balance untouched
+
+            # Notify the lender that a claim needs their confirmation.
+            Notification.objects.create(
+                user=loan.lender.user,
+                message=(
+                    f"{borrower.full_name} submitted a payment claim of "
+                    f"M{payment.amount} for loan {loan.reference_number} "
+                    f"(ref {payment.reference}). Please confirm receipt."
+                ),
+                category="payment_claim",
+                loan=loan,
+            )
+
+            # Optional: SMS the borrower their claim reference.
+            # send_sms(borrower.phone_number, "payment_claimed",
+            #          {"name": borrower.full_name, "amount": payment.amount,
+            #           "ref": payment.reference})
+
+            messages.success(
+                request,
+                f"Payment claim submitted (ref {payment.reference}). "
+                f"{loan.lender.company_name} will confirm once they've verified receipt."
+            )
+            return redirect('borrowers:loan-details', loan_id=loan.id)
+    else:
+        form = LoanPaymentClaimForm()
+
+    return render(request, 'record_payment.html', {'form': form, 'loan': loan})
+
+
+@login_required
+def record_payment2(request, loan_id):
 	"""Allows a borrower to record a loan payment."""
 	loan = get_object_or_404(Loan, id=loan_id, borrower__user=request.user)
 	borrower = loan.borrower 
@@ -2195,7 +1915,8 @@ def borrower_payment_history(request):
 
 	for loan in loans:
 		loan.remaining_months = loan.remaining_months()
-		loan.payment_history = loan.payments.all().order_by("-date_paid")
+		#loan.payment_history = loan.payments.all().order_by("-date_paid")
+		loan.payment_history = loan.payments.filter(status="confirmed").all().order_by("-date_paid")
 
 	return render(request, 'borrower_payment_history.html', {'loans': loans})
 

@@ -694,6 +694,3 @@ footer a:hover { color: var(--fg-ochre); }
 /* ---------- Spinners ---------- */
 .spinner-border, .spinner-grow { color: var(--fg-leaf); }
 
-/* ---------- Screen-reader utility (BS4 .sr-only | BS5 .visually-hidden) ----- */
-/* Both ship their own definition; nothing to restyle. Listed for reference. */
-

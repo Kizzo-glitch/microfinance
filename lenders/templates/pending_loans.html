@@ -1,9 +1,9 @@
 {% extends 'lender_base.html' %}
 {% block content %}
 
-<div class="container mt-5">
+<div class="table-responsive container-fluid">
     <div class="card-header bg-primary text-white">
-        <h2 class="mb-4">⏳ Pending Loans</h2>
+        <h2 class="mb-4 text-white">⏳ Pending Loans</h2>
     </div>
     {% if pending_loans %}
         <form method="post" action="{% url 'lenders:update-pending-loans' %}">
