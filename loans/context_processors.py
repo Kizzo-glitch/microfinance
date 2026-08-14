@@ -52,7 +52,7 @@ def pending_loan_update_notifications(request):
 
 def borrower_notifications(request):
     if request.user.is_authenticated and hasattr(request.user, 'borrower'):
-        User = request.user.borrower
+        User = request.user
 
         def unread(cat): return Notification.objects.filter(user=User, category=cat, is_read=False).order_by('-date_created')
         def read(cat):   return Notification.objects.filter(user=User, category=cat, is_read=True).order_by('-date_created')
