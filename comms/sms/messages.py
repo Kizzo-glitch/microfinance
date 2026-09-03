@@ -60,6 +60,41 @@ MESSAGES = {
         f"Hi {c['name']}, we've recorded your payment claim of {_m(c['amount'])} "
         f"(ref {c['ref']}). {c['lender']} will confirm once they verify receipt."
     ),
+
+        # ---- group: invitations ----
+    "group_invitation": lambda c: (
+        f"Hi {c['name']}, you've been invited to join {c['group']} on Fedha-Grow. "
+        f"Use code {c['code']} or open {c['url']} to activate your account."
+    ),
+    "group_invite_withdrawn": lambda c: (
+        f"Hi {c['name']}, the invitation to join {c['group']} has been withdrawn. "
+        f"Contact {c.get('inviter', 'the group admin')} if you have questions."
+    ),
+
+    # ---- group: contributions ----
+    "group_contribution_claimed": lambda c: (
+        f"Hi {c['name']}, we've recorded your contribution claim of {_m(c['amount'])} "
+        f"(ref {c['ref']}) to {c['group']}. The treasurer will confirm receipt."
+    ),
+    "group_contribution_confirmed": lambda c: (
+        f"Hi {c['name']}, your contribution of {_m(c['amount'])} (ref {c['ref']}) to "
+        f"{c['group']} has been confirmed. Group pool updated."
+    ),
+    "group_contribution_rejected": lambda c: (
+        f"Hi {c['name']}, your contribution claim of {_m(c['amount'])} (ref {c['ref']}) "
+        f"to {c['group']} could not be confirmed. {c.get('reason', 'Please check the details')}. "
+        f"You can correct and resubmit it."
+    ),
+
+    # ---- group: admin absence / acting admin ----
+    "admin_inactivity_warning": lambda c: (
+        f"Hi {c['name']}, you've been inactive in {c['group']} for several weeks. "
+        f"Log in or appoint an acting admin — after 30 days a sub-admin may step in."
+    ),
+    "acting_admin_appointed": lambda c: (
+        f"Hi {c['name']}, {c['actor']} has become acting admin of {c['group']} due to "
+        f"inactivity. Log in to resume your role."
+    ),
 }
 
 

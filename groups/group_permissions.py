@@ -30,6 +30,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from groups.models import GroupMembership
+from comms.sms.service import send_sms
 
 
 # ---- role sets ----
@@ -261,9 +262,9 @@ def _notify_admin_of_takeover(group, acting_membership):
                      f"{group.name} due to 30 days of inactivity. Log in to resume your role."),
         )
         # SMS too — an absent admin likely isn't in the app.
-        # send_sms(m.borrower.phone_number, "acting_admin_appointed",
-        #          {"name": m.borrower.full_name, "actor": acting_membership.borrower.full_name,
-        #           "group": group.name})
+        send_sms(m.borrower.phone_number, "acting_admin_appointed",
+                {"name": m.borrower.full_name, "actor": acting_membership.borrower.full_name,
+                "group": group.name})
 
 
 def check_admin_inactivity(group):
@@ -293,5 +294,7 @@ def check_admin_inactivity(group):
                              f"Appoint an acting admin or log in — after 30 days inactivity a "
                              f"sub-admin may temporarily step in."),
                 )
-                # send_sms(m.borrower.phone_number, "admin_inactivity_warning",
-                #          {"name": m.borrower.full_name, "group": group.name})
+                send_sms(m.borrower.phone_number, 
+                         "admin_inactivity_warning",
+                            {"name": m.borrower.full_name, 
+                            "group": group.name})

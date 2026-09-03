@@ -38,7 +38,6 @@ from comms.sms.service import send_sms
 #from loans.utils import send_sms_smsportal
 from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
 
-
 from django.utils.safestring import mark_safe
 
 from django.db.models.functions import TruncMonth
@@ -50,8 +49,6 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.timezone import now
-
-
 
 from lenders.models import LenderProfile
 from loans.models import LoanApplication, Loan, LoanPayment, Notification, Rating, ResponsibleLendingAssessment
@@ -66,14 +63,11 @@ from groups.models import BorrowerGroup, GroupActivity, GroupDocument, GroupInvi
 from groups.forms import BorrowerJoinRequestForm, GroupJoinRequestForm
 
 
-
-
 from .forms import (
 	LoanPaymentClaimForm, RatingForm, BorrowerProfileForm, LoanApplicationForm, BorrowerDocumentsForm, 
 	LoanPaymentForm, OTPForm, EmploymentTypeForm, EmployedDocumentsForm, SelfEmployedDocumentsForm, 
 	RegisteredBusinessDocumentsForm, ExpenseForm, DynamicExpenseForm
 	)
-
 
 
 

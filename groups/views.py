@@ -441,9 +441,9 @@ def send_group_invite(request, group_id):
             invitation.save()
 
             activation_url = request.build_absolute_uri(invitation.get_activation_url())
-            # send_sms(invitation.invitee_phone, "group_invitation",
-            #          {"name": invitation.invitee_name, "group": group.name,
-            #           "code": invitation.invitation_code, "url": activation_url})
+            send_sms(invitation.invitee_phone, "group_invitation",
+                     {"name": invitation.invitee_name, "group": group.name,
+                     "code": invitation.invitation_code, "url": activation_url})
             invitation.sms_sent = True
             invitation.sms_sent_at = timezone.now()
             invitation.save()
@@ -654,7 +654,9 @@ def _notify_confirmers(group, member_membership, contribution):
                      f"M{contribution.amount} (ref {contribution.reference}) to {group.name}. "
                      f"Please confirm receipt."),
         )
-        send_sms(m.borrower.phone_number, "group_contribution_claimed", {...})
+        send_sms(confirmers.borrower.phone_number, "group_contribution_claimed",
+            {"name": confirmers.borrower.full_name, "amount": contribution.amount,
+            "ref": contribution.reference, "group": group.name})
 
 
 """
@@ -713,8 +715,9 @@ def confirm_contribution(request, contribution_id):
             message=(f"Your contribution of M{contribution.amount} (ref {contribution.reference}) "
                      f"to {group.name} has been confirmed."),
         )
-        send_sms(contribution.membership.borrower.phone_number,
-                  "group_contribution_confirmed", {...})
+        send_sms(contribution.membership.borrower.phone_number, "group_contribution_confirmed",
+         {"name": contribution.membership.borrower.full_name, "amount": contribution.amount,
+          "ref": contribution.reference, "group": group.name})
 
     messages.success(request, f"Contribution {contribution.reference} confirmed.")
     return redirect("groups:group_contributions", group.id)
@@ -745,8 +748,12 @@ def reject_contribution(request, contribution_id):
                      f"to {group.name} could not be confirmed. "
                      f"{('Reason: ' + reason + '. ') if reason else ''}Please check and resubmit."),
         )
-        send_sms(contribution.membership.borrower.phone_number,
-		 "group_contribution_rejected", {...})
+        send_sms(contribution.membership.borrower.phone_number, "group_contribution_rejected",
+                 {"name": contribution.membership.borrower.full_name, 
+                  "amount": contribution.amount,
+                  "ref": contribution.reference, 
+                  "group": group.name,
+                  "reason": reason or "the payment could not be matched"})
 
     messages.info(request, f"Contribution {contribution.reference} rejected. The member can resubmit.")
     return redirect("groups:group_contributions", group.id)
