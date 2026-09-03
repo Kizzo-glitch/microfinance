@@ -9,6 +9,7 @@ from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
+from decimal import Decimal
 
 from django.views.decorators.http import require_POST
 
@@ -28,9 +29,12 @@ from .forms import (
 from .group_permissions import (
     group_admin_required, group_member_required, group_staff_required,
     group_admin_only, is_group_staff, is_group_admin, group_membership,
-    check_admin_inactivity, claim_acting_admin, can_claim_acting_admin, promote, can_handle_money
+    check_admin_inactivity, claim_acting_admin, can_claim_acting_admin, promote, 
+    can_handle_money, effective_role,
 )
 from comms.sms.service import send_sms
+
+
 
 
 
@@ -746,3 +750,72 @@ def reject_contribution(request, contribution_id):
 
     messages.info(request, f"Contribution {contribution.reference} rejected. The member can resubmit.")
     return redirect("groups:group_contributions", group.id)
+
+
+
+@login_required
+def group_ledger(request, group_id):
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+ 
+    my_membership = group_membership(request.user, group)
+    if my_membership is None:
+        messages.error(request, "You must be an active member of this group to view its ledger.")
+        return redirect("groups:group_detail", group.id)
+ 
+    rules = getattr(group, "financial_rules", None)
+ 
+    # --- confirmed pool (the real balance) ---
+    pool_total = GroupContribution.confirmed_pool_total(group)
+    pending_total = GroupContribution.claimed_total(group) if hasattr(GroupContribution, "claimed_total") \
+        else group.contributions.filter(status="claimed").aggregate(t=Sum("amount"))["t"] or Decimal("0.00")
+ 
+    # --- per-member confirmed totals (who has contributed) ---
+    active_memberships = group.memberships.filter(status="active").select_related("borrower")
+    confirmed_by_member = {
+        row["membership"]: row["total"]
+        for row in group.contributions.filter(status="confirmed")
+        .values("membership").annotate(total=Sum("amount"))
+    }
+    member_rows = []
+    for m in active_memberships:
+        member_rows.append({
+            "membership": m,
+            "name": m.borrower.full_name,
+            "role": effective_role(m),
+            "confirmed_total": confirmed_by_member.get(m.id, Decimal("0.00")),
+            "is_me": (m.id == my_membership.id),
+        })
+    # sort: highest contributors first (gently motivating, and transparent)
+    member_rows.sort(key=lambda r: r["confirmed_total"], reverse=True)
+ 
+    # --- my own history ---
+    my_contributions = group.contributions.filter(membership=my_membership).order_by("-date_paid")
+    my_confirmed = GroupContribution.member_confirmed_total(my_membership) \
+        if hasattr(GroupContribution, "member_confirmed_total") \
+        else my_contributions.filter(status="confirmed").aggregate(t=Sum("amount"))["t"] or Decimal("0.00")
+ 
+    # --- rotation: whose turn (ROSCA only) ---
+    next_recipient = None
+    if rules and rules.payout_type == "rotating" and rules.rotation_order:
+        next_id = rules.next_recipient_membership_id if hasattr(rules, "next_recipient_membership_id") else None
+        if next_id:
+            next_recipient = active_memberships.filter(id=next_id).first()
+ 
+    # --- pending claims (shown, but clearly not counted) ---
+    pending_claims = (group.contributions.filter(status="claimed")
+                      .select_related("membership__borrower").order_by("-date_paid"))
+ 
+    return render(request, "group_ledger.html", {
+        "group": group,
+        "rules": rules,
+        "pool_total": pool_total,
+        "pending_total": pending_total,
+        "member_rows": member_rows,
+        "member_count": active_memberships.count(),
+        "my_membership": my_membership,
+        "my_contributions": my_contributions,
+        "my_confirmed": my_confirmed,
+        "next_recipient": next_recipient,
+        "pending_claims": pending_claims,
+        "cycle_number": getattr(rules, "cycle_number", None) if rules else None,
+    })

@@ -87,7 +87,7 @@
                 </div>
             </div>
         </div>
-        <!-- Financial Rules card  -->
+        <!-- Contributions card -->
         <div class="col-md-4">
             <div class="card shadow-sm border-0">
                 <div class="card-body text-center">
@@ -99,17 +99,77 @@
                 </div>
             </div>
         </div>
+        <!-- Confirmations card -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-cash-coin display-5 text-info"></i>
+                    <h5 class="fw-semibold mt-2">Confirmations</h5>
+                    {% if can_handle_money %}
+                    <a href="{% url 'groups:group_contributions' group.id %}" class="btn btn-outline-info">
+                        <i class="bi bi-check2-square"></i> Confirm Contributions
+                        {% if pending_contributions_count %}
+                            <span class="badge bg-warning text-dark">{{ pending_contributions_count }}</span>
+                        {% endif %}
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
     </div>
     
-
-
-
+                
     <!-- Group Info Details -->
     <div class="card shadow-sm border-0">
         <div class="card-header bg-light fw-semibold">
             <i class="bi bi-info-circle"></i> Group Details
         </div>
-        <div class="card-body">
+        <div class="row mb-4 g-3">
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body text-center">
+                        <small class="text-muted">Founder</small>
+                        <h5 class="fw-bold mt-2 mb-0">{{ group.admin.full_name }}</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body text-center">
+                        <small class="text-muted">Region</small>
+                        <h5 class="fw-bold mt-2 mb-0">{{ group.district|default:"Not specified" }}</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-body text-center">
+                        <small class="text-muted">Status</small>
+                        {% if group.status == 'active' or group.status == 'trusted' %}
+                            <span class="badge bg-success">{{ group.get_status_display }}</span>
+                        {% elif group.status == 'suspended' %}
+                            <span class="badge bg-danger">{{ group.get_status_display }}</span>
+                        {% else %}
+                            <span class="badge bg-secondary">{{ group.get_status_display }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mb-4 g-3">
+                    <div class="col-md-4">
+                        <div class="card shadow-sm border-0">
+                            <div class="card-body text-center">
+                                <i class="bi bi-cash-coin display-5 text-info"></i>
+                                <h5 class="fw-semibold mt-2">Ledger</h5>
+                                <a href="{% url 'groups:group_ledger' group.id %}" class="btn btn-success">
+                                    <i class="bi bi-cash"></i> View Ledger
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        <!--<div class="card-body">
             <p><strong>Founder:</strong> {{ group.admin.full_name }}</p>
             <p><strong>Description:</strong> {{ group.description|default:"No description provided." }}</p>
             <p><strong>Region:</strong> {{ group.district|default:"Not specified" }}</p>
@@ -122,7 +182,7 @@
                     <span class="badge bg-secondary">{{ group.get_status_display }}</span>
                 {% endif %}
             </p>
-        </div>
+        </div>-->
     </div>
 
     <!-- Action Buttons -->
@@ -147,120 +207,5 @@
         </a>
     </div>
 </div>
-<!--<div class="container mt-5">
- 
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="fw-bold">{{ group.name }}</h2>
-            <p class="text-muted mb-0">{{ group.get_group_type_display }} | Created on {{ group.created_at|date:"M d, Y" }}</p>
-        </div>
-        <a href="{% url 'groups:group_edit' group.id %}" class="btn btn-outline-primary">
-            <i class="bi bi-pencil-square"></i> Edit Group
-        </a>
-    </div>
 
-  
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0">
-                <div class="card-body text-center">
-                    <i class="bi bi-people display-5 text-primary"></i>
-                    <h5 class="fw-semibold mt-2">Members</h5>
-                    <p class="mb-0 fs-4">{{ group.memberships.count }}</p>
-                    <a href="{% url 'groups:group_members' group.id %}" class="text-decoration-none small text-primary">View Members</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0">
-                <div class="card-body text-center">
-                    <i class="bi bi-people display-5 text-primary"></i>
-                    <h5 class="fw-semibold mt-2">Activity Logs</h5>
-                    <p class="mb-0 fs-4">View recent activities</p>
-                    <a href="{% url 'groups:group_activity_log' group.id %}" class="text-decoration-none small text-primary">View Log</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0">
-                <div class="card-body text-center">
-                    <i class="bi bi-person-check display-5 text-success"></i>
-                    <h5 class="fw-semibold mt-2">Join Requests</h5>
-                    <p class="mb-0 fs-4">{{ pending_requests_count }}</p>
-                    <a href="{% url 'groups:pending_join_requests' %}" class="text-decoration-none small text-success">Review Requests</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0">
-                <div class="card-body text-center">
-                    <i class="bi bi-file-earmark-text display-5 text-warning"></i>
-                    <h5 class="fw-semibold mt-2">Constitution</h5>
-                    <p class="mb-0 small text-muted">Manage group rules & policies</p>
-                    <a href="{% url 'groups:group_constitution' group.id %}" class="text-decoration-none small text-warning">Edit Constitution</a>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="card shadow-sm border-0">
-                <div class="card-body text-center">
-                    <i class="bi bi-gear display-5 text-info"></i>
-                    <h5 class="fw-semibold mt-2">Group Settings</h5>
-                    <p class="mb-0 small text-muted">View and edit type-specific options</p>
-                    <a href="" class="text-decoration-none small text-info">Configure</a>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-
-  
-    <div class="card shadow-sm border-0">
-        <div class="card-header bg-light fw-semibold">
-            <i class="bi bi-info-circle"></i> Group Details
-        </div>
-        <div class="card-body">
-            <p><strong>Admin:</strong> {{ group.admin.full_name }}</p>
-            <p><strong>Description:</strong> {{ group.description|default:"No description provided." }}</p>
-            <p><strong>Region:</strong> {{ group.district|default:"Not specified" }}</p>
-            <p><strong>Verification Status:</strong> 
-                {% if group.verified %}
-                    <span class="badge bg-success">Verified</span>
-                {% else %}
-                    <span class="badge bg-secondary">Pending Verification</span>
-                {% endif %}
-            </p>
-        </div>
-    </div>
-
-   
-   
-    <div class="mt-4 d-flex justify-content-end">
-        {% if request.user.borrower == group.admin or group.sub_admin %}
-        <a href="{% url 'groups:manage_members' group.id %}" class="btn btn-outline-success">
-            <i class="bi bi-person-gear me-1"></i> Manage Members
-        </a>
-        {% endif %}
-
-        &nbsp;&nbsp;
-        {% if request.user.borrower == group.admin %}
-        <a href="{% url 'groups:manage_sub_admins' group.id %}" class="btn btn-outline-primary">
-            <i class="bi bi-person-gear me-1"></i> Manage Agents
-        </a>
-        {% endif %}
-
-        &nbsp;&nbsp;&nbsp;
-        <a href="{% url 'groups:group_invite' group.id %}" class="btn btn-success me-2">
-            <i class="bi bi-person-plus"></i> Invite Members
-        </a>
-
-        &nbsp;&nbsp;&nbsp;
-        <a href="{% url 'groups:group_list' %}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> Back to My Groups
-        </a>
-    </div>
-</div>-->
 {% endblock %}

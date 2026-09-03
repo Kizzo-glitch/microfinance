@@ -1,0 +1,162 @@
+{% extends 'group_dash_base.html' %}
+{% block content %}
+<div class="container mt-5">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">{{ group.name }} — Ledger</h2>
+            <p class="text-muted mb-0">What everyone in the group can see</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'groups:record_contribution' group.id %}" class="btn btn-success">
+                <i class="bi bi-cash"></i> Record my contribution
+            </a>
+            <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <!-- Top summary: the pool -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <small class="text-muted">Group pool (confirmed)</small>
+                    <h3 class="fw-bold mt-2 mb-0">M{{ pool_total }}</h3>
+                    <div class="small text-muted">money the treasurer has confirmed</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <small class="text-muted">Awaiting confirmation</small>
+                    <h3 class="fw-bold mt-2 mb-0 text-warning">M{{ pending_total }}</h3>
+                    <div class="small text-muted">claimed, not yet in the pool</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body text-center">
+                    <small class="text-muted">Members</small>
+                    <h3 class="fw-bold mt-2 mb-0">{{ member_count }}</h3>
+                    {% if rules %}<div class="small text-muted">{{ rules.get_payout_type_display }}</div>{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Whose turn (ROSCA) -->
+    {% if next_recipient %}
+    <div class="alert alert-info d-flex align-items-center">
+        <i class="bi bi-arrow-repeat fs-4 me-3"></i>
+        <div>
+            <strong>Next payout:</strong> {{ next_recipient.borrower.full_name }}
+            {% if cycle_number %}<span class="text-muted">· cycle {{ cycle_number }}</span>{% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- Left: everyone's contributions -->
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light fw-semibold">
+                    <i class="bi bi-people"></i> Member contributions
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr><th>Member</th><th>Role</th><th class="text-end">Confirmed total</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for row in member_rows %}
+                                <tr {% if row.is_me %}class="table-success"{% endif %}>
+                                    <td>
+                                        {{ row.name }}
+                                        {% if row.is_me %}<span class="badge bg-success ms-1">You</span>{% endif %}
+                                    </td>
+                                    <td><span class="small text-muted text-capitalize">{{ row.role }}</span></td>
+                                    <td class="text-end fw-semibold">M{{ row.confirmed_total }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3" class="text-muted">No members yet.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending claims — visible to all, clearly not counted -->
+            {% if pending_claims %}
+            <div class="card shadow-sm border-0 mt-3">
+                <div class="card-header bg-light fw-semibold">
+                    <i class="bi bi-hourglass-split text-warning"></i> Awaiting treasurer confirmation
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                {% for c in pending_claims %}
+                                <tr>
+                                    <td>{{ c.membership.borrower.full_name }}</td>
+                                    <td class="small text-muted">{{ c.get_method_display }} · {{ c.date_paid|date:"d M Y" }}</td>
+                                    <td class="text-end">M{{ c.amount }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Right: my standing -->
+        <div class="col-lg-5">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light fw-semibold">
+                    <i class="bi bi-person-badge"></i> My contributions
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <small class="text-muted">My confirmed total</small>
+                        <h3 class="fw-bold mb-0">M{{ my_confirmed }}</h3>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead>
+                                <tr><th>Ref</th><th>Amount</th><th>Status</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for c in my_contributions %}
+                                <tr>
+                                    <td class="small">{{ c.reference }}</td>
+                                    <td>M{{ c.amount }}</td>
+                                    <td>
+                                        {% if c.status == "confirmed" %}
+                                            <span class="badge bg-success">Confirmed</span>
+                                        {% elif c.status == "claimed" %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        {% elif c.status == "rejected" %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3" class="text-muted small">You haven't recorded any contributions yet.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

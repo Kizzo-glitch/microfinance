@@ -34,6 +34,7 @@ urlpatterns = [
 
     path('<int:contribution_id>/confirm-contribution/', views.confirm_contribution, name='confirm_contribution'),
     path('<int:contribution_id>/reject-contribution/', views.reject_contribution, name='reject_contribution'),
+    path('<int:group_id>/ledger/', views.group_ledger, name='group_ledger'),
  
     
     path("<int:group_id>/invite/", views.send_group_invite, name="group_invite"),
