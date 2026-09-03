@@ -12,7 +12,8 @@ from django.core.exceptions import ValidationError
 from .models import (
 	BorrowerGroup,
 	GroupConstitution,
-	GroupTypeSpecificSettings,
+	GroupFinancialRules,
+	GroupContribution,
 	GroupJoinRequest,
 	 GroupMembership,
 	 GroupInvitation,
@@ -111,145 +112,72 @@ class BorrowerGroupForm(forms.ModelForm):
 		}
 
 	def clean(self):
-		"""
-		Custom validation for cultural endorsement fields.
-		"""
 		cleaned_data = super().clean()
-		chief_endorsed = cleaned_data.get("chief_endorsed")
-		chief_name = cleaned_data.get("chief_name")
-		chief_letter = cleaned_data.get("chief_letter")
-
-		if chief_endorsed and (not chief_name or not chief_letter):
-			raise forms.ValidationError(
-				"Please provide the chief’s name and upload a letter of endorsement."
-			)
-
+		if cleaned_data.get("chief_endorsed"):
+			if not cleaned_data.get("chief_name"):
+				self.add_error("chief_name", "Please provide the chief's name.")
+			if not cleaned_data.get("chief_letter"):
+				self.add_error("chief_letter", "Please upload the letter of endorsement.")
 		return cleaned_data
+
 
 
 # -----------------------------
 # GROUP SPECIFIC SETTINGS
 # -----------------------------
 
-class GroupTypeSpecificSettingsForm(forms.ModelForm):
-	"""
-	Form for configuring type-specific group settings (Stokvel, Union, Burial, Savings)
-	"""
-	
+class GroupFinancialRulesForm(forms.ModelForm):
 	class Meta:
-		model = GroupTypeSpecificSettings
+		model = GroupFinancialRules
 		fields = [
-			# General
-			'group',
-
-			# STOKVEL
-			'stokvel_contribution_amount',
-			'stokvel_contribution_frequency',
-			'stokvel_payout_type',
-			'stokvel_rotation_order',
-
-			# EMPLOYER UNION
-			'employer_name',
-			'employer_contact_person',
-			'employer_contact_email',
-			'employer_contact_phone',
-			'employer_verified',
-			'employer_verification_date',
-			'payroll_deduction_enabled',
-			'payroll_deduction_day',
-
-			# BURIAL SOCIETY
-			'society_registration_number',
-			'society_monthly_contribution',
-			'society_payout_per_funeral',
-			'society_elder_council',
-
-			# SAVINGS GROUP
-			'savings_group_cycle_months',
-			'savings_group_share_value',
-			'savings_group_max_shares_per_person',
-			'savings_group_internal_lending_rate',
-			'savings_group_shareout_date',
+			'contribution_amount', 'contribution_frequency', 'contribution_flexible',
+			'payout_type', 'payout_per_event', 'term_end_date',
+			'internal_interest_rate', 'payout_destination_note',
 		]
-
 		widgets = {
-			# --- STOKVEL ---
-			'stokvel_contribution_amount': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Enter contribution amount'}),
-			'stokvel_contribution_frequency': forms.Select(attrs={'class': 'form-select'}),
-			'stokvel_payout_type': forms.Select(attrs={'class': 'form-select'}),
-			'stokvel_rotation_order': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'e.g. [1, 5, 3, 2]'}),
-
-			# --- EMPLOYER UNION ---
-			'employer_name': forms.TextInput(attrs={'class': 'form-control'}),
-			'employer_contact_person': forms.TextInput(attrs={'class': 'form-control'}),
-			'employer_contact_email': forms.EmailInput(attrs={'class': 'form-control'}),
-			'employer_contact_phone': forms.TextInput(attrs={'class': 'form-control'}),
-			'employer_verified': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-			'employer_verification_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-			'payroll_deduction_enabled': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-			'payroll_deduction_day': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'e.g. 25'}),
-
-			# --- BURIAL SOCIETY ---
-			'society_registration_number': forms.TextInput(attrs={'class': 'form-control'}),
-			'society_monthly_contribution': forms.NumberInput(attrs={'class': 'form-control'}),
-			'society_payout_per_funeral': forms.NumberInput(attrs={'class': 'form-control'}),
-			'society_elder_council': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'List elder names'}),
-
-			# --- SAVINGS GROUP ---
-			'savings_group_cycle_months': forms.NumberInput(attrs={'class': 'form-control'}),
-			'savings_group_share_value': forms.NumberInput(attrs={'class': 'form-control'}),
-			'savings_group_max_shares_per_person': forms.NumberInput(attrs={'class': 'form-control'}),
-			'savings_group_internal_lending_rate': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '%'}),
-			'savings_group_shareout_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+			'contribution_amount': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'e.g. 200.00'}),
+			'contribution_frequency': forms.Select(attrs={'class': 'form-select'}),
+			'contribution_flexible': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+			'payout_type': forms.Select(attrs={'class': 'form-select'}),
+			'payout_per_event': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': 'Payout per event (burial societies)'}),
+			'term_end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+			'internal_interest_rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': '% for internal loans'}),
+			'payout_destination_note': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Group bank account at X'}),
 		}
-	
-	
-	def __init__(self, *args, **kwargs):
-		# ✅ Extract group_type safely (if provided)
-		group_type = kwargs.pop('group_type', None)
-		super().__init__(*args, **kwargs)
 
-		# ✅ Hide irrelevant fields based on group type
-		if group_type == 'stokvel':
-			self.fields_to_keep([
-				'stokvel_contribution_amount',
-				'stokvel_contribution_frequency',
-				'stokvel_payout_type',
-				'stokvel_rotation_order'
-			])
-		elif group_type == 'employer_union':
-			self.fields_to_keep([
-				'employer_name',
-				'employer_contact_person',
-				'employer_contact_email',
-				'employer_contact_phone',
-				'payroll_deduction_enabled',
-				'payroll_deduction_day'
-			])
-		elif group_type == 'burial_society':
-			self.fields_to_keep([
-				'society_registration_number',
-				'society_monthly_contribution',
-				'society_payout_per_funeral',
-				'society_elder_council'
-			])
-		elif group_type == 'savings_group':
-			self.fields_to_keep([
-				'savings_group_cycle_months',
-				'savings_group_share_value',
-				'savings_group_max_shares_per_person',
-				'savings_group_internal_lending_rate',
-				'savings_group_shareout_date'
-			])
-		else:
-			# Default: show all fields
-			pass
 
-	def fields_to_keep(self, allowed):
-		#Helper: removes all fields except those listed.
-		for field_name in list(self.fields.keys()):
-			if field_name not in allowed:
-				del self.fields[field_name]
+"""
+Fedha-Grow — group contribution flow (member side)
+==================================================
+A member records that they've paid into the group pool. This is a CLAIM — it
+does not increase the pool total until a money-role member (treasurer/admin/
+sub_admin) confirms receipt. Mirrors the borrower loan-payment claim flow.
+
+Funds never move through the platform: the member pays the group's own account
+externally, then records the claim here with a reference and optional proof.
+"""
+
+class GroupContributionClaimForm(forms.ModelForm):
+    class Meta:
+        model = GroupContribution
+        fields = ["amount", "method", "external_reference", "proof", "period_label"]
+        widgets = {
+            "amount": forms.NumberInput(attrs={"class": "form-control", "step": "0.01",
+                                               "placeholder": "e.g. 200.00"}),
+            "method": forms.Select(attrs={"class": "form-select"}),
+            "external_reference": forms.TextInput(attrs={"class": "form-control",
+                                                         "placeholder": "Your bank / M-Pesa transaction reference"}),
+            "proof": forms.ClearableFileInput(attrs={"class": "form-control"}),
+            "period_label": forms.TextInput(attrs={"class": "form-control",
+                                                   "placeholder": "Which period, e.g. 2026-09 (optional)"}),
+        }
+
+    def clean_amount(self):
+        amount = self.cleaned_data["amount"]
+        if amount is None or amount <= 0:
+            raise forms.ValidationError("Amount must be greater than zero.")
+        return amount
+
 
 
 # -----------------------------
@@ -875,14 +803,14 @@ class GroupAdminReviewForm(forms.ModelForm):
 
 
 class GroupMeetingForm(forms.ModelForm):
-    class Meta:
-        model = GroupMeeting
-        fields = [
-            "title",
-            "description",
-            "date",
-            "start_time",
-            "end_time",
-            "minutes",
-            "minutes_file",
-        ]
+	class Meta:
+		model = GroupMeeting
+		fields = [
+			"title",
+			"description",
+			"date",
+			"start_time",
+			"end_time",
+			"minutes",
+			"minutes_file",
+		]

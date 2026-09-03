@@ -1,0 +1,140 @@
+{% extends 'group_dash_base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">Financial Rules</h2>
+            <p class="text-muted mb-0">{{ group.name }} — how contributions and payouts work</p>
+        </div>
+        <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Group
+        </a>
+    </div>
+
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        These rules define how members contribute and how money is paid out.
+        Fedha-Grow records and reconciles the group's money — the funds stay in the
+        group's own account, never with the platform.
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <!-- Contribution rule -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-light fw-semibold">
+                <i class="bi bi-arrow-down-circle text-success"></i> Contributions (money in)
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Amount per member (M)</label>
+                        {{ form.contribution_amount }}
+                        {% if form.contribution_amount.errors %}
+                            <div class="text-danger small">{{ form.contribution_amount.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Frequency</label>
+                        {{ form.contribution_frequency }}
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <div class="form-check">
+                            {{ form.contribution_flexible }}
+                            <label class="form-check-label">Members may contribute variable amounts</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payout rule -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-light fw-semibold">
+                <i class="bi bi-arrow-up-circle text-info"></i> Payouts (money out)
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Payout type</label>
+                    {{ form.payout_type }}
+                    <div class="form-text">
+                        Rotating = each member takes the pot in turn (ROSCA).
+                        Event = paid on a trigger (e.g. burial). End-of-term = shared out at cycle end.
+                        Internal lending = the pool is lent to members.
+                    </div>
+                </div>
+
+                <!-- payout-type-specific params: shown/hidden by JS below -->
+                <div class="row g-3">
+                    <div class="col-md-4 payout-param" data-for="event_triggered">
+                        <label class="form-label">Payout per event (M)</label>
+                        {{ form.payout_per_event }}
+                        <div class="form-text">For burial societies and similar.</div>
+                    </div>
+                    <div class="col-md-4 payout-param" data-for="end_of_term">
+                        <label class="form-label">Share-out date</label>
+                        {{ form.term_end_date }}
+                    </div>
+                    <div class="col-md-4 payout-param" data-for="internal_lending">
+                        <label class="form-label">Internal loan interest (%)</label>
+                        {{ form.internal_interest_rate }}
+                    </div>
+                    <div class="col-12 payout-param" data-for="rotating">
+                        <div class="alert alert-light border mb-0">
+                            <i class="bi bi-info-circle"></i>
+                            The rotation order (whose turn is when) is arranged separately once members have joined.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Where the money lives -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-light fw-semibold">
+                <i class="bi bi-bank"></i> Where the group holds its funds
+            </div>
+            <div class="card-body">
+                <label class="form-label">Account / holding note</label>
+                {{ form.payout_destination_note }}
+                <div class="form-text">
+                    e.g. "Group bank account at Standard Lesotho Bank" or "Treasurer-managed mobile-money account".
+                    Recorded for transparency — the platform does not hold these funds.
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-circle"></i> Save Financial Rules
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Show only the payout parameter relevant to the selected payout type.
+    (function () {
+        const select = document.getElementById('id_payout_type');
+        const params = document.querySelectorAll('.payout-param');
+
+        function refresh() {
+            const value = select ? select.value : '';
+            params.forEach(function (el) {
+                el.style.display = (el.dataset.for === value) ? '' : 'none';
+            });
+        }
+        if (select) {
+            select.addEventListener('change', refresh);
+            refresh();   // run on load to reflect the saved value
+        }
+    })();
+</script>
+
+{% endblock %}

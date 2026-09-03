@@ -7,6 +7,151 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold">{{ group.name }}</h2>
+            <p class="text-muted mb-0">{{ group.get_group_type_display }} | Created {{ group.created_at|date:"M d, Y" }}</p>
+        </div>
+        {% if is_admin %}
+        <a href="{% url 'groups:group_edit' group.id %}" class="btn btn-outline-primary">
+            <i class="bi bi-pencil-square"></i> Edit Group
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Group Overview -->
+    <div class="row mb-4 g-3">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-people display-5 text-primary"></i>
+                    <h5 class="fw-semibold mt-2">Members</h5>
+                    <p class="mb-0 fs-4">{{ active_member_count }}</p>
+                    <a href="{% url 'groups:group_members' group.id %}" class="small text-primary">View Members</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-clock-history display-5 text-primary"></i>
+                    <h5 class="fw-semibold mt-2">Activity Log</h5>
+                    <p class="mb-0 small text-muted">Recent group activity</p>
+                    <a href="{% url 'groups:group_activity_log' group.id %}" class="small text-primary">View Log</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-person-check display-5 text-success"></i>
+                    <h5 class="fw-semibold mt-2">Join Requests</h5>
+                    <p class="mb-0 fs-4">{{ pending_requests_count }}</p>
+                    {% if is_admin %}
+                    <a href="{% url 'groups:pending_join_requests' %}" class="small text-success">Review Requests</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-file-earmark-text display-5 text-warning"></i>
+                    <h5 class="fw-semibold mt-2">Constitution</h5>
+                    <p class="mb-0 small text-muted">Group rules & policies</p>
+                    {% if is_admin %}
+                    <a href="{% url 'groups:group_constitution' group.id %}" class="small text-warning">Edit Constitution</a>
+                    {% else %}
+                    <span class="small text-muted">Admin only</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Rules card  -->
+    <div class="row mb-4 g-3">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-cash-coin display-5 text-info"></i>
+                    <h5 class="fw-semibold mt-2">Financial Rules</h5>
+                    {% if financial_rules and financial_rules.contribution_amount %}
+                        <p class="mb-0 small text-muted">
+                            M{{ financial_rules.contribution_amount }} / {{ financial_rules.get_contribution_frequency_display }}
+                            · {{ financial_rules.get_payout_type_display }}
+                        </p>
+                    {% else %}
+                        <p class="mb-0 small text-muted">Not set up yet</p>
+                    {% endif %}
+                    {% if is_admin %}
+                    <a href="{% url 'groups:group_financial_rules' group.id %}" class="small text-info">Configure</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <!-- Financial Rules card  -->
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center">
+                    <i class="bi bi-cash-coin display-5 text-info"></i>
+                    <h5 class="fw-semibold mt-2">Contributions</h5>
+                    <a href="{% url 'groups:record_contribution' group.id %}" class="btn btn-success">
+                        <i class="bi bi-cash"></i> Record Contribution
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+
+
+
+    <!-- Group Info Details -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-light fw-semibold">
+            <i class="bi bi-info-circle"></i> Group Details
+        </div>
+        <div class="card-body">
+            <p><strong>Founder:</strong> {{ group.admin.full_name }}</p>
+            <p><strong>Description:</strong> {{ group.description|default:"No description provided." }}</p>
+            <p><strong>Region:</strong> {{ group.district|default:"Not specified" }}</p>
+            <p><strong>Status:</strong>
+                {% if group.status == 'active' or group.status == 'trusted' %}
+                    <span class="badge bg-success">{{ group.get_status_display }}</span>
+                {% elif group.status == 'suspended' %}
+                    <span class="badge bg-danger">{{ group.get_status_display }}</span>
+                {% else %}
+                    <span class="badge bg-secondary">{{ group.get_status_display }}</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="mt-4 d-flex justify-content-end flex-wrap gap-2">
+        {% if can_manage %}
+        <a href="{% url 'groups:manage_members' group.id %}" class="btn btn-outline-success">
+            <i class="bi bi-person-gear me-1"></i> Manage Members
+        </a>
+        {% endif %}
+        {% if is_admin %}
+        <a href="{% url 'groups:manage_sub_admins' group.id %}" class="btn btn-outline-primary">
+            <i class="bi bi-person-gear me-1"></i> Manage Sub-Admins
+        </a>
+        {% endif %}
+        {% if can_manage %}
+        <a href="{% url 'groups:group_invite' group.id %}" class="btn btn-success">
+            <i class="bi bi-person-plus"></i> Invite Members
+        </a>
+        {% endif %}
+        <a href="{% url 'groups:group_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to My Groups
+        </a>
+    </div>
+</div>
+<!--<div class="container mt-5">
+ 
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">{{ group.name }}</h2>
             <p class="text-muted mb-0">{{ group.get_group_type_display }} | Created on {{ group.created_at|date:"M d, Y" }}</p>
         </div>
         <a href="{% url 'groups:group_edit' group.id %}" class="btn btn-outline-primary">
@@ -14,7 +159,7 @@
         </a>
     </div>
 
-    <!-- Group Overview -->
+  
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card shadow-sm border-0">
@@ -65,13 +210,14 @@
                     <i class="bi bi-gear display-5 text-info"></i>
                     <h5 class="fw-semibold mt-2">Group Settings</h5>
                     <p class="mb-0 small text-muted">View and edit type-specific options</p>
-                    <a href="{% url 'groups:group_type_settings' group.id %}" class="text-decoration-none small text-info">Configure</a>
+                    <a href="" class="text-decoration-none small text-info">Configure</a>
                 </div>
             </div>
         </div>
     </div>
     
-    <!-- Group Info Details -->
+
+  
     <div class="card shadow-sm border-0">
         <div class="card-header bg-light fw-semibold">
             <i class="bi bi-info-circle"></i> Group Details
@@ -90,7 +236,7 @@
         </div>
     </div>
 
-    <!-- Action Buttons -->
+   
    
     <div class="mt-4 d-flex justify-content-end">
         {% if request.user.borrower == group.admin or group.sub_admin %}
@@ -116,5 +262,5 @@
             <i class="bi bi-arrow-left"></i> Back to My Groups
         </a>
     </div>
-</div>
+</div>-->
 {% endblock %}

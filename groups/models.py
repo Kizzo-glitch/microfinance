@@ -3,11 +3,9 @@ from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 from django.conf import settings
-#from micro.models import User
-#from borrowers.models import BorrowerProfile
-#from lenders.models import LenderProfile
 
-
+from decimal import Decimal
+from loans.references import generate_reference
 
 class BorrowerGroup(models.Model):
     """
@@ -31,6 +29,13 @@ class BorrowerGroup(models.Model):
         ('suspended', 'Suspended - Issues Present'),
         ('trusted', 'Trusted - Proven Track Record'),
         ('inactive', 'Inactive'),
+    ]
+    ECONOMIC_ACTIVITY_CHOICES = [
+        ("none",     "General savings (no shared activity)"),
+        ("farming",  "Farming / agriculture"),
+        ("trading",  "Trading / retail"),
+        ("services", "Services"),
+        ("mixed",    "Mixed activities"),
     ]
     
     # Basic Info
@@ -70,6 +75,17 @@ class BorrowerGroup(models.Model):
     total_loans_taken = models.IntegerField(default=0)
     total_amount_borrowed = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     total_amount_repaid = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    economic_activity = models.CharField(
+        max_length=20, choices=ECONOMIC_ACTIVITY_CHOICES, default="none",
+        help_text="The group's shared economic activity, if any. Anchors future "
+                  "value-chain / merchant data. 'none' for general savings groups.",
+    )
+    activity_description = models.CharField(
+        max_length=255, blank=True,
+        help_text="Optional detail, e.g. 'Maize farmers, Leribe' or 'Maseru market traders'.",
+    )
+ 
     
     class Meta:
         ordering = ['-created_at']
@@ -78,10 +94,304 @@ class BorrowerGroup(models.Model):
         return f"{self.name} ({self.get_group_type_display()})"
 
 
+"""
+Fedha-Grow — group financial rules (primitives, not types)
+==========================================================
+Replaces GroupTypeSpecificSettings. Instead of a column-set per group type
+(stokvel_*, society_*, savings_group_*), every group has the SAME two
+primitives configured with different VALUES:
+ 
+    - a contribution rule (how money comes in)
+    - a payout rule       (how money goes out)
+ 
+A stokvel, burial society, ROSCA, and village bank differ only in the values
+of these two rules — not in schema. Adding a new "type" is a new preset, never
+a migration.
+ 
+  ROSCA / stokvel   = contribution(monthly, M200) + payout(rotating)
+  burial society    = contribution(monthly, M50)  + payout(event_triggered)
+  year-end stokvel  = contribution(monthly, M200) + payout(end_of_term)
+  village bank      = contribution(monthly, share) + payout(internal_lending)
+ 
+`group_type` on BorrowerGroup stays as a LABEL/preset for display and for
+seeding sensible defaults — it does not determine the schema.
+ 
+MONEY NOTE: these rules describe amounts and schedules. Funds are NOT held by
+the platform — the group's money lives in the group's own account. This model
+is the ledger's rulebook, not a wallet.
+"""
+
+ 
+class GroupFinancialRules(models.Model):
+    """One row per group. The contribution + payout primitives."""
+ 
+    group = models.OneToOneField(
+        "groups.BorrowerGroup", on_delete=models.CASCADE,
+        related_name="financial_rules",
+    )
+ 
+    # ---------------- contribution rule (money in) ----------------
+    FREQUENCY_CHOICES = [
+        ("weekly",    "Weekly"),
+        ("bi_weekly", "Bi-weekly"),
+        ("monthly",   "Monthly"),
+        ("quarterly", "Quarterly"),
+        ("custom",    "Custom / irregular"),
+    ]
+    contribution_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text="Expected contribution per member per cycle.",
+    )
+    contribution_frequency = models.CharField(
+        max_length=20, choices=FREQUENCY_CHOICES, default="monthly",
+    )
+    contribution_flexible = models.BooleanField(
+        default=False,
+        help_text="If true, members may contribute variable amounts (e.g. share-based savings groups).",
+    )
+ 
+    # ---------------- payout rule (money out) ----------------
+    PAYOUT_CHOICES = [
+        ("rotating",        "Rotating (ROSCA — each member takes the pot in turn)"),
+        ("event_triggered", "Event-triggered (e.g. burial society payout on a death)"),
+        ("end_of_term",     "End-of-term (save through a cycle, share out at the end)"),
+        ("internal_lending","Internal lending (pool is lent to members at interest)"),
+        ("none",            "No structured payout"),
+    ]
+    payout_type = models.CharField(
+        max_length=20, choices=PAYOUT_CHOICES, default="rotating",
+    )
+ 
+    # -- rotating (ROSCA) params — the common case --
+    rotation_order = models.JSONField(
+        null=True, blank=True,
+        help_text="Ordered list of membership IDs for the payout rotation.",
+    )
+    current_rotation_index = models.PositiveIntegerField(
+        default=0, help_text="Whose turn it is — index into rotation_order.",
+    )
+    cycle_number = models.PositiveIntegerField(
+        default=1, help_text="Which full rotation the group is on.",
+    )
+ 
+    # -- event_triggered (burial society) params --
+    payout_per_event = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        help_text="Fixed payout amount when the trigger event occurs.",
+    )
+ 
+    # -- end_of_term params --
+    term_end_date = models.DateField(
+        null=True, blank=True, help_text="When the cycle shares out.",
+    )
+ 
+    # -- internal_lending (village bank) params --
+    internal_interest_rate = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True,
+        help_text="Interest % on loans made from the pool.",
+    )
+ 
+    # ---------------- shared destination (funds never through us) ----------------
+    # Where the group's pooled money actually lives. The platform records and
+    # reconciles against this; it does not hold the funds.
+    payout_destination_note = models.CharField(
+        max_length=255, blank=True,
+        help_text="How/where the group holds its funds (e.g. 'Group bank account at X', "
+                  "'Treasurer-managed mobile-money account'). Recorded, not held by the platform.",
+    )
+ 
+    updated_at = models.DateTimeField(auto_now=True)
+ 
+    def __str__(self):
+        return f"Financial rules for {self.group.name} ({self.get_payout_type_display()})"
+ 
+    # ---- helpers for the common (rotating) case ----
+    @property
+    def next_recipient_membership_id(self):
+        """Membership id whose turn it is in the rotation, or None."""
+        if self.payout_type != "rotating" or not self.rotation_order:
+            return None
+        order = self.rotation_order
+        if 0 <= self.current_rotation_index < len(order):
+            return order[self.current_rotation_index]
+        return None
+ 
+    def advance_rotation(self):
+        """Move to the next member; wrap to a new cycle at the end."""
+        if not self.rotation_order:
+            return
+        self.current_rotation_index += 1
+        if self.current_rotation_index >= len(self.rotation_order):
+            self.current_rotation_index = 0
+            self.cycle_number += 1
+        self.save(update_fields=["current_rotation_index", "cycle_number", "updated_at"])
+
+
+"""
+Fedha-Grow — group money movement
+=================================
+Contributions (money in) and payouts (money out) for groups.
+
+Same discipline as individual loan payments, for the same reason: the platform
+does NOT hold the group's funds. A member pays the group externally; the record
+is a CLAIM until the group's treasurer/admin CONFIRMS receipt. Only confirmation
+counts toward the member's contribution record and the group pool figure.
+
+This keeps the platform a transparent LEDGER, not a custodian — critical for
+groups, where pooled funds would otherwise raise deposit-taking concerns.
+
+Everything carries a reference, so contributions and payouts are traceable and
+reconcilable — the same connective tissue as the rest of the platform.
+"""
+
+class GroupContribution(models.Model):
+    """A member's contribution into the group pool. Claim -> confirm."""
+
+    STATUS_CHOICES = [
+        ("claimed",   "Claimed (awaiting confirmation)"),
+        ("confirmed", "Confirmed received"),
+        ("rejected",  "Rejected (not received)"),
+    ]
+    METHOD_CHOICES = [
+        ("bank",    "Bank transfer"),
+        ("mpesa",   "M-Pesa"),
+        ("ecocash", "EcoCash"),
+        ("cash",    "Cash"),
+        ("gateway", "In-app payment"),
+    ]
+
+    group = models.ForeignKey("groups.BorrowerGroup", on_delete=models.CASCADE,
+                              related_name="contributions")
+    membership = models.ForeignKey("groups.GroupMembership", on_delete=models.CASCADE,
+                                   related_name="contributions")
+
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    method = models.CharField(max_length=20, choices=METHOD_CHOICES)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="claimed")
+
+    reference          = models.CharField(max_length=24, unique=True, editable=False,
+                                          null=True, blank=True)
+    external_reference = models.CharField(max_length=120, blank=True,
+                                          help_text="Member's own bank/mobile-money txn reference.")
+    proof = models.FileField(upload_to="group_contribution_proofs/", null=True, blank=True)
+
+    # which cycle/period this contribution is for (loose — a full schedule is later)
+    period_label = models.CharField(max_length=40, blank=True,
+                                    help_text="e.g. '2026-08' or 'Cycle 3' — which period this covers.")
+
+    date_paid    = models.DateTimeField(default=timezone.now)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    confirmed_by = models.ForeignKey("groups.GroupMembership", on_delete=models.SET_NULL,
+                                     null=True, blank=True, related_name="contributions_confirmed",
+                                     help_text="The treasurer/admin membership who confirmed receipt.")
+    note = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date_paid"]
+
+    def __str__(self):
+        return f"{self.reference or 'contribution'} — M{self.amount} ({self.status})"
+
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            self.reference = generate_reference(GroupContribution, "reference", prefix="FGC")
+        super().save(*args, **kwargs)   # does NOT move any pool figure; confirm() does
+
+    def confirm(self, by_membership=None):
+        if self.status == "confirmed":
+            return
+        self.status = "confirmed"
+        self.confirmed_at = timezone.now()
+        if by_membership is not None:
+            self.confirmed_by = by_membership
+        self.save(update_fields=["status", "confirmed_at", "confirmed_by"])
+
+    def reject(self, by_membership=None, reason=""):
+        self.status = "rejected"
+        if by_membership is not None:
+            self.confirmed_by = by_membership
+        if reason:
+            self.note = reason[:255]
+        self.save(update_fields=["status", "confirmed_by", "note"])
+
+    # ---- pool totals: CONFIRMED only ----
+    @staticmethod
+    def confirmed_pool_total(group) -> Decimal:
+        return group.contributions.filter(status="confirmed").aggregate(
+            total=models.Sum("amount"))["total"] or Decimal("0.00")
+
+    @staticmethod
+    def member_confirmed_total(membership) -> Decimal:
+        return membership.contributions.filter(status="confirmed").aggregate(
+            total=models.Sum("amount"))["total"] or Decimal("0.00")
+
+
+class GroupPayout(models.Model):
+    """
+    Money leaving the pool — a ROSCA rotation payout, a burial payout, an
+    end-of-term share, or an internal loan disbursement. Recorded and confirmed;
+    funds move outside the platform.
+    """
+
+    STATUS_CHOICES = [
+        ("pending",   "Pending"),
+        ("paid",      "Paid (confirmed sent)"),
+        ("cancelled", "Cancelled"),
+    ]
+    PAYOUT_KIND = [
+        ("rotation",   "Rotation payout (ROSCA)"),
+        ("event",      "Event payout (e.g. burial)"),
+        ("share_out",  "End-of-term share-out"),
+        ("loan",       "Internal loan disbursement"),
+        ("other",      "Other"),
+    ]
+
+    group = models.ForeignKey("groups.BorrowerGroup", on_delete=models.CASCADE,
+                              related_name="payouts")
+    recipient = models.ForeignKey("groups.GroupMembership", on_delete=models.SET_NULL,
+                                  null=True, blank=True, related_name="payouts_received",
+                                  help_text="Member receiving the payout (blank for a group-external payout).")
+
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    kind   = models.CharField(max_length=12, choices=PAYOUT_KIND, default="rotation")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending")
+
+    reference = models.CharField(max_length=24, unique=True, editable=False,
+                                 null=True, blank=True)
+    cycle_number = models.PositiveIntegerField(null=True, blank=True,
+                                               help_text="Rotation cycle this payout belongs to, if applicable.")
+
+    authorised_by = models.ForeignKey("groups.GroupMembership", on_delete=models.SET_NULL,
+                                      null=True, blank=True, related_name="payouts_authorised")
+    date_due  = models.DateField(null=True, blank=True)
+    date_paid = models.DateTimeField(null=True, blank=True)
+    note = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.reference or 'payout'} — M{self.amount} ({self.status})"
+
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            self.reference = generate_reference(GroupPayout, "reference", prefix="FGO")
+        super().save(*args, **kwargs)
+
+    def mark_paid(self, by_membership=None):
+        self.status = "paid"
+        self.date_paid = timezone.now()
+        if by_membership is not None:
+            self.authorised_by = by_membership
+        self.save(update_fields=["status", "date_paid", "authorised_by"])
+
+
+
+"""
 class GroupTypeSpecificSettings(models.Model):
-    """
-    Additional settings specific to each traditional group type
-    """
+   
     group = models.OneToOneField(BorrowerGroup, on_delete=models.CASCADE, related_name='type_settings')
     
     # === STOKVEL SPECIFIC ===
@@ -123,6 +433,8 @@ class GroupTypeSpecificSettings(models.Model):
     
     def __str__(self):
         return f"Settings for {self.group.name}"
+ """
+
 
 
 class GroupConstitution(models.Model):
@@ -258,6 +570,17 @@ class GroupMembership(models.Model):
     probation_end_date = models.DateTimeField(null=True, blank=True)
     can_borrow_from = models.DateTimeField(null=True, blank=True, help_text="Date when can start taking loans")
     exit_date = models.DateTimeField(null=True, blank=True)
+
+    # --- acting / temporary role support ---
+    acting_until = models.DateTimeField(
+        null=True, blank=True,
+        help_text="If set, the current role is TEMPORARY and reverts to "
+                  "previous_role after this time. Null = permanent role.",
+    )
+    previous_role = models.CharField(
+        max_length=50, blank=True, null=True,
+        help_text="Role to revert to when an acting role expires.",
+    )
     
     # Participation Tracking
     meetings_attended = models.IntegerField(default=0)
@@ -408,6 +731,7 @@ class GroupDocument(models.Model):
     def __str__(self):
         return f"{self.group.name} v{self.version} - {self.file.name}"
 
+
 class GroupJoinRequest(models.Model):
     """
     Allow people to request to join existing groups
@@ -460,58 +784,6 @@ class GroupJoinRequest(models.Model):
     def __str__(self):
         return f"{self.requester.full_name} → {self.group.name}"
 
-
-
-class LenderGroupSubscription(models.Model):
-    """
-    Lenders subscribe to groups they want to work with
-    More sophisticated than simple "interested" flag
-    """
-    
-    SUBSCRIPTION_TYPES = [
-        ('observer', 'Observer - Just Watching'),
-        ('interested', 'Interested - Considering'),
-        ('active', 'Active Lender - Currently Lending'),
-        ('preferred', 'Preferred Partner - Long-term Relationship'),
-        ('exclusive', 'Exclusive Partner - Only Lender'),
-    ]
-    
-    lender = models.ForeignKey('lenders.LenderProfile', on_delete=models.CASCADE, related_name='group_subscriptions')
-    group = models.ForeignKey(BorrowerGroup, on_delete=models.CASCADE, related_name='lender_subscriptions')
-    
-    subscription_type = models.CharField(max_length=50, choices=SUBSCRIPTION_TYPES, default='interested')
-    
-    # Lender's Terms for this specific group
-    max_loan_amount_per_member = models.DecimalField(max_digits=12, decimal_places=2, help_text="Maximum they'll lend to one member")
-    max_total_exposure = models.DecimalField(max_digits=12, decimal_places=2, help_text="Maximum total outstanding to entire group")
-    preferred_interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
-    
-    # Special conditions for different group types
-    requires_payroll_deduction = models.BooleanField(default=False, help_text="For employer unions")
-    requires_stokvel_savings_first = models.BooleanField(default=False, help_text="For stokvels")
-    respects_traditional_hierarchy = models.BooleanField(default=True)
-    
-    # Auto-approval settings
-    auto_approve_under_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
-    auto_approve_for_top_performers = models.BooleanField(default=False)
-    
-    # Status
-    subscribed_at = models.DateTimeField(auto_now_add=True)
-    last_interaction = models.DateTimeField(auto_now=True)
-    is_active = models.BooleanField(default=True)
-    
-    # Performance tracking
-    loans_issued = models.IntegerField(default=0)
-    total_amount_lent = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    repayment_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
-    
-    class Meta:
-        unique_together = ['lender', 'group']
-        ordering = ['-subscribed_at']
-    
-    def __str__(self):
-        return f"{self.lender.company_name} → {self.group.name} ({self.get_subscription_type_display()})"
-    
 
 class GroupMeeting(models.Model):
     group = models.ForeignKey("BorrowerGroup", on_delete=models.CASCADE, related_name="meetings")
@@ -594,3 +866,55 @@ class ActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.get_action_display()} - {self.group.name}"
+
+
+class LenderGroupSubscription(models.Model):
+    """
+    Lenders subscribe to groups they want to work with
+    More sophisticated than simple "interested" flag
+    """
+    
+    SUBSCRIPTION_TYPES = [
+        ('observer', 'Observer - Just Watching'),
+        ('interested', 'Interested - Considering'),
+        ('active', 'Active Lender - Currently Lending'),
+        ('preferred', 'Preferred Partner - Long-term Relationship'),
+        ('exclusive', 'Exclusive Partner - Only Lender'),
+    ]
+    
+    lender = models.ForeignKey('lenders.LenderProfile', on_delete=models.CASCADE, related_name='group_subscriptions')
+    group = models.ForeignKey(BorrowerGroup, on_delete=models.CASCADE, related_name='lender_subscriptions')
+    
+    subscription_type = models.CharField(max_length=50, choices=SUBSCRIPTION_TYPES, default='interested')
+    
+    # Lender's Terms for this specific group
+    max_loan_amount_per_member = models.DecimalField(max_digits=12, decimal_places=2, help_text="Maximum they'll lend to one member")
+    max_total_exposure = models.DecimalField(max_digits=12, decimal_places=2, help_text="Maximum total outstanding to entire group")
+    preferred_interest_rate = models.DecimalField(max_digits=5, decimal_places=2)
+    
+    # Special conditions for different group types
+    requires_payroll_deduction = models.BooleanField(default=False, help_text="For employer unions")
+    requires_stokvel_savings_first = models.BooleanField(default=False, help_text="For stokvels")
+    respects_traditional_hierarchy = models.BooleanField(default=True)
+    
+    # Auto-approval settings
+    auto_approve_under_amount = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    auto_approve_for_top_performers = models.BooleanField(default=False)
+    
+    # Status
+    subscribed_at = models.DateTimeField(auto_now_add=True)
+    last_interaction = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    
+    # Performance tracking
+    loans_issued = models.IntegerField(default=0)
+    total_amount_lent = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    repayment_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    
+    class Meta:
+        unique_together = ['lender', 'group']
+        ordering = ['-subscribed_at']
+    
+    def __str__(self):
+        return f"{self.lender.company_name} → {self.group.name} ({self.get_subscription_type_display()})"
+    

@@ -1,7 +1,7 @@
 # groups/urls.py
 from django.urls import path
 from . import views
-from .views import GroupTypeSpecificSettingsView
+#from .views import GroupTypeSpecificSettingsView
 
 app_name = 'groups'
 
@@ -20,18 +20,25 @@ urlpatterns = [
     path('<int:pk>/group-detail', views.group_detail, name='group_detail'),
     path('<int:pk>/edit/', views.group_edit, name='group_edit'),
     path('<int:group_id>/constitution/', views.group_constitution, name='group_constitution'),
-    path('<int:group_id>/settings/', GroupTypeSpecificSettingsView.as_view(), name='group_type_settings'),
+    #path('<int:group_id>/settings/', GroupTypeSpecificSettingsView.as_view(), name='group_type_settings'),
 
     path('<int:group_id>/members/', views.group_members, name='group_members'),
     path('<int:group_id>/manage-sub-admins/', views.manage_sub_admins, name='manage_sub_admins'),
     path('<int:group_id>/manage-members/', views.manage_members, name='manage_members'),
     path('<int:group_id>/activity/', views.group_activity_log, name='group_activity_log'),
     path('<int:group_id>/documents/', views.group_documents, name='group_documents'),
+    
+    path('<int:group_id>/financial-rules/', views.group_financial_rules, name='group_financial_rules'),
+    path('<int:group_id>/record-contribution/', views.record_contribution, name='record_contribution'),
+    path('<int:group_id>/group-contribution/', views.group_contributions, name='group_contributions'),
+
+    path('<int:contribution_id>/confirm-contribution/', views.confirm_contribution, name='confirm_contribution'),
+    path('<int:contribution_id>/reject-contribution/', views.reject_contribution, name='reject_contribution'),
  
     
     path("<int:group_id>/invite/", views.send_group_invite, name="group_invite"),
     path("invite/<str:code>/activate/", views.activate_invite, name="activate_invite"),
-    path('<int:request_id>/review/', views.review_join_request, name='review_join_request'),
+    #path('<int:request_id>/review/', views.review_join_request, name='review_join_request'),
     path('join-requests/', views.pending_join_requests, name='pending_join_requests'),
 
     path('join-requests/<int:request_id>/approve/', views.approve_join_request, name='approve_join_request'),
@@ -39,10 +46,10 @@ urlpatterns = [
 
     path('api/borrowers/has_profile/<int:user_id>/', views.has_borrower_profile, name='has_borrower_profile'),
 
-    path("<int:group_id>/meetings/", views.group_meetings, name="group_meetings"),
-    path("<int:group_id>/meetings/create/", views.create_meeting, name="create_meeting"),
-    path("<int:group_id>/meetings/<int:meeting_id>/", views.meeting_detail, name="meeting_detail"),
-    path("<int:group_id>/meetings/<int:meeting_id>/attendance/", views.update_attendance, name="update_attendance"),
+    #path("<int:group_id>/meetings/", views.group_meetings, name="group_meetings"),
+    #path("<int:group_id>/meetings/create/", views.create_meeting, name="create_meeting"),
+    #path("<int:group_id>/meetings/<int:meeting_id>/", views.meeting_detail, name="meeting_detail"),
+    #path("<int:group_id>/meetings/<int:meeting_id>/attendance/", views.update_attendance, name="update_attendance"),
 
     # Invitation actions
     

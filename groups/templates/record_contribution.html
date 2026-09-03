@@ -1,0 +1,65 @@
+{% extends 'group_dash_base.html' %}
+{% block content %}
+<div class="container mt-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">Record a Contribution</h2>
+            <p class="text-muted mb-0">{{ group.name }}</p>
+        </div>
+        <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Group
+        </a>
+    </div>
+
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        Pay the group using your usual method (bank, M-Pesa, EcoCash or cash), then
+        record it here with your transaction reference and proof. The treasurer confirms
+        receipt — the group pool updates once they do.
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="js-lock-on-submit">
+        {% csrf_token %}
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Amount paid (M)</label>
+                        {{ form.amount }}
+                        {% if form.amount.errors %}
+                            <div class="text-danger small">{{ form.amount.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">How did you pay?</label>
+                        {{ form.method }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Your transaction reference</label>
+                        {{ form.external_reference }}
+                        <div class="form-text">From your bank or mobile-money payment — helps the treasurer match it.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Period (optional)</label>
+                        {{ form.period_label }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">Proof of payment</label>
+                        {{ form.proof }}
+                        <div class="form-text">Screenshot, receipt, or statement showing the payment.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-success" data-loading-text="Submitting…">
+                <i class="bi bi-check-circle"></i> Submit contribution
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

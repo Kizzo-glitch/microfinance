@@ -1,0 +1,106 @@
+{% extends 'group_base.html' %}
+{% block content %}
+<div class="container mt-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">Contributions</h2>
+            <p class="text-muted mb-0">{{ group.name }} · Confirmed pool: <strong>M{{ pool_total }}</strong></p>
+        </div>
+        <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Group
+        </a>
+    </div>
+
+    <!-- Action needed: pending claims -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-light fw-semibold">
+            <i class="bi bi-exclamation-circle text-warning"></i> Awaiting your confirmation
+        </div>
+        <div class="card-body">
+            {% for c in pending %}
+                <div class="border rounded p-3 mb-3" style="border-left:4px solid #E9B44C !important;">
+                    <div class="d-flex flex-wrap justify-content-between align-items-start">
+                        <div>
+                            <div><strong>M{{ c.amount }}</strong>
+                                 <span class="badge bg-warning text-dark ms-2">Claimed</span></div>
+                            <div class="small text-muted mt-1">
+                                {{ c.membership.borrower.full_name }} ·
+                                Ref {{ c.reference }} · {{ c.get_method_display }}
+                                {% if c.external_reference %} · their ref: {{ c.external_reference }}{% endif %}
+                                {% if c.period_label %} · for {{ c.period_label }}{% endif %}
+                                · {{ c.date_paid|date:"d M Y" }}
+                            </div>
+                            {% if c.proof %}
+                                <a href="{{ c.proof.url }}" target="_blank" class="btn btn-sm btn-outline-info mt-2">
+                                    <i class="bi bi-file-earmark"></i> View proof
+                                </a>
+                            {% else %}
+                                <div class="small text-muted mt-2"><em>No proof attached.</em></div>
+                            {% endif %}
+                        </div>
+                        <div class="mt-2">
+                            <form method="post" action="{% url 'groups:confirm_contribution' c.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-success">Confirm receipt</button>
+                            </form>
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                    onclick="document.getElementById('reject-{{ c.id }}').style.display='block';">
+                                Reject
+                            </button>
+                        </div>
+                    </div>
+                    <form method="post" action="{% url 'groups:reject_contribution' c.id %}"
+                          id="reject-{{ c.id }}" style="display:none;" class="mt-3">
+                        {% csrf_token %}
+                        <label class="small fw-bold">Reason (shown to the member):</label>
+                        <textarea name="reason" rows="2" class="form-control mb-2"
+                                  placeholder="e.g. Payment not found in the group account"></textarea>
+                        <button type="submit" class="btn btn-sm btn-danger">Confirm rejection</button>
+                    </form>
+                </div>
+            {% empty %}
+                <p class="text-muted mb-0">No contributions awaiting confirmation.</p>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- History -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-light fw-semibold">
+            <i class="bi bi-clock-history"></i> Contribution history
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr><th>Reference</th><th>Member</th><th>Amount</th><th>Method</th><th>Date</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for c in history %}
+                            <tr>
+                                <td>{{ c.reference }}</td>
+                                <td>{{ c.membership.borrower.full_name }}</td>
+                                <td>M{{ c.amount }}</td>
+                                <td>{{ c.get_method_display }}</td>
+                                <td>{{ c.confirmed_at|default:c.date_paid|date:"d M Y" }}</td>
+                                <td>
+                                    {% if c.status == "confirmed" %}
+                                        <span class="badge bg-success">Confirmed</span>
+                                    {% elif c.status == "rejected" %}
+                                        <span class="badge bg-danger">Rejected</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ c.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr><td colspan="6" class="text-muted">No confirmed or rejected contributions yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

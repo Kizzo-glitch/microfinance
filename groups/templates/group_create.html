@@ -1,10 +1,11 @@
 {% extends "group_dash_base.html" %}
 {% block content %}
+
 <div class="container mt-5">
     <h2 class="text-success">Create a Borrower Group</h2>
     <p class="text-muted">Start a society, stokvel, or union to help members access loans together.</p>
 
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.as_p }}
         <button type="submit" class="btn btn-success">Create Group</button>
