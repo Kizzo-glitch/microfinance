@@ -9,7 +9,7 @@ from django.db.models import Sum
 from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.views.decorators.http import require_POST
 
@@ -19,7 +19,7 @@ from loans.models import Loan, Notification
 from .models import (
     BorrowerGroup, GroupMembership, GroupConstitution, GroupInvitation,
     GroupJoinRequest, GroupDocument, ActivityLog,
-    GroupFinancialRules, GroupContribution
+    GroupFinancialRules, GroupContribution, GroupPayout
 )
 from .forms import (
     BorrowerGroupRegistrationForm, BorrowerGroupForm,
@@ -30,11 +30,10 @@ from .group_permissions import (
     group_admin_required, group_member_required, group_staff_required,
     group_admin_only, is_group_staff, is_group_admin, group_membership,
     check_admin_inactivity, claim_acting_admin, can_claim_acting_admin, promote, 
-    can_handle_money, effective_role,
+    can_handle_money, effective_role, 
 )
 from comms.sms.service import send_sms
-
-
+from .group_pool import pool_balance
 
 
 
@@ -826,3 +825,182 @@ def group_ledger(request, group_id):
         "pending_claims": pending_claims,
         "cycle_number": getattr(rules, "cycle_number", None) if rules else None,
     })
+
+# =====================================================================
+# Rotation payouts (ROSCA)
+# =====================================================================
+ 
+@login_required
+def rotation_order(request, group_id):
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+    if not is_group_admin(request.user, group):
+        messages.error(request, "Only the group administrator can arrange the rotation order.")
+        return redirect("groups:group_detail", group.id)
+ 
+    rules, _ = GroupFinancialRules.objects.get_or_create(group=group)
+    if rules.payout_type != "rotating":
+        messages.info(request, "Rotation order applies only to rotating (ROSCA) payouts.")
+        return redirect("groups:group_financial_rules", group.id)
+ 
+    active = list(group.memberships.filter(status="active").select_related("borrower"))
+    by_id = {m.id: m for m in active}
+ 
+    # Build the ordered list: saved order first (still-active only), then any
+    # active members not yet placed (new members appended at the end).
+    saved = rules.rotation_order or []
+    ordered = [by_id[mid] for mid in saved if mid in by_id]
+    placed = set(saved)
+    ordered += [m for m in active if m.id not in placed]
+ 
+    if request.method == "POST":
+        # order arrives as a comma-separated list of membership ids
+        raw = request.POST.get("order", "")
+        try:
+            new_order = [int(x) for x in raw.split(",") if x.strip()]
+        except ValueError:
+            messages.error(request, "Could not read the new order. Please try again.")
+            return redirect("groups:rotation_order", group.id)
+ 
+        # keep only ids that are genuinely active members of this group
+        new_order = [mid for mid in new_order if mid in by_id]
+        rules.rotation_order = new_order
+        # reset the pointer if the order changed materially
+        if rules.current_rotation_index >= len(new_order):
+            rules.current_rotation_index = 0
+        rules.save(update_fields=["rotation_order", "current_rotation_index", "updated_at"])
+        messages.success(request, "Rotation order saved.")
+        return redirect("groups:group_detail", group.id)
+ 
+    return render(request, "rotation_order.html", {
+        "group": group,
+        "rules": rules,
+        "ordered_members": ordered,
+        "current_index": rules.current_rotation_index,
+    })
+
+# =====================================================================
+# Payouts (disbursements)
+# =====================================================================
+@login_required
+def payouts(request, group_id):
+    """List payouts; offer to create the next rotation payout."""
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+    if not can_handle_money(request.user, group):
+        messages.error(request, "Only the treasurer or an admin can manage payouts.")
+        return redirect("groups:group_detail", group.id)
+ 
+    rules = getattr(group, "financial_rules", None)
+    next_recipient = None
+    if rules and rules.payout_type == "rotating" and rules.rotation_order:
+        next_id = rules.next_recipient_membership_id
+        if next_id:
+            next_recipient = group.memberships.filter(id=next_id, status="active").first()
+ 
+    return render(request, "group_payouts.html", {
+        "group": group,
+        "rules": rules,
+        "pool": pool_balance(group),
+        "next_recipient": next_recipient,
+        "pending": group.payouts.filter(status="pending").select_related("recipient__borrower"),
+        "history": group.payouts.exclude(status="pending").select_related("recipient__borrower"),
+    })
+ 
+
+ #=====================================================================
+ # Create / mark paid / cancel payouts (treasurer only)
+ # ==================================================================== 
+@login_required
+@require_POST
+def create_rotation_payout(request, group_id):
+    """Create a PENDING payout for the current-turn member."""
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+    if not can_handle_money(request.user, group):
+        messages.error(request, "Only the treasurer or an admin can create payouts.")
+        return redirect("groups:group_detail", group.id)
+ 
+    rules = get_object_or_404(GroupFinancialRules, group=group)
+    if rules.payout_type != "rotating" or not rules.rotation_order:
+        messages.error(request, "This group doesn't have a rotation set up.")
+        return redirect("groups:payouts", group.id)
+ 
+    next_id = rules.next_recipient_membership_id
+    recipient = group.memberships.filter(id=next_id, status="active").first()
+    if not recipient:
+        messages.error(request, "Couldn't determine whose turn it is. Check the rotation order.")
+        return redirect("groups:rotation_order", group.id)
+ 
+    # Amount defaults to the current pool; treasurer may override.
+    raw_amount = (request.POST.get("amount") or "").strip()
+    if raw_amount:
+        try:
+            amount = Decimal(raw_amount)
+        except (InvalidOperation, ValueError):
+            messages.error(request, "Invalid amount.")
+            return redirect("groups:payouts", group.id)
+    else:
+        amount = pool_balance(group)
+ 
+    if amount <= 0:
+        messages.error(request, "There's nothing in the pool to pay out yet.")
+        return redirect("groups:payouts", group.id)
+ 
+    payout = GroupPayout.objects.create(
+        group=group, recipient=recipient, amount=amount, kind="rotation",
+        status="pending", cycle_number=rules.cycle_number,
+        authorised_by=group_membership(request.user, group),
+    )
+    messages.success(request, f"Payout {payout.reference} created for {recipient.borrower.full_name}. "
+                              f"Mark it paid once you've disbursed the funds.")
+    return redirect("groups:payouts", group.id)
+ 
+ 
+@login_required
+@require_POST
+def mark_payout_paid(request, payout_id):
+    """
+    Treasurer confirms the disbursement happened. THIS is what advances the
+    rotation — the pointer moves only when money genuinely went out.
+    """
+    payout = get_object_or_404(GroupPayout, id=payout_id, status="pending")
+    group = payout.group
+    if not can_handle_money(request.user, group):
+        messages.error(request, "Only the treasurer or an admin can mark payouts paid.")
+        return redirect("groups:group_detail", group.id)
+ 
+    payout.mark_paid(by_membership=group_membership(request.user, group))
+ 
+    # Advance the rotation ONLY now (on confirmed disbursement).
+    rules = getattr(group, "financial_rules", None)
+    if rules and payout.kind == "rotation":
+        rules.advance_rotation()
+ 
+    # Notify the recipient.
+    if payout.recipient:
+        user = getattr(payout.recipient.borrower, "user", None)
+        if user:
+            Notification.objects.create(
+                user=user, category="group_update",
+                message=(f"You've received a payout of M{payout.amount} (ref {payout.reference}) "
+                         f"from {group.name}."))
+            send_sms(payout.recipient.borrower.phone_number, "group_payout_paid",
+                      {"name": payout.recipient.borrower.full_name, "amount": payout.amount,
+                        "ref": payout.reference, "group": group.name})
+ 
+    messages.success(request, f"Payout {payout.reference} marked paid. Rotation advanced to the next member.")
+    return redirect("groups:payouts", group.id)
+ 
+ 
+@login_required
+@require_POST
+def cancel_payout(request, payout_id):
+    """Cancel a pending payout (does NOT advance rotation)."""
+    payout = get_object_or_404(GroupPayout, id=payout_id, status="pending")
+    group = payout.group
+    if not can_handle_money(request.user, group):
+        messages.error(request, "Only the treasurer or an admin can cancel payouts.")
+        return redirect("groups:group_detail", group.id)
+    payout.status = "cancelled"
+    payout.save(update_fields=["status"])
+    messages.info(request, f"Payout {payout.reference} cancelled.")
+    return redirect("groups:payouts", group.id)
+ 

@@ -1,0 +1,121 @@
+{% extends 'group_dash_base.html' %}
+{% block content %}
+<div class="container mt-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">Rotation Order</h2>
+            <p class="text-muted mb-0">{{ group.name }} — the order members receive the pot</p>
+        </div>
+        <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Group
+        </a>
+    </div>
+
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i>
+        Drag members to set the payout order, or use the arrows on a phone.
+        The member at the top receives the pot first. The current turn is highlighted.
+    </div>
+
+    <form method="post" id="rotationForm">
+        {% csrf_token %}
+        <input type="hidden" name="order" id="orderInput">
+
+        <ul class="list-group mb-4" id="rotationList">
+            {% for m in ordered_members %}
+            <li class="list-group-item d-flex align-items-center justify-content-between"
+                draggable="true" data-id="{{ m.id }}"
+                {% if forloop.counter0 == current_index %}style="border-left:4px solid #02C39A;"{% endif %}>
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-grip-vertical text-muted me-3" style="cursor:grab;"></i>
+                    <span class="badge bg-secondary me-2 position-number">{{ forloop.counter }}</span>
+                    <span>
+                        {{ m.borrower.full_name }}
+                        {% if forloop.counter0 == current_index %}
+                            <span class="badge bg-success ms-1">Current turn</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn btn-outline-secondary move-up" title="Move up">
+                        <i class="bi bi-arrow-up"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary move-down" title="Move down">
+                        <i class="bi bi-arrow-down"></i>
+                    </button>
+                </div>
+            </li>
+            {% empty %}
+            <li class="list-group-item text-muted">No active members to arrange yet.</li>
+            {% endfor %}
+        </ul>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-success">
+                <i class="bi bi-check-circle"></i> Save rotation order
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+(function () {
+    const list = document.getElementById('rotationList');
+    const orderInput = document.getElementById('orderInput');
+    const form = document.getElementById('rotationForm');
+    if (!list) return;
+
+    function renumber() {
+        list.querySelectorAll('li[data-id]').forEach(function (li, i) {
+            const badge = li.querySelector('.position-number');
+            if (badge) badge.textContent = i + 1;
+        });
+    }
+
+    function serialize() {
+        return Array.from(list.querySelectorAll('li[data-id]'))
+            .map(li => li.dataset.id).join(',');
+    }
+
+    // --- up / down buttons (touch-friendly) ---
+    list.addEventListener('click', function (e) {
+        const li = e.target.closest('li[data-id]');
+        if (!li) return;
+        if (e.target.closest('.move-up') && li.previousElementSibling) {
+            list.insertBefore(li, li.previousElementSibling);
+            renumber();
+        } else if (e.target.closest('.move-down') && li.nextElementSibling) {
+            list.insertBefore(li.nextElementSibling, li);
+            renumber();
+        }
+    });
+
+    // --- drag and drop (desktop) ---
+    let dragged = null;
+    list.addEventListener('dragstart', function (e) {
+        dragged = e.target.closest('li[data-id]');
+        if (dragged) dragged.style.opacity = '0.5';
+    });
+    list.addEventListener('dragend', function () {
+        if (dragged) dragged.style.opacity = '';
+        dragged = null;
+        renumber();
+    });
+    list.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        const over = e.target.closest('li[data-id]');
+        if (!over || over === dragged) return;
+        const rect = over.getBoundingClientRect();
+        const after = (e.clientY - rect.top) / rect.height > 0.5;
+        list.insertBefore(dragged, after ? over.nextElementSibling : over);
+    });
+
+    // --- write the final order into the hidden field on submit ---
+    form.addEventListener('submit', function () {
+        orderInput.value = serialize();
+    });
+})();
+</script>
+{% endblock %}

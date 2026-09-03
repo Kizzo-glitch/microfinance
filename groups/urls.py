@@ -34,8 +34,14 @@ urlpatterns = [
 
     path('<int:contribution_id>/confirm-contribution/', views.confirm_contribution, name='confirm_contribution'),
     path('<int:contribution_id>/reject-contribution/', views.reject_contribution, name='reject_contribution'),
+    
     path('<int:group_id>/ledger/', views.group_ledger, name='group_ledger'),
- 
+    path('<int:group_id>/rotation-order/', views.rotation_order, name='rotation_order'),
+    path('<int:group_id>/create-rotation-payout/', views.create_rotation_payout, name='create_rotation_payout'),
+    path('<int:group_id>/payouts/', views.payouts, name='payouts'),
+    
+    path('<int:payout_id>/cancel_-ayout/', views.cancel_payout, name='cancel_payout'),
+    path('<int:payout_id>/mark-payout-paid/', views.mark_payout_paid, name='mark_payout_paid'),
     
     path("<int:group_id>/invite/", views.send_group_invite, name="group_invite"),
     path("invite/<str:code>/activate/", views.activate_invite, name="activate_invite"),

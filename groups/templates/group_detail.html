@@ -157,18 +157,29 @@
             </div>
         </div>
         <div class="row mb-4 g-3">
-                    <div class="col-md-4">
-                        <div class="card shadow-sm border-0">
-                            <div class="card-body text-center">
-                                <i class="bi bi-cash-coin display-5 text-info"></i>
-                                <h5 class="fw-semibold mt-2">Ledger</h5>
-                                <a href="{% url 'groups:group_ledger' group.id %}" class="btn btn-success">
-                                    <i class="bi bi-cash"></i> View Ledger
-                                </a>
-                            </div>
-                        </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body text-center">
+                        <i class="bi bi-cash-coin display-5 text-info"></i>
+                        <h5 class="fw-semibold mt-2">Ledger</h5>
+                        <a href="{% url 'groups:group_ledger' group.id %}" class="btn btn-success">
+                            <i class="bi bi-cash"></i> View Ledger
+                        </a>
                     </div>
                 </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm border-0">
+                    <div class="card-body text-center">
+                        <i class="bi bi-cash-coin display-5 text-info"></i>
+                        <h5 class="fw-semibold mt-2">Payouts</h5>
+                        <a href="{% url 'groups:payouts' group.id %}" class="btn btn-success">
+                            <i class="bi bi-cash"></i> View Payouts
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
         <!--<div class="card-body">
             <p><strong>Founder:</strong> {{ group.admin.full_name }}</p>
             <p><strong>Description:</strong> {{ group.description|default:"No description provided." }}</p>
