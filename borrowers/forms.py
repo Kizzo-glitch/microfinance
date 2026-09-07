@@ -175,12 +175,18 @@ class RegisteredBusinessDocumentsForm(forms.ModelForm):
 class LoanApplicationForm(forms.ModelForm):
 	loan_amount = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control','placeholder':'Loan Amount Needed',}), required=True)
 	loan_term = forms.ChoiceField(choices=[]) #forms.Select(attrs={'class': 'form-control'})
+	group_data_consent = forms.BooleanField(
+		required=False,
+		label="I consent to sharing my group contribution record with the lender I apply to.",
+		widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+	)
 
 	class Meta:
 		model = LoanApplication
 		fields = [
 			'loan_amount', 
-			'loan_term', 
+			'loan_term',
+			'group_data_consent', 
 			]
 
 

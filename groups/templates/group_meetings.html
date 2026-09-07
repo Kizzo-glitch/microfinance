@@ -1,0 +1,61 @@
+{% extends 'group_dash_base.html' %}
+{% block content %}
+<div class="container mt-5">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">Meetings</h2>
+            <p class="text-muted mb-0">{{ group.name }} — the group's meeting record</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if can_manage %}
+            <a href="{% url 'groups:create_meeting' group.id %}" class="btn btn-success">
+                <i class="bi bi-plus-circle"></i> Record a meeting
+            </a>
+            {% endif %}
+            <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
+    </div>
+
+    {% if meetings %}
+    <div class="list-group">
+        {% for m in meetings %}
+        <div class="list-group-item">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="fw-semibold">{{ m.title }}</div>
+                    <div class="small text-muted">
+                        {{ m.date|date:"D, d M Y" }}
+                        {% if m.start_time %} · {{ m.start_time|time:"H:i" }}{% endif %}
+                        {% if m.end_time %}–{{ m.end_time|time:"H:i" }}{% endif %}
+                    </div>
+                    {% if m.description %}
+                    <div class="small mt-1">{{ m.description }}</div>
+                    {% endif %}
+                </div>
+                {% if m.minutes_file %}
+                <a href="{{ m.minutes_file.url }}" target="_blank" class="btn btn-sm btn-outline-info">
+                    <i class="bi bi-file-earmark-text"></i> Minutes file
+                </a>
+                {% endif %}
+            </div>
+            {% if m.minutes %}
+            <details class="mt-2">
+                <summary class="small text-primary" style="cursor:pointer;">View minutes</summary>
+                <div class="small mt-2" style="white-space:pre-wrap;">{{ m.minutes }}</div>
+            </details>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-light border text-muted">
+        No meetings recorded yet.
+        {% if can_manage %}Use “Record a meeting” to add the first one.{% endif %}
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

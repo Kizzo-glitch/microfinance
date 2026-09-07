@@ -1197,11 +1197,24 @@ def apply_loan(request):
 		# Optionally fold in OCR document verification if a statement was uploaded.
 		reconciliation = _run_document_verification(borrower, loan_app, result)
 		advisor.snapshot(result, reconciliation=reconciliation)
+
+		# --- resolve group + consent BEFORE saving ---
+		group = None
+		chosen_group_id = request.POST.get("apply_group_id")
+		if chosen_group_id:
+			group = BorrowerGroup.objects.filter(
+				id=chosen_group_id,
+				memberships__borrower=borrower, memberships__status="active"
+			).first()
+		loan_app.group = group
+		loan_app.group_data_consent = bool(group and request.POST.get("group_data_consent"))
  
 		loan_app.status = "pending"
 		loan_app.date_applied = now()
 		loan_app.current_stage = "submitted"
-		loan_app.save(update_fields=["status", "date_applied", "current_stage"])
+		loan_app.save(update_fields=["status", "date_applied", "current_stage",
+							   "group", "group_data_consent",])
+		
 
 		Notification.objects.create(
 			user=lender.user,
@@ -1223,33 +1236,22 @@ def apply_loan(request):
 				"ref": loan_app.reference_number,      
 			},
 		)
-		"""
-		Notification.objects.create(
-			user=lender.user,
-			message=(
-				f"New loan application from {borrower.full_name} "
-				f"for M{loan_app.loan_amount}."
-			),
-			category="loan_application",
-			loan_application=loan_app,
-		)
- 
-		sms = (
-			f"Hello {borrower.full_name}, your loan application for "
-			f"M{loan_app.loan_amount} was submitted to {lender.company_name}. "
-			f"They'll review it and update you on the status."
-		)
-		"""
-		# send_sms_smsportal(borrower.phone_number, sms)
  
 		messages.success(request, f"Loan application submitted to {lender.company_name}.")
 		return redirect("borrowers:borrower_index")
  
 	# ---------------- GET: advise ----------------
 	assessment = advisor.build()  # advisory only, not persisted
+
+	# load the borrower's active groups for selection in the template
+	my_groups = BorrowerGroup.objects.filter(          
+		memberships__borrower=borrower, memberships__status="active"
+	).distinct()
+
 	return render(request, "apply_loan.html", {
 		"loan_app": loan_app,
 		"assessment": assessment,
+		"my_groups": my_groups,
 	})
  
  
@@ -1791,48 +1793,48 @@ def loan_details(request, loan_id):
 
 @login_required
 def record_payment(request, loan_id):
-    """Borrower submits a payment CLAIM. It does not settle the loan —
-    the lender confirms receipt separately."""
-    loan = get_object_or_404(Loan, id=loan_id, borrower__user=request.user)
-    borrower = loan.borrower
+	"""Borrower submits a payment CLAIM. It does not settle the loan —
+	the lender confirms receipt separately."""
+	loan = get_object_or_404(Loan, id=loan_id, borrower__user=request.user)
+	borrower = loan.borrower
 
-    if request.method == "POST":
-        form = LoanPaymentClaimForm(request.POST, request.FILES)   # FILES for proof
-        if form.is_valid():
-            payment = form.save(commit=False)
-            payment.loan = loan
-            payment.borrower = borrower
-            payment.flow = "external"       # paid outside the platform
-            payment.status = "claimed"      # NOT settled — awaits lender confirmation
-            payment.save()                  # reference auto-generated; balance untouched
+	if request.method == "POST":
+		form = LoanPaymentClaimForm(request.POST, request.FILES)   # FILES for proof
+		if form.is_valid():
+			payment = form.save(commit=False)
+			payment.loan = loan
+			payment.borrower = borrower
+			payment.flow = "external"       # paid outside the platform
+			payment.status = "claimed"      # NOT settled — awaits lender confirmation
+			payment.save()                  # reference auto-generated; balance untouched
 
-            # Notify the lender that a claim needs their confirmation.
-            Notification.objects.create(
-                user=loan.lender.user,
-                message=(
-                    f"{borrower.full_name} submitted a payment claim of "
-                    f"M{payment.amount} for loan {loan.reference_number} "
-                    f"(ref {payment.reference}). Please confirm receipt."
-                ),
-                category="loan_payment",
-                loan=loan,
-            )
+			# Notify the lender that a claim needs their confirmation.
+			Notification.objects.create(
+				user=loan.lender.user,
+				message=(
+					f"{borrower.full_name} submitted a payment claim of "
+					f"M{payment.amount} for loan {loan.reference_number} "
+					f"(ref {payment.reference}). Please confirm receipt."
+				),
+				category="loan_payment",
+				loan=loan,
+			)
 
-            # Optional: SMS the borrower their claim reference.
-            # send_sms(borrower.phone_number, "payment_claimed",
-            #          {"name": borrower.full_name, "amount": payment.amount,
-            #           "ref": payment.reference})
+			# Optional: SMS the borrower their claim reference.
+			# send_sms(borrower.phone_number, "payment_claimed",
+			#          {"name": borrower.full_name, "amount": payment.amount,
+			#           "ref": payment.reference})
 
-            messages.success(
-                request,
-                f"Payment claim submitted (ref {payment.reference}). "
-                f"{loan.lender.company_name} will confirm once they've verified receipt."
-            )
-            return redirect('borrowers:loan-details', loan_id=loan.id)
-    else:
-        form = LoanPaymentClaimForm()
+			messages.success(
+				request,
+				f"Payment claim submitted (ref {payment.reference}). "
+				f"{loan.lender.company_name} will confirm once they've verified receipt."
+			)
+			return redirect('borrowers:loan-details', loan_id=loan.id)
+	else:
+		form = LoanPaymentClaimForm()
 
-    return render(request, 'record_payment.html', {'form': form, 'loan': loan})
+	return render(request, 'record_payment.html', {'form': form, 'loan': loan})
 
 
 @login_required

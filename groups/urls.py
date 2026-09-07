@@ -45,21 +45,22 @@ urlpatterns = [
     
     path("<int:group_id>/invite/", views.send_group_invite, name="group_invite"),
     path("invite/<str:code>/activate/", views.activate_invite, name="activate_invite"),
-    #path('<int:request_id>/review/', views.review_join_request, name='review_join_request'),
-    path('join-requests/', views.pending_join_requests, name='pending_join_requests'),
-
+    path('<int:request_id>/review/', views.review_join_request, name='review_join_request'),
     path('join-requests/<int:request_id>/approve/', views.approve_join_request, name='approve_join_request'),
     path('join-requests/<int:request_id>/decline/', views.decline_join_request, name='decline_join_request'),
+    path('join-requests/', views.pending_join_requests, name='pending_join_requests'),
+
+    
 
     path('api/borrowers/has_profile/<int:user_id>/', views.has_borrower_profile, name='has_borrower_profile'),
 
-    #path("<int:group_id>/meetings/", views.group_meetings, name="group_meetings"),
-    #path("<int:group_id>/meetings/create/", views.create_meeting, name="create_meeting"),
+
+    path("<int:group_id>/meetings/", views.group_meetings, name="group_meetings"),
+    path("<int:group_id>/meetings/create/", views.create_meeting, name="create_meeting"),
     #path("<int:group_id>/meetings/<int:meeting_id>/", views.meeting_detail, name="meeting_detail"),
     #path("<int:group_id>/meetings/<int:meeting_id>/attendance/", views.update_attendance, name="update_attendance"),
 
     # Invitation actions
-    
     #path('invitation/<int:invitation_id>/', views.invitation_detail, name='invitation_detail'),
     #path('invitation/<int:invitation_id>/withdraw/', views.withdraw_invitation, name='withdraw_invitation'),
     #path('invitation/<int:invitation_id>/resend/', views.resend_invitation, name='resend_invitation'),

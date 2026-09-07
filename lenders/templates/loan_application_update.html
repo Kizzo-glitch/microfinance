@@ -137,6 +137,16 @@
     {% endif %}
     <br>
 
+    {% if group_profile %}
+        {% include '_group_standing_review.html' with profile=group_profile %}
+    {% else %}
+        <div class="alert alert-info">
+            No group profile available for this application.
+        </div>
+    {% endif %}
+
+    <br>
+
     <!-- ===================== Status Update ===================== -->
     <center>
         <div class="card shadow">

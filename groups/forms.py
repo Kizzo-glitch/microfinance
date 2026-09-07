@@ -158,25 +158,25 @@ externally, then records the claim here with a reference and optional proof.
 """
 
 class GroupContributionClaimForm(forms.ModelForm):
-    class Meta:
-        model = GroupContribution
-        fields = ["amount", "method", "external_reference", "proof", "period_label"]
-        widgets = {
-            "amount": forms.NumberInput(attrs={"class": "form-control", "step": "0.01",
-                                               "placeholder": "e.g. 200.00"}),
-            "method": forms.Select(attrs={"class": "form-select"}),
-            "external_reference": forms.TextInput(attrs={"class": "form-control",
-                                                         "placeholder": "Your bank / M-Pesa transaction reference"}),
-            "proof": forms.ClearableFileInput(attrs={"class": "form-control"}),
-            "period_label": forms.TextInput(attrs={"class": "form-control",
-                                                   "placeholder": "Which period, e.g. 2026-09 (optional)"}),
-        }
+	class Meta:
+		model = GroupContribution
+		fields = ["amount", "method", "external_reference", "proof", "period_label"]
+		widgets = {
+			"amount": forms.NumberInput(attrs={"class": "form-control", "step": "0.01",
+											   "placeholder": "e.g. 200.00"}),
+			"method": forms.Select(attrs={"class": "form-select"}),
+			"external_reference": forms.TextInput(attrs={"class": "form-control",
+														 "placeholder": "Your bank / M-Pesa transaction reference"}),
+			"proof": forms.ClearableFileInput(attrs={"class": "form-control"}),
+			"period_label": forms.TextInput(attrs={"class": "form-control",
+												   "placeholder": "Which period, e.g. 2026-09 (optional)"}),
+		}
 
-    def clean_amount(self):
-        amount = self.cleaned_data["amount"]
-        if amount is None or amount <= 0:
-            raise forms.ValidationError("Amount must be greater than zero.")
-        return amount
+	def clean_amount(self):
+		amount = self.cleaned_data["amount"]
+		if amount is None or amount <= 0:
+			raise forms.ValidationError("Amount must be greater than zero.")
+		return amount
 
 
 
@@ -753,7 +753,54 @@ class BorrowerJoinRequestForm(forms.ModelForm):
 # -------------------------------------------
 # 2️⃣ Group Admin / Leader Review Form
 # -------------------------------------------
+
 class GroupAdminReviewForm(forms.ModelForm):
+	class Meta:
+		model = GroupJoinRequest
+		fields = [
+			'status',
+			#'interview_scheduled_date',
+			#'interviewed_by',
+			#'interview_notes',
+			#'interview_completed',
+			'rejection_reason',
+		]
+		widgets = {
+			'status': forms.Select(attrs={'class': 'form-select'}),
+
+			"""
+			'interview_scheduled_date': forms.DateTimeInput(attrs={
+				'class': 'form-control', 'type': 'datetime-local'}),
+			'interviewed_by': forms.Select(attrs={'class': 'form-select'}),
+			'interview_notes': forms.Textarea(attrs={
+				'class': 'form-control', 'rows': 3,
+				'placeholder': 'Notes from the group interview...'}),
+			'interview_completed': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+			"""
+			'rejection_reason': forms.Textarea(attrs={
+				'class': 'form-control', 'rows': 2,
+				'placeholder': 'If rejecting, tell the applicant why...'}),
+		}
+		labels = {
+			'status': 'Decision',
+			#'interview_scheduled_date': 'Interview Date & Time',
+			#'interviewed_by': 'Interview Conducted By',
+			#'interview_notes': 'Interview Notes',
+			#'interview_completed': 'Interview Completed?',
+			'rejection_reason': 'Rejection Reason (shown to applicant)',
+		}
+
+		"""
+		def __init__(self, *args, group=None, **kwargs):
+			super().__init__(*args, **kwargs)
+			if group is not None:
+				member_ids = group.memberships.filter(status="active").values_list("borrower_id", flat=True)
+				self.fields["interviewed_by"].queryset = \
+					self.fields["interviewed_by"].queryset.filter(id__in=member_ids)
+		"""
+
+
+class GroupAdminReviewForm2(forms.ModelForm):
 	class Meta:
 		model = GroupJoinRequest
 		fields = [
@@ -802,7 +849,26 @@ class GroupAdminReviewForm(forms.ModelForm):
 		}
 
 
+
 class GroupMeetingForm(forms.ModelForm):
+    class Meta:
+        model = GroupMeeting
+        fields = ["title", "description", "date", "start_time", "end_time",
+                  "minutes", "minutes_file"]
+        widgets = {
+            "title": forms.TextInput(attrs={"class": "form-control",
+                                            "placeholder": "e.g. Monthly contribution meeting"}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 2,
+                                                 "placeholder": "What is this meeting about? (optional)"}),
+            "date": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "start_time": forms.TimeInput(attrs={"class": "form-control", "type": "time"}),
+            "end_time": forms.TimeInput(attrs={"class": "form-control", "type": "time"}),
+            "minutes": forms.Textarea(attrs={"class": "form-control", "rows": 5,
+                                             "placeholder": "Minutes / decisions taken (optional — can be added later)"}),
+            "minutes_file": forms.ClearableFileInput(attrs={"class": "form-control"}),
+        }
+
+class GroupMeetingForm2(forms.ModelForm):
 	class Meta:
 		model = GroupMeeting
 		fields = [

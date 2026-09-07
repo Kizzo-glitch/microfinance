@@ -132,6 +132,11 @@ class LoanApplication(models.Model):
 		help_text="Public reference, e.g. FG-2026-A3F9K2. Safe to share; the "
 				  "handle borrower and lender cite for any query or dispute.",
 	)
+	group = models.ForeignKey('groups.BorrowerGroup', on_delete=models.SET_NULL,null=True, blank=True, 
+						   related_name='member_loan_applications',help_text="Set when the applicant applied as a member of this group. ")
+	group_data_consent = models.BooleanField(default=False)
+
+
 	def save(self, *args, **kwargs):
 		if not self.reference_number:
 			self.reference_number = generate_reference(
@@ -184,6 +189,8 @@ class Loan(models.Model):
 		help_text="Public loan reference, e.g. FGL-2026-B7Q4M9. Distinct from "
 				  "the application reference; linked via the application.",
 	)
+	group = models.ForeignKey('groups.BorrowerGroup', on_delete=models.SET_NULL,null=True, blank=True, 
+							   related_name='member_loans',help_text="Set when the loan is taken as a member of this group. ")
 
 	def __str__(self):
 			return f"Loan {self.id} - {self.borrower.user.username} - {self.lender.user.username} - {self.status}"		

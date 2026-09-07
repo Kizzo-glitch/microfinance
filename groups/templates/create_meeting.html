@@ -1,98 +1,73 @@
 {% extends 'group_dash_base.html' %}
-{% load static %}
+
 {% block content %}
+<div class="container mt-5">
 
-<div class="container mt-4">
-
-    <!-- Breadcrumb -->
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-                <a href="{% url 'group_detail' group.id %}">{{ group.name }}</a>
-            </li>
-            <li class="breadcrumb-item active">Create Meeting</li>
-        </ol>
-    </nav>
-
-    <h2 class="mb-3">Schedule a New Meeting</h2>
-
-    <div class="card shadow-sm">
-        <div class="card-body">
-
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-
-                <!-- MEETING TITLE -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Meeting Title</label>
-                    {{ form.title }}
-                    {% if form.title.errors %}
-                        <div class="text-danger small">{{ form.title.errors }}</div>
-                    {% endif %}
-                </div>
-
-                <!-- DATE -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Date</label>
-                    {{ form.date }}
-                    {% if form.date.errors %}
-                        <div class="text-danger small">{{ form.date.errors }}</div>
-                    {% endif %}
-                </div>
-
-                <!-- START + END TIME -->
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">Start Time</label>
-                        {{ form.start_time }}
-                        {% if form.start_time.errors %}
-                            <div class="text-danger small">{{ form.start_time.errors }}</div>
-                        {% endif %}
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label fw-bold">End Time</label>
-                        {{ form.end_time }}
-                        {% if form.end_time.errors %}
-                            <div class="text-danger small">{{ form.end_time.errors }}</div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- VENUE -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Venue / Location</label>
-                    {{ form.venue }}
-                    {% if form.venue.errors %}
-                        <div class="text-danger small">{{ form.venue.errors }}</div>
-                    {% endif %}
-                </div>
-
-                <!-- AGENDA -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Agenda</label>
-                    {{ form.agenda }}
-                    {% if form.agenda.errors %}
-                        <div class="text-danger small">{{ form.agenda.errors }}</div>
-                    {% endif %}
-                </div>
-
-                <!-- ATTACHMENT -->
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Attach Document (optional)</label>
-                    {{ form.attachment }}
-                    {% if form.attachment.errors %}
-                        <div class="text-danger small">{{ form.attachment.errors }}</div>
-                    {% endif %}
-                </div>
-
-                <button type="submit" class="btn btn-primary">Create Meeting</button>
-                <a href="{% url 'group_meetings' group.id %}" class="btn btn-secondary">Cancel</a>
-            </form>
-
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold">Record a Meeting</h2>
+            <p class="text-muted mb-0">{{ group.name }}</p>
         </div>
+        <a href="{% url 'groups:group_meetings' group.id %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back to Meetings
+        </a>
     </div>
 
-</div>
+    <form method="post" enctype="multipart/form-data" class="js-lock-on-submit">
+        {% csrf_token %}
 
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Title</label>
+                    {{ form.title }}
+                    {% if form.title.errors %}<div class="text-danger small">{{ form.title.errors|striptags }}</div>{% endif %}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    {{ form.description }}
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Date</label>
+                        {{ form.date }}
+                        {% if form.date.errors %}<div class="text-danger small">{{ form.date.errors|striptags }}</div>{% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Start time</label>
+                        {{ form.start_time }}
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">End time</label>
+                        {{ form.end_time }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-light fw-semibold">
+                <i class="bi bi-journal-text"></i> Minutes (optional — can be added later)
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Type the minutes</label>
+                    {{ form.minutes }}
+                </div>
+                <div>
+                    <label class="form-label">…or upload a minutes file</label>
+                    {{ form.minutes_file }}
+                    <div class="form-text">PDF, Word, or a photo of handwritten minutes.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{% url 'groups:group_meetings' group.id %}" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-success" data-loading-text="Saving…">
+                <i class="bi bi-check-circle"></i> Save meeting
+            </button>
+        </div>
+    </form>
+</div>
 {% endblock %}

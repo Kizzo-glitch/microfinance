@@ -548,6 +548,7 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 						outstanding_balance=total_repayable,
 						due_date=loan_application.date_applied + timedelta(days=365),
 						status="approved",
+						group=loan_application.group,
 					)
 					# Use the SAME relationship name as the guard above.
 					loan_application.linked_loan = loan
@@ -563,18 +564,6 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 					"lender": loan_application.lender.company_name,
 					"ref": loan_application.reference_number})
 
-
-				"""
-				Notification.objects.create(
-					user=borrower_user.user,
-					message=f"Your loan application from {loan_application.lender.company_name} "
-							f"for M{loan_amount} has been approved.",
-					category="loan_approved",
-				)
-				msg = (f"Hi {borrower_user.full_name}, your loan application for "
-					   f"M{loan_amount} has been approved!")
-				# send_sms_smsportal(phone_number, msg)
-				"""
 			elif loan_application.status == "rejected":
 				reasons = loan_application.get_rejection_reasons_display()
 				Notification.objects.create(
@@ -649,6 +638,7 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 		# The affordability verdict comes from the IMMUTABLE snapshot captured at
 		# submission — not recomputed here. Guard for older apps without one.
 		assessment = getattr(loan_application, "affordability_assessment", None)
+		
  
 		context.update({
 			"borrower": borrower,
@@ -663,200 +653,26 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 			"total_debt": total_debt,
  
 			"documents": documents,
-			"assessment": assessment,  
+			"assessment": assessment,
+			
+			"group_profile": _build_group_standing(loan_application)
 		})
 		return context
  
 	def get_success_url(self):
 		return reverse("lenders:loan-application-list")
 
-	
-# Update the status of a loan application (approve/reject/pending)
-class LoanApplicationUpdateView2(UpdateView):
-	model = LoanApplication
-	form_class = LoanApplicationStatusForm
-	template_name = 'loan_application_update.html'
-
-	def form_valid(self, form):
-		loan_application = form.save(commit=False)
-		old_status = LoanApplication.objects.get(pk=loan_application.pk).status
-		loan_amount = loan_application.loan_amount
-		borrower_user = loan_application.borrower
-		phone_number = borrower_user.phone_number
-
-		# Check if status changed
-		if loan_application.status != old_status:
-			if loan_application.status == 'approved':
-				# Only create Loan if not already linked
-				if not loan_application.linked_loan:
-					loan = Loan.objects.create(
-						#borrower=loan_application.borrower,
-						borrower=borrower_user,
-						lender=loan_application.lender,
-						amount=Decimal(loan_amount),
-						loan_term=loan_application.loan_term,
-						interest_rate=Decimal(loan_application.lender.interest_rate),
-						first_payment=Decimal(loan_application.first_payment),
-						monthly_installment=Decimal(loan_application.monthly_installment),
-						total_repayable=loan_amount * (1 + (Decimal(loan_application.lender.interest_rate) / Decimal(100))),
-						outstanding_balance=loan_amount * (1 + (Decimal(loan_application.lender.interest_rate) / Decimal(100))),
-						due_date=loan_application.date_applied + timedelta(days=365),
-						status='approved',
-					)
-					loan_application.application = loan
-
-				Notification.objects.create(
-					user=borrower_user.user,
-					message=f"🎉 Your Loan application from {loan_application.lender.company_name} for R{loan_amount} has been approved.",
-					category="loan_approved"
-				)
-
-				message = f"Hi {borrower_user.full_name}, your loan application for R{loan_amount} has been approved!"
-				#send_sms(phone_number, message)
-				send_sms_smsportal(phone_number, message)
-
-			elif loan_application.status == 'rejected':
-				reasons = loan_application.get_rejection_reasons_display()
-				Notification.objects.create(
-					user=borrower_user.user,
-					message=f"❌ Your loan of R{loan_amount} from {loan_application.lender.company_name} was rejected. Reasons: {reasons}",
-					#message=f"❌ Your loan of R{loan_amount} from {loan_application.lender.company_name} was rejected. Reason: {loan_application.status_reason}",
-					category="loan_rejected"
-				)
-				
-				message = f"Hi {borrower_user.full_name}, your loan of R{loan_amount} was rejected. Reasons: {reasons}."
-				send_sms_smsportal(phone_number, message)
-
-			elif loan_application.status == 'pending':
-				reasons = loan_application.get_pending_reasons_display()
-				Notification.objects.create(
-					user=borrower_user.user,
-					message=f"⏳ Your loan application from {loan_application.lender.company_name} is pending. Reasons: {loan_application.get_pending_reasons_display()}",
-					#message=f"⏳ Your loan application from {loan_application.lender.company_name} is pending. Reason: {loan_application.status_reason}",
-					category="loan_pending"
-				)
-				
-				message = f"Hi {borrower_user.full_name}, your loan of R{loan_amount} is pending. Reasons: {reasons}."
-				send_sms_smsportal(phone_number, message)
-
-		loan_application.save()
-
-		form.save_m2m()  # Save multi-select fields
-
-		reasons = []
-		if loan_application.status == 'rejected':
-			reasons = loan_application.rejection_reasons
-		elif loan_application.status == 'pending':
-			reasons = loan_application.pending_reasons
-		
-		# Render the email content
-		subject = f"Loan Application {loan_application.status.capitalize()}"
-		from_email = settings.EMAIL_HOST_USER
-		to_email = [borrower_user.email_address]
-
-		message = render_to_string('loan_notification_letter.html', {
-			'loan_application': loan_application,
-			'status': loan_application.status,
-			'reasons': reasons,
-		})
-
-		# Send as HTML email
-		email = EmailMultiAlternatives(subject, '', from_email, to_email)
-		email.attach_alternative(message, "text/html")
-		email.send()
-
-		return super().form_valid(form)
-
-	def get_context_data(self, **kwargs):
-		context = super().get_context_data(**kwargs)
-		loan_application = self.get_object()
-		borrower = loan_application.borrower
-
-		#affordability = calculate_affordability(borrower, loan_application, loan_application.monthly_installment)
-
-		documents = BorrowerDocs.objects.filter(borrower=borrower, loan_application=loan_application)
-
-		# Check outstanding and overdue loans
-		outstanding_loans = Loan.objects.filter(borrower=borrower, outstanding_balance__gt=0).count()
-		overdue_loans = Loan.objects.filter(borrower=borrower, due_date__lt=date.today(), outstanding_balance__gt=0).count()
-		total_debt = Loan.objects.filter(borrower=borrower).aggregate(total=models.Sum('outstanding_balance'))['total'] or 0
-
-		# Get borrower's income and expenses
-		income = borrower.income or 0
-
-		# Sum expenses for this application only
-		expenses_qs = ExpenseAnalysis.objects.filter(borrower=borrower, loan_application=loan_application)
-		total_expenses = expenses_qs.aggregate(total=Sum('amount'))['total'] or 0
-
-		# Affordability calculations
-		surplus_before_loan = income - total_expenses
-		monthly_installment = loan_application.monthly_installment or 0
-		surplus_after_loan = income - (total_expenses + monthly_installment)
-
-		# Calculate indexes
-		index_before = round((surplus_before_loan / income) * 100, 2) if income else 0
-		index_after = round((surplus_after_loan / income) * 100, 2) if income else 0
-
-		# Flags (affordable/unaffordable)
-		def interpret_index(index):
-			if index >= 20:
-				return '✅ Can Afford Loan'
-			elif index >= 10:
-				return '⚠️ Marginal'
-			else:
-				return '❌ Cannot Afford Loan'
-
-
-		# Add borrower loan history details to context
-		context.update({
-			'borrower': borrower,
-			'loan_amount': loan_application.loan_amount,
-			'loan_term': loan_application.loan_term,
-			'total_repayable': loan_application.total_repayable,
-			'first_payment': loan_application.first_payment,
-			'monthly_installment': loan_application.monthly_installment,
-
-			'marital_status': borrower.marital_status,
-			'Title': borrower.title,
-			'income_amount': borrower.income,
-			'date_of_birth': borrower.date_of_birth,
-			'phone_number': borrower.phone_number,
-			'email_address': borrower.email_address,
-			'employer_name': borrower.employer_name,
-			'employment_position': borrower.employment_position,
-			'position_level': borrower.position_level,
-			'home_address': borrower.home_address,
-			'employer_address': borrower.employer_address,
-			'pay_date': borrower.pay_day,
-			'monthly_expenses': borrower.monthly_expenses,
-			'existing_debts': borrower.existing_debts,
-			'income_type': borrower.income_type,
-			'id_number': borrower.id_number,
-
-			'outstanding_loans': outstanding_loans,
-			'overdue_loans': overdue_loans,
-			'total_debt': total_debt,
-
-			#'affordability': affordability,
-
-			'documents': documents,
-			'document_fields': ['id_proof', 'bank_statement', 'payslip', 'chief_letter', 'business_address', 'customer_invoice', 'supplier_invoice', 'business_registration', 'tax_clearance', 'business_statements'],
-
-			'income': income,
-			'total_expenses': total_expenses,
-			'monthly_installment': monthly_installment,
-			'surplus_before_loan': surplus_before_loan,
-			'surplus_after_loan': surplus_after_loan,
-			'index_before': index_before,
-			'index_after': index_after,
-			'affordability_before_flag': interpret_index(index_before),
-			'affordability_after_flag': interpret_index(index_after),
-		})
-
-		return context
-
-	def get_success_url(self):
-		return reverse('lenders:loan-application-list')
+# in the seam file — simplify to return the profile directly:
+def _build_group_standing(loan_application):
+    """Return a GroupCreditProfile for a consenting group applicant, or None."""
+    group = getattr(loan_application, "group", None)
+    consent = getattr(loan_application, "group_data_consent", False)
+    if not group or not consent:
+        return None
+    from groups.group_credit_profile import build_group_credit_profile
+    borrower = loan_application.borrower
+    membership = group.memberships.filter(borrower=borrower, status="active").first()
+    return build_group_credit_profile(group, for_membership=membership)
 
 # To be removed
 def view_borrower_documents(request, loan_id):
@@ -1023,16 +839,6 @@ class LoanListView(ListView):
 	def get_queryset(self):
 		# Filter loans by the current lender
 		return Loan.objects.filter(lender=self.request.user.lender).order_by('-date_created') 
-
-# List all loans  rejected for a specific lender
-'''class RejectedLoanListView(ListView):
-	model = LoanApplication
-	template_name = 'rejected_loan_list.html'
-	context_object_name = 'rejected_loans'
-
-	def get_queryset(self):
-		# Filter loans by the current lender
-		return LoanApplication.objects.filter(lender=self.request.user.lender, status='rejected')'''
 
 
 @login_required
@@ -1210,14 +1016,6 @@ def my_clients(request):
 
 	return render(request, 'my_clients.html', {'clients': clients})
 
-@login_required
-def my_clients2(request):
-	# Get borrowers who have loans from the logged-in lender
-	borrower_ids = Loan.objects.filter(lender=request.user.lender).values_list('borrower', flat=True).distinct()
-	borrowers = BorrowerProfile.objects.filter(id__in=borrower_ids)
-
-	return render(request, 'my_clients.html', {'borrowers': borrowers})
-
 
 def client_documents(request):
 	lender = request.user.lender
@@ -1230,10 +1028,10 @@ def client_documents(request):
 
 	return render(request, 'client_documents.html', {'documents': documents})
 
+
 # ==================
 # Reports
 # ==================
-
 @login_required
 def credit_reports(request):
 	lender = request.user.lender

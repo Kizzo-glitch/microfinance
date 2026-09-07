@@ -228,5 +228,50 @@
 
     {% endif %}
 
+    {% if my_groups %}
+    <div class="mb-3">
+        <label class="form-label fw-semibold">Applying with group standing? (optional)</label>
+        <select name="apply_group_id" id="apply_group_id" class="form-select">
+            <option value="">No — apply as an individual</option>
+            {% for g in my_groups %}
+                <option value="{{ g.id }}">{{ g.name }}</option>
+            {% endfor %}
+        </select>
+        <div class="form-text">
+            Choosing a group shares your contribution record in that group with the lender
+            to support your application. Leave as "individual" to share nothing.
+        </div>
+    </div>
+    <div class="form-check mb-3" id="consent_row" style="display:none;">
+        <input type="checkbox" name="group_data_consent" id="group_data_consent" class="form-check-input">
+        <label class="form-check-label" for="group_data_consent">
+            I consent to sharing my group contribution record with {{ lender.company_name }}.
+        </label>
+    </div>
+    <script>
+        // show the consent checkbox only once a group is chosen
+        (function () {
+            const sel = document.getElementById('apply_group_id');
+            const row = document.getElementById('consent_row');
+            if (sel && row) {
+                sel.addEventListener('change', function () {
+                    row.style.display = this.value ? 'block' : 'none';
+                });
+            }
+        })();
+    </script>
+    {% endif %}
+
+    {% if applying_group %}
+    <div class="form-check mb-3">
+        <input type="checkbox" name="group_data_consent" id="group_data_consent" class="form-check-input">
+        <label class="form-check-label" for="group_data_consent">
+            I consent to sharing my group contribution record with {{ lender.company_name }}
+            to support this application.
+        </label>
+        <div class="form-text">Your standing in {{ applying_group.name }} — contribution record only.</div>
+    </div>
+    {% endif %}
+
 </div>
 {% endblock %}

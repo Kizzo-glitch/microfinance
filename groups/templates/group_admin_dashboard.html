@@ -124,7 +124,7 @@
                         </div>
                         <div class="text-end">
                             <a href="{% url 'groups:review_join_request' r.id %}" class="btn btn-sm btn-primary mb-1">Review</a>
-                            <form method="post" action="{% url 'groups:review_join_request' r.id %}" style="display:inline;">
+                            <form method="post" action="{% url 'groups:approve_join_request' r.id %}" style="display:inline;">
                             {% csrf_token %}
                             <input type="hidden" name="status" value="approved">
                             <button type="submit" class="btn btn-sm btn-success">Approve</button>

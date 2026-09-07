@@ -1,0 +1,53 @@
+{% comment %}
+  Group standing — shown on the LENDER's loan application review, when the
+  applicant applied as a consenting group member.
+
+  Include:
+    {% include 'loans/_group_standing_review.html' with profile=group_profile %}
+
+  Advisory context only — it informs the lending decision, never makes it.
+  All figures are from CONFIRMED contributions; the group is NOT a party to
+  this loan (Path A carries no group liability).
+{% endcomment %}
+
+{% if profile %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light d-flex align-items-center justify-content-between">
+    <strong>Group standing</strong>
+    <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle">Advisory</span>
+  </div>
+  <div class="card-body">
+
+    {% if profile.member_standing %}
+    <div class="mb-3">
+      <div class="fw-semibold">{{ profile.member_standing.member_name }} — in this group</div>
+      <ul class="mb-2">
+        <li>Member for <strong>{{ profile.member_standing.months_in_group }}</strong> month(s)</li>
+        <li><strong>{{ profile.member_standing.confirmed_contribution_count }}</strong>
+            confirmed contribution(s), totalling
+            <strong>M{{ profile.member_standing.confirmed_contribution_total|floatformat:2 }}</strong></li>
+        {% if profile.member_standing.last_contribution_date %}
+        <li>Last confirmed contribution: {{ profile.member_standing.last_contribution_date|date:"d M Y" }}</li>
+        {% endif %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <div class="border-top pt-3">
+      <div class="text-muted small mb-1">Group context</div>
+      <div>{{ profile.group_name }} —
+        {{ profile.active_member_count }} active member(s),
+        {{ profile.group_tenure_months }}-month track record.</div>
+      <div class="small text-muted mt-1">
+        Confirmed group pool: M{{ profile.confirmed_pool_total|floatformat:2 }}
+      </div>
+    </div>
+
+    <div class="alert alert-light border mt-3 mb-0 small text-muted">
+      This is advisory context drawn from the group's confirmed contribution
+      record. The group is not a party to or guarantor of this loan — the
+      applicant borrows and repays individually. The lending decision remains yours.
+    </div>
+  </div>
+</div>
+{% endif %}

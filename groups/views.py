@@ -22,9 +22,9 @@ from .models import (
     GroupFinancialRules, GroupContribution, GroupPayout
 )
 from .forms import (
-    BorrowerGroupRegistrationForm, BorrowerGroupForm,
+    BorrowerGroupRegistrationForm, BorrowerGroupForm, GroupAdminReviewForm,
     GroupConstitutionForm, GroupContributionClaimForm, GroupInvitationForm, BorrowerMiniForm, ActivationForm,
-    GroupFinancialRulesForm,
+    GroupFinancialRulesForm, GroupMeetingForm,
 )
 from .group_permissions import (
     group_admin_required, group_member_required, group_staff_required,
@@ -540,6 +540,80 @@ def withdraw_invitation(request, invitation_id):
 # =====================================================================
 # Join requests  (approval reserved to admin; final say)
 # =====================================================================
+
+@login_required
+def review_join_request(request, request_id):
+    join_request = get_object_or_404(GroupJoinRequest, id=request_id)
+    group = join_request.group
+ 
+    # Only the admin can review (final approval is admin-reserved).
+    if not is_group_admin(request.user, group):
+        messages.error(request, "Only the group admin can review join requests.")
+        return redirect('groups:group_detail', group.id)
+ 
+    if request.method == 'POST':
+        form = GroupAdminReviewForm(request.POST, instance=join_request)
+        if form.is_valid():
+            review = form.save(commit=False)
+ 
+            if review.status == 'approved':
+                review.decision_date = timezone.now()
+                # ACTUALLY add them — idempotent so a double-approve can't
+                # create two memberships.
+                membership, created = GroupMembership.objects.get_or_create(
+                    group=group, borrower=join_request.requester,
+                    defaults={"role": "member", "status": "active"},
+                )
+                ActivityLog.objects.create(
+                    group=group, actor=request.user, action="member_added",
+                    details=f"{join_request.requester.full_name} approved to join.")
+                _notify_applicant(join_request, approved=True)
+ 
+            elif review.status == 'rejected':
+                review.decision_date = timezone.now()
+                _notify_applicant(join_request, approved=False,
+                                  reason=review.rejection_reason if hasattr(review, "rejection_reason") else "")
+ 
+            review.save()
+            form.save_m2m()
+ 
+            messages.success(
+                request,
+                f"Join request for {join_request.requester.full_name} "
+                f"marked {review.get_status_display}.")
+            return redirect('groups:group_admin_dashboard')   # no kwarg — dashboard derives groups from user
+    else:
+        form = GroupAdminReviewForm(instance=join_request)
+ 
+    return render(request, 'admin_review_join_request.html', {
+        'form': form, 'join_request': join_request, 'group': group,
+    })
+ 
+ 
+def _notify_applicant(join_request, *, approved: bool, reason: str = ""):
+    """Tell the applicant the outcome of their join request."""
+    requester = join_request.requester
+    group = join_request.group
+    user = getattr(requester, "user", None)
+    if not user:
+        return  # invitee-created profile without a user account yet
+ 
+    if approved:
+        msg = f"Your request to join {group.name} has been approved. Welcome!"
+        cat = "group_update"
+    else:
+        msg = (f"Your request to join {group.name} was not approved. "
+               f"{('Reason: ' + reason + '. ') if reason else ''}"
+               f"You may contact the group admin for more.")
+        cat = "group_update"
+ 
+    Notification.objects.create(user=user, category=cat, message=msg)
+    send_sms(requester.phone_number,
+              "group_join_approved" if approved else "group_join_rejected",
+              {"name": requester.full_name, "group": group.name,
+               "reason": reason or "the admin's decision"})
+
+    
 @login_required
 @group_admin_required
 def pending_join_requests(request):
@@ -1003,4 +1077,39 @@ def cancel_payout(request, payout_id):
     payout.save(update_fields=["status"])
     messages.info(request, f"Payout {payout.reference} cancelled.")
     return redirect("groups:payouts", group.id)
+
+
+@login_required
+@group_member_required
+def group_meetings(request, group_id):
+    """The group's meeting record — visible to every member."""
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+    meetings = group.meetings.all()   # model orders by -date via Meta or add order_by
+    return render(request, "group_meetings.html", {
+        "group": group,
+        "meetings": meetings,
+        "can_manage": is_group_staff(request.user, group),
+    })
+
+
+@login_required
+@group_staff_required
+def create_meeting(request, group_id):
+    """Staff log a meeting (and optionally its minutes)."""
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+    if request.method == "POST":
+        form = GroupMeetingForm(request.POST, request.FILES)   # FILES for minutes upload
+        if form.is_valid():
+            meeting = form.save(commit=False)
+            meeting.group = group
+            meeting.created_by = request.user       # GroupMeeting.created_by -> AUTH_USER_MODEL
+            meeting.save()
+            ActivityLog.objects.create(
+                group=group, actor=request.user, action="meeting_created",
+                details=f"Meeting '{meeting.title}' on {meeting.date}.")
+            messages.success(request, "Meeting recorded.")
+            return redirect("groups:group_meetings", group.id)
+    else:
+        form = GroupMeetingForm()
+    return render(request, "create_meeting.html", {"group": group, "form": form})
  
