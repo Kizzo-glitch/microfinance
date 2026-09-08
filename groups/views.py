@@ -493,17 +493,23 @@ def borrower_search(request):
         })
     return JsonResponse({"results": results})
 
+
 def activate_invite(request, code=None):
     """Public — invitee may not have an account yet."""
     invitation_code = (code or request.POST.get('invitation_code') or '').strip().upper()
     if not invitation_code:
         messages.error(request, "Missing invitation code.")
-        return render(request, "activate_invite.html", {'form': ActivationForm()})
+        return render(request, "activate_invite.html",
+                      {'form': ActivationForm(), 'show_code_entry': True})
 
     invite = get_object_or_404(GroupInvitation, invitation_code=invitation_code, status='pending')
     borrower_profile = invite.invitee
-    parts = invite.invitee_name.split()
-    first_name, last_name = parts[0], (parts[-1] if len(parts) > 1 else "")
+
+    # Split the captured name only as a FALLBACK to pre-fill the form; the
+    # person can correct it, and their correction wins (see below).
+    parts = (invite.invitee_name or "").split()
+    default_first = parts[0] if parts else ""
+    default_last = parts[-1] if len(parts) > 1 else ""
 
     if request.method == "POST":
         form = ActivationForm(request.POST)
@@ -512,49 +518,63 @@ def activate_invite(request, code=None):
             password = form.cleaned_data['password1']
             email = form.cleaned_data.get('email') or invite.invitee_email
             phone = form.cleaned_data.get('phone_number') or invite.invitee_phone
+            # The person's OWN confirmation of their name wins over the split.
+            first_name = form.cleaned_data.get('first_name') or default_first
+            last_name = form.cleaned_data.get('last_name') or default_last
 
             if borrower_profile.user:
                 user = borrower_profile.user
                 user.username, user.email = username, email
                 user.first_name, user.last_name = first_name, last_name
+                if not getattr(user, "role", ""):
+                    user.role = 'borrower'                 # set role if missing
                 if hasattr(user, "phone_number"):
                     user.phone_number = phone
                 user.set_password(password)
                 user.save()
             else:
-                user = User.objects.create_user(username=username, email=email, password=password,
-                                                 first_name=first_name, last_name=last_name)
+                user = User.objects.create_user(
+                    username=username, email=email, password=password,
+                    first_name=first_name, last_name=last_name)
+                user.role = 'borrower'                     # <-- the fix: set role
                 if hasattr(user, "phone_number"):
                     user.phone_number = phone
-                    user.save()
+                user.save()
                 borrower_profile.user = user
                 borrower_profile.save()
 
-            # --- record the person's DIGITAL consent (they consented themselves) ---
+            # Record the person's DIGITAL consent (their own act, no agent).
             _record_consent(borrower_profile, method="digital", given=True)
-            # captured_by omitted: this is the PERSON's own consent, not an agent's
 
             invite.status = 'accepted'
             invite.responded_at = timezone.now()
             invite.save()
 
-            GroupMembership.objects.get_or_create(          
+            GroupMembership.objects.get_or_create(
                 group=invite.group, borrower=borrower_profile,
                 defaults={"role": "member", "status": "active",
                           "verification_status": "identity_verified",
                           "joined_date": timezone.now()})
 
-            login(request, user)
+            # Custom user model with a non-default auth backend can make login()
+            # ambiguous — be explicit about the backend to avoid a ValueError.
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             messages.success(request, f"Welcome {borrower_profile.full_name}, your account is now active.")
             return redirect("borrowers:borrower_index")
     else:
-        form = ActivationForm(initial={'email': invite.invitee_email, 'phone_number': invite.invitee_phone,
-                                       'first_name': first_name, 'last_name': last_name})
+        form = ActivationForm(initial={
+            'email': invite.invitee_email,
+            'phone_number': invite.invitee_phone,
+            'first_name': default_first,
+            'last_name': default_last,
+        })
 
     from groups.consent_statements import get_statement
     return render(request, "activate_invite.html", {
-        "form": form, "invite": invite, "borrower_profile": borrower_profile,
-        "consent_statement": get_statement(),        
+        "form": form,
+        "invite": invite,
+        "borrower_profile": borrower_profile,
+        "consent_statement": get_statement(),
     })
 
 """
