@@ -1,0 +1,86 @@
+{% extends 'group_dash_base.html' %}
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h3 class="mb-0">{{ group.name }}</h3>
+      <p class="text-muted mb-0">Leadership &amp; succession</p>
+    </div>
+    <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Back to Group
+    </a>
+  </div>
+
+  <!-- Admin absence / acting-admin -->
+  {% if admin_absent %}
+  <div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    The group administrator has been inactive for {{ absence_days }}+ days.
+    {% if can_claim_acting %}
+      As a sub-admin, you may step in as <strong>acting admin</strong> to keep the group running.
+      <form method="post" action="{% url 'groups:claim_acting_admin' group.id %}" class="mt-2">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-sm btn-warning"
+                onclick="return confirm('Become acting admin? The group admin will be notified.');">
+          Step in as acting admin
+        </button>
+      </form>
+    {% else %}
+      A sub-admin may step in if needed.
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- Leadership structure -->
+  <div class="row g-3">
+    {% with roles=leadership %}
+    <div class="col-md-6">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-light fw-semibold"><i class="bi bi-shield-lock"></i> Administrators</div>
+        <div class="card-body">
+          {% for m in roles.admins %}
+            <div>{{ m.borrower.full_name }}
+              {% if m.acting_until %}<span class="badge bg-warning text-dark">Acting until {{ m.acting_until|date:"d M Y" }}</span>{% endif %}
+            </div>
+          {% empty %}<div class="text-danger small">No active admin — the group needs one.</div>{% endfor %}
+
+          {% if roles.sub_admins %}
+            <div class="text-muted small mt-2">Sub-admins</div>
+            {% for m in roles.sub_admins %}<div>{{ m.borrower.full_name }}</div>{% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-header bg-light fw-semibold"><i class="bi bi-cash-coin"></i> Money &amp; records</div>
+        <div class="card-body">
+          <div class="text-muted small">Treasurer(s) — confirm contributions &amp; payouts</div>
+          {% for m in roles.treasurers %}<div>{{ m.borrower.full_name }}</div>
+          {% empty %}<div class="text-warning small">No treasurer appointed — an admin can assign one in Manage Members.</div>{% endfor %}
+
+          {% if roles.secretaries %}
+            <div class="text-muted small mt-2">Secretary(ies)</div>
+            {% for m in roles.secretaries %}<div>{{ m.borrower.full_name }}</div>{% endfor %}
+          {% endif %}
+          {% if roles.elders %}
+            <div class="text-muted small mt-2">Elders</div>
+            {% for m in roles.elders %}<div>{{ m.borrower.full_name }}</div>{% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endwith %}
+  </div>
+
+  {% if is_admin %}
+  <div class="mt-3">
+    <a href="{% url 'groups:manage_members' group.id %}" class="btn btn-outline-success">
+      <i class="bi bi-person-gear"></i> Change roles in Manage Members
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

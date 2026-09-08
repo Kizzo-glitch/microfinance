@@ -28,11 +28,13 @@ from .forms import (
     GroupFinancialRulesForm, GroupMeetingForm,
 )
 from .group_permissions import (
-    group_admin_required, group_member_required, group_staff_required,
+    STAFF_ROLES, group_admin_required, group_member_required, group_staff_required,
     group_admin_only, is_group_staff, is_group_admin, group_membership,
     check_admin_inactivity, claim_acting_admin, can_claim_acting_admin, promote, 
-    can_handle_money, effective_role, 
+    can_handle_money, effective_role, ADMIN_ABSENCE_DAYS, admin_is_absent,
 )
+
+
 from comms.sms.service import send_sms
 from .group_pool import pool_balance
 from .consent_statements import get_statement, CURRENT_VERSION
@@ -104,7 +106,34 @@ def group_borrower_profile(request):
     })
 
 
+
 def group_admin_login(request):
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "")
+        user = authenticate(request, username=username, password=password)
+
+        if user is None:
+            messages.error(request, "Invalid login credentials.")
+            return render(request, "login_group_admin.html")
+
+        borrower = getattr(user, "borrower", None)
+        is_group_staff = bool(borrower) and GroupMembership.objects.filter(
+            borrower=borrower, status="active", role__in=STAFF_ROLES
+        ).exists()
+
+        if is_group_staff:
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            messages.success(request, "Welcome to your Group dashboard.")
+            return redirect("groups:group_admin_dashboard")
+
+        messages.error(request, "You don't have admin or sub-admin access to any group.")
+        return render(request, "login_group_admin.html")
+
+    return render(request, "login_group_admin.html")
+
+
+def group_admin_login2(request):
     if request.method == "POST":
         user = authenticate(request, username=request.POST["username"], password=request.POST["password"])
         if user is not None:
@@ -117,6 +146,8 @@ def group_admin_login(request):
         else:
             messages.error(request, "Invalid login credentials.")
     return render(request, "login_group_admin.html")
+
+
 
 
 def admin_logout(request):
@@ -296,9 +327,89 @@ def group_members(request, group_id):
     return render(request, 'group_members.html', {'group': group, 'members': members})
 
 
+
+# not this dropdown — you don't casually "set someone to admin")
+ASSIGNABLE_ROLES = {"member", "sub_admin", "treasurer", "secretary", "elder"}
+ 
+ 
 @login_required
 @group_staff_required
 def manage_members(request, group_id):
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+    members = group.memberships.select_related("borrower__user")
+ 
+    if request.method == "POST":
+        # role changes / removal are ADMIN-ONLY, even though sub_admins can view
+        if not is_group_admin(request.user, group):
+            messages.error(request, "Only the group administrator can change roles or remove members.")
+            return redirect("groups:manage_members", group_id=group.id)
+ 
+        target = get_object_or_404(GroupMembership, id=request.POST.get("member_id"), group=group)
+        action = request.POST.get("action")
+ 
+        # never let an admin act on themselves or on another admin here
+        if target.borrower == request.user.borrower or target.role == "admin":
+            messages.error(request, "That member can't be changed here.")
+            return redirect("groups:manage_members", group_id=group.id)
+ 
+        if action == "set_role":
+            new_role = request.POST.get("new_role")
+            if new_role not in ASSIGNABLE_ROLES:
+                messages.error(request, "Invalid role.")
+            elif new_role == target.role:
+                messages.info(request, f"{target.borrower.full_name} is already {target.get_role_display()}.")
+            else:
+                promote(target, new_role, actor=request.user.borrower)   # logged
+                messages.success(request, f"{target.borrower.full_name} is now {target.get_role_display()}.")
+ 
+        elif action == "remove":
+            ActivityLog.objects.create(
+                group=group, actor=request.user, action="member_removed",
+                details=f"{target.borrower.full_name} removed.")
+            target.delete()
+            messages.warning(request, f"{target.borrower.full_name} removed from the group.")
+ 
+        else:
+            messages.error(request, "Unknown action.")
+ 
+        return redirect("groups:manage_members", group_id=group.id)
+ 
+    return render(request, "manage_members.html", {
+        "group": group,
+        "members": members,
+        "is_admin": is_group_admin(request.user, group),
+    })
+
+
+@login_required
+@group_member_required
+def roles_and_succession(request, group_id):
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+ 
+    active = group.memberships.filter(status="active").select_related("borrower")
+ 
+    leadership = {
+        "admins":     active.filter(role="admin"),
+        "sub_admins": active.filter(role="sub_admin"),
+        "treasurers": active.filter(role="treasurer"),
+        "secretaries": active.filter(role="secretary"),
+        "elders":     active.filter(role="elder"),
+    }
+ 
+    return render(request, "roles_and_succession.html", {
+        "group": group,
+        "leadership": leadership,
+        "is_admin": is_group_admin(request.user, group),
+        "admin_absent": admin_is_absent(group),
+        "absence_days": ADMIN_ABSENCE_DAYS,
+        # can the CURRENT viewer step up as acting admin? (sub_admin + admin absent)
+        "can_claim_acting": can_claim_acting_admin(request.user, group),
+    })
+
+'''
+@login_required
+@group_staff_required
+def manage_members2(request, group_id):
     """Staff (admin + sub_admin) can view/manage; role CHANGES are admin-only."""
     group = get_object_or_404(BorrowerGroup, id=group_id)
     members = group.memberships.select_related('borrower__user')
@@ -354,7 +465,7 @@ def manage_sub_admins(request, group_id):
         'group': group, 'members': members,
         'current_sub_admins': members.filter(role='sub_admin'),
     })
-
+'''
 
 @login_required
 def claim_acting_admin_view(request, group_id):
@@ -895,10 +1006,10 @@ def group_contributions(request, group_id):
         "pool_total": GroupContribution.confirmed_pool_total(group),
     })
 
-
+'''
 @login_required
 @require_POST
-def confirm_contribution(request, contribution_id):
+def confirm_contribution2(request, contribution_id):
     """Confirm receipt — this counts the contribution toward the pool."""
     contribution = get_object_or_404(
         GroupContribution, id=contribution_id, status="claimed")
@@ -926,7 +1037,7 @@ def confirm_contribution(request, contribution_id):
 
     messages.success(request, f"Contribution {contribution.reference} confirmed.")
     return redirect("groups:group_contributions", group.id)
-
+'''
 
 @login_required
 @require_POST
@@ -963,6 +1074,147 @@ def reject_contribution(request, contribution_id):
     messages.info(request, f"Contribution {contribution.reference} rejected. The member can resubmit.")
     return redirect("groups:group_contributions", group.id)
 
+
+
+
+"""
+Fedha-Grow — money confirmation views with separation-of-duties guard
+====================================================================
+The confirm_contribution / mark_payout_paid views, updated so a money-role
+member cannot confirm their OWN money when someone else could do it instead.
+
+Drop these guarded versions in place of the earlier ones.
+"""
+@login_required
+@require_POST
+def confirm_contribution(request, contribution_id):
+    contribution = get_object_or_404(GroupContribution, id=contribution_id, status="claimed")
+    group = contribution.group
+
+    if not can_handle_money(request.user, group):
+        messages.error(request, "Only the treasurer or an admin can confirm contributions.")
+        return redirect("groups:group_detail", group.id)
+
+    confirmer = group_membership(request.user, group)
+
+    # --- separation of duties: can't confirm your own money if someone else can ---
+    allowed, requires_other, reason = can_confirm_for(
+        confirmer, contribution.membership, group)
+    if not allowed:
+        messages.error(request, reason)
+        return redirect("groups:group_contributions", group.id)
+
+    contribution.confirm(by_membership=confirmer)
+
+    member_user = getattr(contribution.membership.borrower, "user", None)
+    if member_user:
+        Notification.objects.create(
+            user=member_user, category="group_update",
+            message=(f"Your contribution of M{contribution.amount} (ref {contribution.reference}) "
+                     f"to {group.name} has been confirmed."))
+        # send_sms(...)
+
+    messages.success(request, f"Contribution {contribution.reference} confirmed.")
+    return redirect("groups:group_contributions", group.id)
+
+"""
+Fedha-Grow — separation of duties (self-dealing guard)
+=====================================================
+The real conflict-of-interest risk isn't multi-group admin — it's a money-role
+member confirming their OWN money. This guard enforces separation of duties:
+a person can't confirm their own contribution or authorise their own payout,
+UNLESS the group is too small to have anyone else who could (a genuine
+one-money-person group), in which case it's allowed but flagged for the
+transparent ledger to surface.
+
+The transparent member-facing ledger is the backstop: even where a small group
+must self-confirm, every member sees it, so it can't be hidden.
+"""
+
+MONEY_ROLES = {"admin", "sub_admin", "treasurer"}
+
+
+def other_money_role_exists(group, excluding_membership):
+    """
+    Is there ANOTHER active money-role member who could confirm instead of the
+    person themselves? Determines whether self-confirmation is avoidable.
+    """
+    return group.memberships.filter(
+        status="active", role__in=MONEY_ROLES
+    ).exclude(id=excluding_membership.id).exists()
+
+
+def can_confirm_for(confirmer_membership, subject_membership, group):
+    """
+    May `confirmer_membership` confirm money belonging to `subject_membership`?
+
+    Rules:
+      - Confirming someone ELSE's money: always allowed (they hold a money role).
+      - Confirming your OWN money: allowed ONLY if no other money-role member
+        exists (tiny group). Otherwise blocked — someone else must confirm.
+
+    Returns (allowed: bool, requires_other: bool, reason: str).
+    `requires_other` is True when it was blocked specifically because another
+    money-role member is available and should do it instead.
+    """
+    if confirmer_membership is None:
+        return False, False, "You don't have permission to confirm group money."
+
+    is_self = (confirmer_membership.id == subject_membership.id)
+
+    if not is_self:
+        return True, False, ""
+
+    # self-confirmation: only if there's genuinely no one else
+    if other_money_role_exists(group, confirmer_membership):
+        return (False, True,
+                "You can't confirm your own contribution or payout. "
+                "Another treasurer or admin must confirm it — this keeps the "
+                "group's money above suspicion.")
+    # sole money-role person in a small group: allowed, but it's on the record
+    return True, False, ""
+
+
+
+@login_required
+@require_POST
+def mark_payout_paid(request, payout_id):
+    payout = get_object_or_404(GroupPayout, id=payout_id, status="pending")
+    group = payout.group
+
+    if not can_handle_money(request.user, group):
+        messages.error(request, "Only the treasurer or an admin can mark payouts paid.")
+        return redirect("groups:group_detail", group.id)
+
+    authoriser = group_membership(request.user, group)
+
+    # --- separation of duties: can't authorise a payout TO YOURSELF if
+    #     someone else could authorise it instead ---
+    if payout.recipient is not None:
+        allowed, requires_other, reason = can_confirm_for(
+            authoriser, payout.recipient, group)
+        if not allowed:
+            messages.error(request, reason.replace("contribution or payout", "payout"))
+            return redirect("groups:payouts", group.id)
+
+    payout.mark_paid(by_membership=authoriser)
+
+    # advance rotation only on confirmed disbursement
+    rules = getattr(group, "financial_rules", None)
+    if rules and payout.kind == "rotation":
+        rules.advance_rotation()
+
+    if payout.recipient:
+        user = getattr(payout.recipient.borrower, "user", None)
+        if user:
+            Notification.objects.create(
+                user=user, category="group_update",
+                message=(f"You've received a payout of M{payout.amount} "
+                         f"(ref {payout.reference}) from {group.name}."))
+            # send_sms(...)
+
+    messages.success(request, f"Payout {payout.reference} marked paid. Rotation advanced.")
+    return redirect("groups:payouts", group.id)
 
 
 @login_required
@@ -1159,7 +1411,7 @@ def create_rotation_payout(request, group_id):
                               f"Mark it paid once you've disbursed the funds.")
     return redirect("groups:payouts", group.id)
  
- 
+''' 
 @login_required
 @require_POST
 def mark_payout_paid(request, payout_id):
@@ -1194,7 +1446,7 @@ def mark_payout_paid(request, payout_id):
  
     messages.success(request, f"Payout {payout.reference} marked paid. Rotation advanced to the next member.")
     return redirect("groups:payouts", group.id)
- 
+ '''
  
 @login_required
 @require_POST

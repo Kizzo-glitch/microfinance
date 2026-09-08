@@ -1,6 +1,98 @@
 {% extends "group_dash_base.html" %}
 {% block content %}
+
 <div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h3 class="mb-0">{{ group.name }}</h3>
+      <p class="text-muted mb-0">Members &amp; roles</p>
+    </div>
+    <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Back to Group
+    </a>
+  </div>
+
+  <div class="alert alert-light border small">
+    <strong>Roles:</strong>
+    <span class="text-muted">
+      Admin (full control) · Sub-admin (help run the group) ·
+      Treasurer (confirms contributions &amp; payouts) · Secretary (records) ·
+      Member (participates). Only the admin can change roles.
+    </span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-bordered align-middle">
+      <thead class="table-success">
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>Role</th>
+          <th>Joined</th>
+          {% if is_admin %}<th style="min-width:260px;">Actions</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in members %}
+        <tr>
+          <td>{{ m.borrower.full_name }}</td>
+          <td>{{ m.borrower.phone_number }}</td>
+          <td>
+            <span class="badge
+              {% if m.role == 'admin' %}bg-primary
+              {% elif m.role == 'sub_admin' %}bg-info text-dark
+              {% elif m.role == 'treasurer' %}bg-success
+              {% elif m.role == 'secretary' %}bg-secondary
+              {% else %}bg-light text-dark border{% endif %}">
+              {{ m.get_role_display }}
+            </span>
+            {% if m.acting_until %}
+              <span class="badge bg-warning text-dark" title="Acting until {{ m.acting_until|date:'d M Y' }}">
+                Acting
+              </span>
+            {% endif %}
+          </td>
+          <td>{{ m.joined_date|date:"d M Y" }}</td>
+
+          {% if is_admin %}
+          <td>
+            {% if m.borrower == request.user.borrower %}
+              <span class="text-muted">You</span>
+            {% elif m.role == "admin" %}
+              <span class="text-muted">Group admin</span>
+            {% else %}
+              <form method="post" class="d-inline-flex gap-1 flex-wrap">
+                {% csrf_token %}
+                <input type="hidden" name="member_id" value="{{ m.id }}">
+
+                {# Role assignment — one dropdown, one apply #}
+                <select name="new_role" class="form-select form-select-sm" style="width:auto;">
+                  <option value="member"    {% if m.role == 'member' %}selected{% endif %}>Member</option>
+                  <option value="sub_admin" {% if m.role == 'sub_admin' %}selected{% endif %}>Sub-admin</option>
+                  <option value="treasurer" {% if m.role == 'treasurer' %}selected{% endif %}>Treasurer</option>
+                  <option value="secretary" {% if m.role == 'secretary' %}selected{% endif %}>Secretary</option>
+                  <option value="elder"     {% if m.role == 'elder' %}selected{% endif %}>Elder</option>
+                </select>
+                <button name="action" value="set_role" class="btn btn-sm btn-success">Set role</button>
+                <button name="action" value="remove" class="btn btn-sm btn-outline-danger"
+                        onclick="return confirm('Remove {{ m.borrower.full_name }} from the group?');">
+                  Remove
+                </button>
+              </form>
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-muted">No members yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!--<div class="container mt-4">
   <h3>{{ group.name }} - Manage Members</h3>
 
   <table class="table table-bordered mt-3 align-middle">
@@ -47,5 +139,5 @@
       {% endfor %}
     </tbody>
   </table>
-</div>
+</div>-->
 {% endblock %}

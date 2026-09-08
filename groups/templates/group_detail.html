@@ -233,16 +233,16 @@
                 <i class="bi bi-person-gear me-1"></i> Manage Members
             </a>
             {% endif %}
-            &nbsp;
+            &nbsp; &nbsp;
             {% if is_admin %}
-            <a href="{% url 'groups:manage_sub_admins' group.id %}" class="btn btn-outline-primary">
-                <i class="bi bi-shield-lock me-1"></i> Sub-Admins
+            <a href="{% url 'groups:roles_and_succession' group.id %}" class="btn btn-outline-primary">
+                <i class="bi bi-shield-lock me-1"></i> Roles and Succession
             </a>
             {% endif %}
-            &nbsp;
+            &nbsp; &nbsp;
             {% if can_manage %}
             <a href="{% url 'groups:group_invite' group.id %}" class="btn btn-success">
-                <i class="bi bi-person-plus me-1"></i> Invite Members
+                <i class="bi bi-person-plus me-1"></i> Add New Member
             </a>
             {% endif %}
         </div>

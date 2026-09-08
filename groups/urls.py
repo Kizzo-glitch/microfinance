@@ -20,13 +20,15 @@ urlpatterns = [
     path('<int:pk>/group-detail', views.group_detail, name='group_detail'),
     path('<int:pk>/edit/', views.group_edit, name='group_edit'),
     path('<int:group_id>/constitution/', views.group_constitution, name='group_constitution'),
-    #path('<int:group_id>/settings/', GroupTypeSpecificSettingsView.as_view(), name='group_type_settings'),
-
-    path('<int:group_id>/members/', views.group_members, name='group_members'),
-    path('<int:group_id>/manage-sub-admins/', views.manage_sub_admins, name='manage_sub_admins'),
-    path('<int:group_id>/manage-members/', views.manage_members, name='manage_members'),
     path('<int:group_id>/activity/', views.group_activity_log, name='group_activity_log'),
     path('<int:group_id>/documents/', views.group_documents, name='group_documents'),
+  
+
+    path('<int:group_id>/members/', views.group_members, name='group_members'),
+    path('<int:group_id>/roles-and-succession/', views.roles_and_succession, name='roles_and_succession'),
+    path('<int:group_id>/manage-members/', views.manage_members, name='manage_members'),
+    path("claim-acting-admin/<int:group_id>/", views.claim_acting_admin, name="claim_acting_admin"),
+
     
     path('<int:group_id>/financial-rules/', views.group_financial_rules, name='group_financial_rules'),
     path('<int:group_id>/record-contribution/', views.record_contribution, name='record_contribution'),
@@ -53,7 +55,6 @@ urlpatterns = [
     path("api/borrower-search/", views.borrower_search, name="borrower_search"),
 
     path('api/borrowers/has_profile/<int:user_id>/', views.has_borrower_profile, name='has_borrower_profile'),
-
 
     path("<int:group_id>/meetings/", views.group_meetings, name="group_meetings"),
     path("<int:group_id>/meetings/create/", views.create_meeting, name="create_meeting"),
