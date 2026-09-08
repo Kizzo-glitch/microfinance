@@ -1,0 +1,251 @@
+{% extends 'group_dash_base.html' %}
+{% block content %}
+
+<div class="container py-4">
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <h4 class="fw-bold text-success mb-3">Invite Someone to {{ group.name }}</h4>
+
+      <!-- Step 1: existing or new? -->
+      <div class="mb-4">
+        <label class="form-label fw-semibold d-block">Is this person already on Fedha-Grow?</label>
+        <div class="btn-group" role="group">
+          <input type="radio" class="btn-check" name="who_mode" id="mode_existing" value="existing" checked>
+          <label class="btn btn-outline-primary" for="mode_existing">Search existing person</label>
+          &nbsp;
+          <input type="radio" class="btn-check" name="who_mode" id="mode_new" value="new">
+          <label class="btn btn-outline-primary" for="mode_new">Brand new person</label>
+        </div>
+      </div>
+
+      <!-- Search box (existing mode) -->
+      <div id="search-section" class="mb-4">
+        <label class="form-label">Search by name or phone</label>
+        <input type="text" id="borrower-search" class="form-control" autocomplete="off"
+               placeholder="Start typing a name or phone number…">
+        <div id="search-results" class="list-group mt-1" style="display:none;"></div>
+        <div id="picked-banner" class="alert alert-success mt-2" style="display:none;"></div>
+      </div>
+
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <!-- Invitation details (always shown) -->
+        <div class="card mb-4">
+          <div class="card-header bg-light fw-bold">Invitation details</div>
+          <div class="card-body">
+            {{ form.as_p }}
+          </div>
+        </div>
+
+        <!-- Borrower profile (new mode only) -->
+        <div id="borrower-profile-section" class="card" style="display:none;">
+          <div class="card-header bg-light fw-bold">
+            Capture profile <span class="text-muted small">(new person — they complete the rest on activation)</span>
+          </div>
+          <div class="card-body">
+            {{ profile_form.as_p }}
+          </div>
+        </div>
+
+        <div class="text-end mt-3">
+          <button type="submit" class="btn btn-success">Send Invitation</button>
+          <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const groupId = "{{ group.id }}";
+    const modeExisting = document.getElementById("mode_existing");
+    const modeNew = document.getElementById("mode_new");
+    const searchSection = document.getElementById("search-section");
+    const profileSection = document.getElementById("borrower-profile-section");
+    const searchInput = document.getElementById("borrower-search");
+    const resultsBox = document.getElementById("search-results");
+    const pickedBanner = document.getElementById("picked-banner");
+
+    // shared fields: invitation <-> profile (by Django's default ids)
+    const inv = {
+        name:  document.getElementById("id_invitee_name"),
+        phone: document.getElementById("id_invitee_phone"),
+        email: document.getElementById("id_invitee_email"),
+    };
+    const prof = {
+        name:  document.getElementById("id_full_name"),
+        phone: document.getElementById("id_phone_number"),
+        email: document.getElementById("id_email_address"),
+    };
+
+    // --- toggle existing / new ---
+    function applyMode() {
+        const isNew = modeNew.checked;
+        profileSection.style.display = isNew ? "block" : "none";
+        searchSection.style.display = isNew ? "none" : "block";
+    }
+    modeExisting.addEventListener("change", applyMode);
+    modeNew.addEventListener("change", applyMode);
+    applyMode();
+
+    // --- mirror shared fields invitation -> profile as you type ---
+    function mirror(from, to) {
+        if (from && to) from.addEventListener("input", function () { to.value = from.value; });
+    }
+    mirror(inv.name, prof.name);
+    mirror(inv.phone, prof.phone);
+    mirror(inv.email, prof.email);
+
+    // --- type-ahead search ---
+    let timer = null;
+    searchInput.addEventListener("input", function () {
+        clearTimeout(timer);
+        const q = this.value.trim();
+        pickedBanner.style.display = "none";
+        if (q.length < 2) { resultsBox.style.display = "none"; return; }
+        timer = setTimeout(async function () {
+            try {
+                const resp = await fetch(`/groups/api/borrower-search/?q=${encodeURIComponent(q)}&group_id=${groupId}`);
+                const data = await resp.json();
+                renderResults(data.results || []);
+            } catch (e) { resultsBox.style.display = "none"; }
+        }, 300);
+    });
+
+    function renderResults(results) {
+        resultsBox.innerHTML = "";
+        if (!results.length) {
+            resultsBox.innerHTML = '<div class="list-group-item text-muted small">No matches. If this is a new person, choose “Brand new person”.</div>';
+            resultsBox.style.display = "block";
+            return;
+        }
+        results.forEach(function (r) {
+            const item = document.createElement("button");
+            item.type = "button";
+            item.className = "list-group-item list-group-item-action d-flex justify-content-between align-items-center";
+            let right = "";
+            if (r.in_this_group) right = '<span class="badge bg-secondary">Already a member</span>';
+            else if (r.has_account) right = '<span class="badge bg-info text-dark">Has account</span>';
+            item.innerHTML = `<span>${r.name} <span class="text-muted small">${r.phone_tail}</span></span>${right}`;
+            if (r.in_this_group) { item.disabled = true; item.classList.add("disabled"); }
+            else item.addEventListener("click", function () { pick(r); });
+            resultsBox.appendChild(item);
+        });
+        resultsBox.style.display = "block";
+    }
+
+    function pick(r) {
+        // fill the invitation fields from the chosen existing person
+        if (inv.name) inv.name.value = r.name;
+        if (inv.phone) inv.phone.value = r.phone;
+        if (inv.email) inv.email.value = r.email;
+        resultsBox.style.display = "none";
+        searchInput.value = r.name;
+        pickedBanner.textContent = `Selected: ${r.name}. The invitation will link to their existing record.`;
+        pickedBanner.style.display = "block";
+        // existing person: no profile capture needed
+        profileSection.style.display = "none";
+    }
+});
+</script>
+
+
+<!--<div class="container py-4">
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <h4 class="fw-bold text-success mb-3">Invite Borrower to {{ group.name }}</h4>
+
+      <p class="text-muted small">
+        Enter the person's name and phone number. If they're already on Fedha-Grow,
+        we'll link the invitation to their account. If not, we'll invite them to join —
+        they complete their own profile when they activate.
+      </p>
+
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="card mb-4">
+          <div class="card-header bg-light fw-bold">Invitation details</div>
+          <div class="card-body">
+            {{ form.as_p }}
+          </div>
+        </div>
+
+        <div id="borrower-profile-section" class="card">
+          <div class="card-header bg-light fw-bold">Borrower Profile (for new invitees)</div>
+          <div class="card-body">
+            {{ profile_form.as_p }}
+          </div>
+        </div>
+
+        <div class="text-end mt-3">
+          <button type="submit" class="btn btn-success">Send Invitation</button>
+          <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>-->
+
+<!--<div class="container py-4">
+  <div class="card border-0 shadow-sm">
+    <div class="card-body">
+      <h4 class="fw-bold text-success mb-3">Invite Borrower to {{ group.name }}</h4>
+      <form method="post">
+       {% csrf_token %}
+  
+   
+        <div class="card mb-4">
+          <div class="card-header bg-light fw-bold">Invitation Details</div>
+          <div class="card-body">
+            {{ form.as_p }}
+          </div>
+        </div>
+
+      
+        <div id="borrower-profile-section" class="card">
+          <div class="card-header bg-light fw-bold">Borrower Profile (for new invitees)</div>
+          <div class="card-body">
+            {{ profile_form.as_p }}
+          </div>
+        </div>
+
+        <div class="text-end mt-3">
+          <button type="submit" class="btn btn-success">Send Invitation</button>
+          <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+      const inviteeSelect = document.getElementById("invitee-select");
+      const profileSection = document.getElementById("borrower-profile-section");
+
+      async function checkBorrowerProfile(userId) {
+          if (!userId) {
+              profileSection.style.display = "block";
+              return;
+          }
+
+          const response = await fetch(`/groups/api/borrowers/has_profile/${userId}/`);
+          const data = await response.json();
+
+          if (data.has_profile) {
+              profileSection.style.display = "none";
+          } else {
+              profileSection.style.display = "block";
+          }
+      }
+
+      inviteeSelect.addEventListener("change", function () {
+          checkBorrowerProfile(this.value);
+      });
+  });
+</script>-->
+
+{% endblock %}

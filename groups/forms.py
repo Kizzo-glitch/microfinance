@@ -462,30 +462,87 @@ class GroupMembershipForm(forms.ModelForm):
 # -----------------------------
 
 class BorrowerMiniForm(forms.ModelForm):
-	"""
-	A lightweight borrower form used when the invitee doesn't yet exist.
-	"""
-	class Meta:
-		model = BorrowerProfile
-		fields = '__all__'
-		""" 
-		
-		['first_name', 'last_name', 'email', 'phone_number', 'id_number', 'employment_type']
-		widgets = {
-			'first_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'First name'}),
-			'last_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Last name'}),
-			'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'example@email.com'}),
-			'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+266...'}),
-			'id_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'ID or Passport No.'}),
-			'employment_type': forms.Select(attrs={'class': 'form-select'}),
-		}
-		"""
+    """
+    Agent-facing profile capture for assisted onboarding. An agent captures
+    these from a physical form the person completed. Explicit field list (never
+    __all__) so the form stays stable as the model grows, and so agents can't
+    accidentally set internal/system fields.
+
+    The person completes/corrects anything missing themselves after activation.
+    """
+    class Meta:
+        model = BorrowerProfile
+        fields = [
+            'full_name', 'phone_number', 'email_address',
+            'id_number', 'date_of_birth', 'marital_status', 'title',
+            'home_address','income_type', 'income',  
+			'existing_debts',
+            'employer_name', 'employer_address', 
+            'position_level', 'pay_day',
+        ]
+        widgets = {
+            'full_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Full name'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '+266...'}),
+            'email_address': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'Optional'}),
+            'id_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'date_of_birth': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'marital_status': forms.Select(attrs={'class': 'form-select'}),
+            'title': forms.Select(attrs={'class': 'form-select'}),
+            'home_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'income_type': forms.Select(attrs={'class': 'form-select'}),
+            'income': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            
+            'existing_debts': forms.Select(attrs={'class': 'form-control'}),
+            'employer_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'employer_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            
+            'position_level': forms.Select(attrs={'class': 'form-control'}),
+            'pay_day': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+        }
 
 # -----------------------------
 # GROUP INVITES
 # -----------------------------
-
 class GroupInvitationForm(forms.ModelForm):
+    class Meta:
+        model = GroupInvitation
+        fields = [
+            'invitee_name', 'invitee_phone', 'invitee_email',
+            'personal_message', 'relationship', 'reason_for_invite',
+        ]
+        widgets = {
+            'invitee_name': forms.TextInput(attrs={
+                'class': 'form-control', 'placeholder': 'Full name of the person you\'re inviting'}),
+            'invitee_phone': forms.TextInput(attrs={
+                'class': 'form-control', 'placeholder': '+266...'}),
+            'invitee_email': forms.EmailInput(attrs={
+                'class': 'form-control', 'placeholder': 'Optional'}),
+            'personal_message': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 3,
+                'placeholder': 'Optional personal message to the invitee...'}),
+            'relationship': forms.TextInput(attrs={
+                'class': 'form-control', 'placeholder': 'Friend, colleague, relative...'}),
+            'reason_for_invite': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 2,
+                'placeholder': 'Why are you inviting this person? (optional)'}),
+        }
+        labels = {
+            'invitee_name': 'Invitee name',
+            'invitee_phone': 'Phone number',
+            'invitee_email': 'Email (optional)',
+            'personal_message': 'Personal message',
+            'relationship': 'Relationship to invitee',
+            'reason_for_invite': 'Reason for invitation',
+        }
+
+    def clean_invitee_phone(self):
+        phone = (self.cleaned_data.get('invitee_phone') or '').strip()
+        if not phone:
+            raise forms.ValidationError("A phone number is required — it's how the invitation is sent.")
+        return phone
+
+
+class GroupInvitationForm2(forms.ModelForm):
 	borrower_profile = BorrowerMiniForm()
 
 	def __init__(self, *args, **kwargs):
@@ -867,16 +924,3 @@ class GroupMeetingForm(forms.ModelForm):
                                              "placeholder": "Minutes / decisions taken (optional — can be added later)"}),
             "minutes_file": forms.ClearableFileInput(attrs={"class": "form-control"}),
         }
-
-class GroupMeetingForm2(forms.ModelForm):
-	class Meta:
-		model = GroupMeeting
-		fields = [
-			"title",
-			"description",
-			"date",
-			"start_time",
-			"end_time",
-			"minutes",
-			"minutes_file",
-		]

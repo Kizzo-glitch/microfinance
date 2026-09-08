@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Consent Form — Fedha-Grow</title>
+<style>
+    body { font-family: Georgia, serif; color: #1a1a1a; max-width: 780px;
+           margin: 40px auto; padding: 0 24px; line-height: 1.5; }
+    h1 { font-size: 20px; color: #0B2B3C; margin-bottom: 4px; }
+    .sub { color: #5C7683; font-size: 13px; margin-bottom: 24px; }
+    .statement { font-size: 13.5px; white-space: pre-wrap; }
+    .declaration { font-weight: bold; margin: 20px 0; padding: 12px;
+                   background: #EEF4F5; border-left: 4px solid #028090; font-size: 13.5px; }
+    .sign-row { margin-top: 40px; display: flex; justify-content: space-between; gap: 40px; }
+    .sign-box { flex: 1; }
+    .sign-line { border-bottom: 1px solid #1a1a1a; height: 40px; margin-bottom: 6px; }
+    .sign-label { font-size: 12px; color: #5C7683; }
+    .review-note { margin-top: 30px; font-size: 11px; color: #A32C2C;
+                   border: 1px dashed #A32C2C; padding: 8px; }
+    @media print { .review-note { display: none; } body { margin: 0; } }
+    .print-btn { margin-bottom: 20px; }
+    @media print { .print-btn { display: none; } }
+</style>
+</head>
+<body>
+    <button class="print-btn" onclick="window.print()">Print this form</button>
+
+    <h1>Fedha-Grow — {{ statement.title }}</h1>
+    <div class="sub">Version {{ version }} · {{ statement.effective }}</div>
+
+    <div class="statement">{{ statement.body }}</div>
+
+    <div class="declaration">{{ statement.declaration }}</div>
+
+    <div class="sign-row">
+        <div class="sign-box">
+            <div class="sign-line"></div>
+            <div class="sign-label">Full name (print)</div>
+        </div>
+        <div class="sign-box">
+            <div class="sign-line"></div>
+            <div class="sign-label">Signature</div>
+        </div>
+        <div class="sign-box">
+            <div class="sign-line"></div>
+            <div class="sign-label">Date</div>
+        </div>
+    </div>
+
+    <div class="sign-row">
+        <div class="sign-box">
+            <div class="sign-line"></div>
+            <div class="sign-label">Agent / representative (if assisted)</div>
+        </div>
+        <div class="sign-box">
+            <div class="sign-line"></div>
+            <div class="sign-label">Witness (optional)</div>
+        </div>
+    </div>
+
+    <div class="review-note">
+        DRAFT — pending legal review. This wording must be reviewed by a
+        data-protection lawyer before use with real people. (This note does
+        not print.)
+    </div>
+</body>
+</html>

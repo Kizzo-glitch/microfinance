@@ -54,16 +54,6 @@ class BorrowerProfileForm(forms.ModelForm):
 		help_text="Enter the day of the month you get paid (1–31)"
 	)
 	
-	'''pay_day = forms.DateField(
-		widget=forms.DateInput(
-			attrs={
-				'type': 'date',  # This makes the input render as an HTML date picker
-				'class': 'form-control',  # Add the Bootstrap class for styling
-				'id': 'date',  # Matches the id from your HTML example
-			}
-		),
-		label="Pay Day",  # Label for the field
-	)'''
 	#monthly_expenses = forms.Select(attrs={'class': 'form-control'})
 	existing_debts = forms.Select(attrs={'class': 'form-control'})
 	employment_type = forms.Select(attrs={'class': 'form-control'})

@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from decimal import Decimal, InvalidOperation
+from django.db.models import Q
 
 from django.views.decorators.http import require_POST
 
@@ -18,8 +19,8 @@ from borrowers.forms import BorrowerProfileForm
 from loans.models import Loan, Notification
 from .models import (
     BorrowerGroup, GroupMembership, GroupConstitution, GroupInvitation,
-    GroupJoinRequest, GroupDocument, ActivityLog,
-    GroupFinancialRules, GroupContribution, GroupPayout
+    GroupJoinRequest, GroupDocument, ActivityLog,GroupFinancialRules,
+    GroupContribution, GroupPayout, DataProcessingConsent,
 )
 from .forms import (
     BorrowerGroupRegistrationForm, BorrowerGroupForm, GroupAdminReviewForm,
@@ -34,8 +35,7 @@ from .group_permissions import (
 )
 from comms.sms.service import send_sms
 from .group_pool import pool_balance
-
-
+from .consent_statements import get_statement, CURRENT_VERSION
 
 
 User = get_user_model()
@@ -430,7 +430,7 @@ def send_group_invite(request, group_id):
                 borrower = profile_form.save()
             else:
                 messages.error(request, "Please complete the invitee profile correctly.")
-                return render(request, 'invite_borrower.html',
+                return render(request, 'send_group_invite.html',
                               {'group': group, 'form': form, 'profile_form': profile_form})
 
             invitation.invitee = borrower
@@ -453,8 +453,116 @@ def send_group_invite(request, group_id):
     else:
         form = GroupInvitationForm()
         profile_form = BorrowerMiniForm()
-    return render(request, 'invite_borrower.html',
+    return render(request, 'send_group_invite.html',
                   {'group': group, 'form': form, 'profile_form': profile_form})
+
+
+@login_required
+def borrower_search(request):
+    q = (request.GET.get("q") or "").strip()
+    group_id = request.GET.get("group_id")
+ 
+    if len(q) < 2:
+        return JsonResponse({"results": []})   # require at least 2 chars
+ 
+    matches = BorrowerProfile.objects.filter(
+        Q(full_name__icontains=q) | Q(phone_number__icontains=q)
+    ).select_related("user")[:10]   # cap results
+ 
+    # which of these are already active members of this group?
+    group_member_ids = set()
+    if group_id:
+        group = BorrowerGroup.objects.filter(id=group_id).first()
+        if group:
+            group_member_ids = set(
+                group.memberships.filter(status="active")
+                .values_list("borrower_id", flat=True))
+ 
+    results = []
+    for b in matches:
+        phone = b.phone_number or ""
+        results.append({
+            "id": b.id,
+            "name": b.full_name,
+            # show only the tail of the phone in the picker (privacy)
+            "phone_tail": ("…" + phone[-4:]) if len(phone) >= 4 else phone,
+            "phone": phone,                       # full phone, to fill the field on pick
+            "email": (b.user.email if b.user else ""),
+            "has_account": bool(b.user_id),        # already registered
+            "in_this_group": b.id in group_member_ids,
+        })
+    return JsonResponse({"results": results})
+
+
+
+"""
+Fedha-Grow — consent views (capture + printable)
+================================================
+  * consent_blank_form   — printable blank form for a person to sign before
+                           an agent captures their profile.
+  * consent_record       — printable record of a specific person's captured
+                           consent (proof of what they agreed to, when, by whom).
+  * capture flow is handled where the agent creates/edits the profile (see
+    _record_consent helper), not a standalone view.
+"""
+def _record_consent(borrower, *, method, captured_by=None, signed_form=None,
+                    witness_name="", given=True):
+    """
+    Create a consent record. Call this from the profile-capture / activation
+    flow — e.g. after an agent captures a profile from a signed physical form,
+    or after a person ticks consent when activating their account.
+    """
+    return DataProcessingConsent.objects.create(
+        borrower=borrower,
+        statement_version=CURRENT_VERSION,
+        given=given,
+        method=method,
+        captured_by=captured_by,
+        signed_form=signed_form,
+        witness_name=witness_name,
+        date=timezone.now(),
+    )
+
+
+@login_required
+def consent_blank_form(request):
+    """Printable BLANK consent form — for a person to sign before capture."""
+    statement = get_statement()
+    return render(request, "consent_blank_form.html", {
+        "statement": statement,
+        "version": CURRENT_VERSION,
+    })
+
+
+@login_required
+def consent_record(request, borrower_id):
+    """Printable record of a person's captured consent (proof)."""
+    borrower = get_object_or_404(BorrowerProfile, id=borrower_id)
+    consent = DataProcessingConsent.active_for(borrower) or \
+        borrower.consents.order_by("-date").first()
+    statement = get_statement(consent.statement_version if consent else None)
+    return render(request, "consent_record.html", {
+        "borrower": borrower,
+        "consent": consent,
+        "statement": statement,
+    })
+
+
+@login_required
+def withdraw_consent(request, borrower_id):
+    """A person withdraws their consent (DPA right)."""
+    borrower = get_object_or_404(BorrowerProfile, id=borrower_id)
+    # only the person themselves (or staff acting on their request) should do this
+    if getattr(request.user, "borrower", None) != borrower:
+        messages.error(request, "You can only withdraw your own consent.")
+        return redirect("borrowers:borrower_index")
+    consent = DataProcessingConsent.active_for(borrower)
+    if request.method == "POST" and consent:
+        consent.withdraw()
+        messages.success(request, "Your consent has been withdrawn. This may affect "
+                                  "our ability to provide the service.")
+    return redirect("borrowers:borrower_index")
+
 
 
 def activate_invite(request, code=None):
@@ -732,6 +840,7 @@ def _notify_confirmers(group, member_membership, contribution):
             "ref": contribution.reference, "group": group.name})
 
 
+
 """
 Fedha-Grow — group contribution confirmation (money-role side)
 =============================================================
@@ -739,8 +848,6 @@ A money-role member (treasurer, admin, or sub_admin) confirms or rejects a
 member's contribution CLAIM. Confirmation is what counts it toward the pool.
 Mirrors the lender loan-payment confirmation flow.
 """
-
-
 @login_required
 def group_contributions(request, group_id):
     """

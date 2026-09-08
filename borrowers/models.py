@@ -95,7 +95,7 @@ class BorrowerProfile(models.Model):
 	phone_number = models.CharField(max_length=100, null=True, default='')
 	email_address = models.CharField(max_length=100, null=True, default='')
 	employer_name = models.CharField(max_length=100, null=True, default='')
-	#employment_position = models.CharField(max_length=100, null=True, default='')
+	
 	income = models.DecimalField(default=0, decimal_places=2, max_digits=50)
 	position_level = models.CharField(max_length=50, choices=POSITION_LEVEL_CHOICES, null=True, blank=True)
 	

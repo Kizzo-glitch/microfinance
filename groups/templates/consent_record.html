@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Consent Record — {{ borrower.full_name }}</title>
+<style>
+    body { font-family: Georgia, serif; color: #1a1a1a; max-width: 780px;
+           margin: 40px auto; padding: 0 24px; line-height: 1.5; }
+    h1 { font-size: 20px; color: #0B2B3C; margin-bottom: 4px; }
+    .sub { color: #5C7683; font-size: 13px; margin-bottom: 24px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 13.5px; }
+    td { padding: 8px 10px; border: 1px solid #D5E0E3; }
+    td.label { background: #EEF4F5; font-weight: bold; width: 35%; color: #0B2B3C; }
+    .status-given { color: #1F6B45; font-weight: bold; }
+    .status-none { color: #A32C2C; font-weight: bold; }
+    .statement { font-size: 12.5px; white-space: pre-wrap; color: #333;
+                 border-top: 1px solid #D5E0E3; padding-top: 16px; margin-top: 16px; }
+    .print-btn { margin-bottom: 20px; }
+    @media print { .print-btn { display: none; } body { margin: 0; } }
+</style>
+</head>
+<body>
+    <button class="print-btn" onclick="window.print()">Print this record</button>
+
+    <h1>Fedha-Grow — Consent Record</h1>
+    <div class="sub">Proof of data-processing consent</div>
+
+    <table>
+        <tr><td class="label">Person</td><td>{{ borrower.full_name }}</td></tr>
+        <tr><td class="label">Consent status</td>
+            <td>
+                {% if consent and consent.is_active %}
+                    <span class="status-given">Given and in force</span>
+                {% elif consent and consent.withdrawn %}
+                    <span class="status-none">Withdrawn on {{ consent.withdrawn_date|date:"d M Y" }}</span>
+                {% elif consent %}
+                    <span class="status-none">Recorded but not active</span>
+                {% else %}
+                    <span class="status-none">No consent on record</span>
+                {% endif %}
+            </td></tr>
+        {% if consent %}
+        <tr><td class="label">Date given</td><td>{{ consent.date|date:"d M Y, H:i" }}</td></tr>
+        <tr><td class="label">Method</td><td>{{ consent.get_method_display }}</td></tr>
+        <tr><td class="label">Statement version agreed</td><td>{{ consent.statement_version }}</td></tr>
+        {% if consent.captured_by %}
+        <tr><td class="label">Captured by (agent)</td><td>{{ consent.captured_by.full_name }}</td></tr>
+        {% endif %}
+        {% if consent.witness_name %}
+        <tr><td class="label">Witness</td><td>{{ consent.witness_name }}</td></tr>
+        {% endif %}
+        {% if consent.signed_form %}
+        <tr><td class="label">Signed form on file</td><td>Yes — scan attached in system</td></tr>
+        {% endif %}
+        {% endif %}
+    </table>
+
+    {% if statement %}
+    <div>
+        <strong>What was agreed (version {{ consent.statement_version|default:statement.title }}):</strong>
+        <div class="statement">{{ statement.body }}</div>
+    </div>
+    {% endif %}
+</body>
+</html>

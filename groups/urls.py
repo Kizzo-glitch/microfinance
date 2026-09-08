@@ -50,7 +50,7 @@ urlpatterns = [
     path('join-requests/<int:request_id>/decline/', views.decline_join_request, name='decline_join_request'),
     path('join-requests/', views.pending_join_requests, name='pending_join_requests'),
 
-    
+    path("api/borrower-search/", views.borrower_search, name="borrower_search"),
 
     path('api/borrowers/has_profile/<int:user_id>/', views.has_borrower_profile, name='has_borrower_profile'),
 
@@ -59,6 +59,9 @@ urlpatterns = [
     path("<int:group_id>/meetings/create/", views.create_meeting, name="create_meeting"),
     #path("<int:group_id>/meetings/<int:meeting_id>/", views.meeting_detail, name="meeting_detail"),
     #path("<int:group_id>/meetings/<int:meeting_id>/attendance/", views.update_attendance, name="update_attendance"),
+    path('record-consent/<int:borrower_id>/', views.consent_record, name='consent_record'),
+    path('withdraw-consent/<int:borrower_id>/', views.withdraw_consent, name='withdraw_consent'),
+    
 
     # Invitation actions
     #path('invitation/<int:invitation_id>/', views.invitation_detail, name='invitation_detail'),
