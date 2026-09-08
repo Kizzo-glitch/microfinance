@@ -13,11 +13,11 @@ Fixes applied during the move:
 The HTTP behaviour, number-cleaning, and error handling are otherwise unchanged.
 """
 
-import logging
+
 import requests
 from requests.auth import HTTPBasicAuth
 from django.conf import settings
-
+import logging
 logger = logging.getLogger(__name__)
 
 

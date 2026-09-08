@@ -245,3 +245,6 @@ INTEGRATIONS["ussd"] = {
     "label": "USSD",
     "adapter": None,   # no provider yet -> registry serves PendingMessagingAdapter
 }
+
+
+SMS_TEST_MODE = os.environ.get("SMS_TEST_MODE") == "1"

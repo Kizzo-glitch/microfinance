@@ -62,6 +62,10 @@ urlpatterns = [
     #path("<int:group_id>/meetings/<int:meeting_id>/attendance/", views.update_attendance, name="update_attendance"),
     path('record-consent/<int:borrower_id>/', views.consent_record, name='consent_record'),
     path('withdraw-consent/<int:borrower_id>/', views.withdraw_consent, name='withdraw_consent'),
+
+    path('import-upload/<int:group_id>/', views.import_upload, name='import_upload'),
+    path('import-confirm/<int:group_id>/', views.import_confirm, name='import_confirm'),
+    path('import-template/<int:group_id>/', views.import_template, name='import_template'),
     
 
     # Invitation actions

@@ -11,10 +11,12 @@ from django.db import models
 from django.utils import timezone
 
 
+
 class SmsLog(models.Model):
     STATUS_CHOICES = [
         ("sent",   "Sent"),
         ("failed", "Failed"),
+        ("test", "Test mode (not sent)")
     ]
 
     phone_number = models.CharField(max_length=20, db_index=True)

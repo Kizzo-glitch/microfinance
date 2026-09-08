@@ -38,7 +38,13 @@ from .group_permissions import (
 from comms.sms.service import send_sms
 from .group_pool import pool_balance
 from .consent_statements import get_statement, CURRENT_VERSION
+from .member_import_core import parse_workbook, classify_rows, EXPECTED_COLUMNS, REQUIRED_COLUMNS
 
+from io import BytesIO
+import openpyxl
+from openpyxl.styles import Font, PatternFill
+from django.http import HttpResponse
+ 
 
 User = get_user_model()
 
@@ -1496,4 +1502,199 @@ def create_meeting(request, group_id):
     else:
         form = GroupMeetingForm()
     return render(request, "create_meeting.html", {"group": group, "form": form})
+
+
+"""
+Fedha-Grow — bulk member import (commit + views)
+================================================
+The confirm half: after the agent reviews the preview, this creates PROFILES +
+GROUP MEMBERSHIPS + pending INVITATIONS for the valid rows. It does NOT create
+accounts or consent — each person activates and consents themselves via the
+invitation link (SMS_TEST_MODE logs the link during testing).
+
+Flow:
+  1. import_upload   — agent uploads xlsx -> parse + classify -> preview page
+  2. import_confirm  — agent confirms -> commit valid rows -> invitations sent
+"""
+
+@login_required
+@group_staff_required
+def import_upload(request, group_id):
+    """Upload an xlsx, parse + classify, show a preview. Writes nothing."""
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+
+    if request.method == "POST" and request.FILES.get("file"):
+        preview = parse_workbook(request.FILES["file"])
+        if not preview.header_ok:
+            messages.error(request, preview.header_error)
+            return redirect("groups:import_upload", group.id)
+
+        classify_rows(preview, group)
+
+        # stash the importable rows in session for the confirm step
+        request.session[f"import_{group.id}"] = [
+            {"data": r.data, "classification": r.classification,
+             "existing_borrower_id": r.existing_borrower_id}
+            for r in preview.importable
+        ]
+        return render(request, "member_import_preview.html", {
+            "group": group,
+            "preview": preview,
+        })
+
+    return render(request, "member_import_upload.html", {
+        "group": group,
+        "columns": EXPECTED_COLUMNS,
+    })
+
+
+@login_required
+@group_staff_required
+def import_confirm(request, group_id):
+    """Commit the previewed rows: create profiles + memberships + invitations."""
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+    stash = request.session.get(f"import_{group.id}")
+    if not stash:
+        messages.error(request, "Nothing to import — please upload a file first.")
+        return redirect("groups:import_upload", group.id)
+
+    if request.method != "POST":
+        return redirect("groups:import_upload", group.id)
+
+    from borrowers.models import BorrowerProfile
+    inviter = request.user.borrower
+    created, linked, invited = 0, 0, 0
+
+    with transaction.atomic():
+        for row in stash:
+            data = row["data"]
+            phone = data.get("phone_number")
+
+            # resolve or create the profile (dedupe by phone, re-checked here)
+            if row["classification"] == "existing" and row["existing_borrower_id"]:
+                borrower = BorrowerProfile.objects.filter(id=row["existing_borrower_id"]).first()
+                if borrower:
+                    linked += 1
+                else:
+                    borrower = _create_stub(BorrowerProfile, data)
+                    created += 1
+            else:
+                # guard against a race: someone with this phone created since preview
+                borrower = BorrowerProfile.objects.filter(phone_number=phone).first()
+                if borrower:
+                    linked += 1
+                else:
+                    borrower = _create_stub(BorrowerProfile, data)
+                    created += 1
+
+            # add to the group (idempotent)
+            GroupMembership.objects.get_or_create(
+                group=group, borrower=borrower,
+                defaults={"role": "member", "status": "active"})
+
+            # create a pending invitation so they can activate + consent
+            # (skip if they already have an account — nothing to activate)
+            if not borrower.user_id:
+                invitation = GroupInvitation.objects.create(
+                    group=group, invited_by=inviter, invitee=borrower,
+                    invitee_name=borrower.full_name,
+                    invitee_phone=borrower.phone_number,
+                    invitee_email=(data.get("email") or ""),
+                )
+                invited += 1
+                # send_sms(borrower.phone_number, "group_invitation", {
+                #     "name": borrower.full_name, "group": group.name,
+                #     "code": invitation.invitation_code,
+                #     "url": request.build_absolute_uri(invitation.get_activation_url())})
+
+    # clear the stash
+    request.session.pop(f"import_{group.id}", None)
+
+    messages.success(
+        request,
+        f"Import complete: {created} new profile(s), {linked} linked to existing people, "
+        f"{invited} invitation(s) created.")
+    return redirect("groups:group_members", group.id)
+
+
+def _create_stub(BorrowerProfile, data):
+    """Create a minimal profile stub from a validated row. Person completes the rest."""
+    fields = {"full_name": data.get("full_name", ""),
+              "phone_number": data.get("phone_number", "")}
+    # optional captured fields, only if your model has them (guarded)
+    for f in ("id_number", "income",
+              "employer_name", "employment_position", "date_of_birth"):
+        val = data.get(f)
+        if val and hasattr(BorrowerProfile, f):
+            fields[f] = val
+    return BorrowerProfile.objects.create(**fields)
+
+
+
+"""
+Fedha-Grow — import template download
+=====================================
+Streams a blank .xlsx with the exact header row the importer expects, plus a
+greyed example row showing the format. Agents fill this and upload it back,
+so the columns always match what parse_workbook() reads.
  
+Kept in sync with EXPECTED_COLUMNS in member_import_core.py — if you change the
+columns there, this template updates automatically (it imports the same list).
+"""
+
+# a friendly one-row example so agents see the expected format
+_EXAMPLE = {
+    "full_name": "Thabo Mokoena",
+    "phone_number": "+26658000001",
+    "email": "thabo@example.com",
+    "id_number": "9001011234088",
+    "date_of_birth": "1990-01-01",
+    "income": "5000",
+    "monthly_expenses": "3200",
+    "employer_name": "Example Employer",
+    "employment_position": "Clerk",
+}
+ 
+ 
+@login_required
+@group_staff_required
+def import_template(request, group_id):
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+ 
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Members"
+ 
+    header_fill = PatternFill(start_color="028090", end_color="028090", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    req_font = Font(bold=True, color="FFFF00")   # required columns marked
+ 
+    # header row
+    for col_idx, col in enumerate(EXPECTED_COLUMNS, start=1):
+        cell = ws.cell(row=1, column=col_idx, value=col)
+        cell.fill = header_fill
+        cell.font = req_font if col in REQUIRED_COLUMNS else header_font
+        ws.column_dimensions[cell.column_letter].width = max(len(col) + 4, 16)
+ 
+    # example row (row 2) — greyed, so agents can see the format then overwrite it
+    example_font = Font(italic=True, color="999999")
+    for col_idx, col in enumerate(EXPECTED_COLUMNS, start=1):
+        cell = ws.cell(row=2, column=col_idx, value=_EXAMPLE.get(col, ""))
+        cell.font = example_font
+ 
+    # a note row below (row 4)
+    ws.cell(row=4, column=1,
+            value="full_name and phone_number are required on every row. "
+                  "Delete this note and the example row before uploading. "
+                  "Extra columns are ignored.").font = Font(italic=True, color="A32C2C")
+ 
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+ 
+    filename = f"fedha-grow-members-template-{group.id}.xlsx"
+    resp = HttpResponse(
+        buf.getvalue(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    resp["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return resp

@@ -1,0 +1,88 @@
+{% extends 'group_dash_base.html' %}
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h3 class="mb-0">Import Preview</h3>
+      <p class="text-muted mb-0">{{ group.name }} — review before importing</p>
+    </div>
+    <a href="{% url 'groups:import_upload' group.id %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Upload a different file
+    </a>
+  </div>
+
+  <!-- Summary -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm text-center"><div class="card-body">
+        <div class="small text-muted">New profiles</div>
+        <h3 class="mb-0 text-success">{{ preview.new_count }}</h3>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm text-center"><div class="card-body">
+        <div class="small text-muted">Existing — will link</div>
+        <h3 class="mb-0 text-info">{{ preview.existing_count }}</h3>
+      </div></div>
+    </div>
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm text-center"><div class="card-body">
+        <div class="small text-muted">Errors — skipped</div>
+        <h3 class="mb-0 text-danger">{{ preview.error_count }}</h3>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- Row detail -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-light fw-semibold">Rows</div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm mb-0 align-middle">
+          <thead class="table-light">
+            <tr><th>Row</th><th>Name</th><th>Phone</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            {% for r in preview.rows %}
+            <tr>
+              <td>{{ r.row_number }}</td>
+              <td>{{ r.data.full_name|default:"—" }}</td>
+              <td>{{ r.data.phone_number|default:"—" }}</td>
+              <td>
+                {% if r.classification == "new" %}
+                  <span class="badge bg-success">New</span>
+                {% elif r.classification == "existing" %}
+                  <span class="badge bg-info text-dark">Existing — link</span>
+                  {% if r.existing_has_account %}<span class="badge bg-secondary">has account</span>{% endif %}
+                {% else %}
+                  <span class="badge bg-danger">Error</span>
+                  <span class="small text-danger">{{ r.errors|join:" " }}</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm -->
+  <div class="d-flex justify-content-between align-items-center">
+    <div class="text-muted small">
+      {% if preview.error_count %}
+        Rows with errors will be skipped. Fix them in the file and re-upload if you want to include them.
+      {% endif %}
+    </div>
+    <form method="post" action="{% url 'groups:import_confirm' group.id %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success"
+              {% if not preview.importable %}disabled{% endif %}>
+        <i class="bi bi-check-circle"></i>
+        Import {{ preview.new_count|add:preview.existing_count }} member(s)
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}

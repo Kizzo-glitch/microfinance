@@ -32,6 +32,7 @@ from django.views.decorators.http import require_POST
 
 
 from django.conf import settings
+from comms.sms.smsportal import SmsPortalGateway
 from loans.utils import send_sms_smsportal
 from micro.utils import generate_otp 
 from comms.sms.service import send_sms
@@ -68,6 +69,12 @@ from .forms import (
 	LoanPaymentForm, OTPForm, EmploymentTypeForm, EmployedDocumentsForm, SelfEmployedDocumentsForm, 
 	RegisteredBusinessDocumentsForm, ExpenseForm, DynamicExpenseForm
 	)
+
+import logging
+
+logger = logging.getLogger(__name__)
+
+
 
 
 
@@ -578,9 +585,12 @@ def send_otp(request):
 	OTP.objects.create(user=request.user, phone_number=phone_number, otp_code=otp_code)
 
 	# Send SMS
-	from loans.utils import send_sms_smsportal
 	message = f"Hello {borrower.full_name}, your Fedha-Grow OTP code is: {otp_code}"
-	send_sms_smsportal(phone_number, message)
+	#send_sms_smsportal(phone_number, message)
+	if getattr(settings, "SMS_TEST_MODE", False):
+		logger.info("SMS TEST MODE — OTP for %s would be: %s", phone_number, otp_code)
+	else:
+		SmsPortalGateway().send(phone_number, message)
 	
 	# Render the email content
 	subject = f"OTP Verification"
