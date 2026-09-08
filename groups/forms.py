@@ -652,6 +652,27 @@ class GroupInvitationForm2(forms.ModelForm):
 
 
 class ActivationForm(UserCreationForm):
+    email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    data_consent = forms.BooleanField(
+        required=True,
+        label="I have read and agree to the data processing consent statement.",
+        error_messages={'required': "You must agree to the consent statement to activate your account."},
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+    )
+
+    class Meta:
+        model = User
+        fields = ("username", 'first_name', 'last_name', "phone_number", "email", "password1", "password2")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for fieldname, field in self.fields.items():
+            if not getattr(field.widget, 'attrs', None):
+                field.widget.attrs = {}
+            if 'class' not in field.widget.attrs:
+                field.widget.attrs['class'] = 'form-control'
+
+class ActivationForm2(UserCreationForm):
 	email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
 
 	class Meta:

@@ -493,7 +493,69 @@ def borrower_search(request):
         })
     return JsonResponse({"results": results})
 
+def activate_invite(request, code=None):
+    """Public — invitee may not have an account yet."""
+    invitation_code = (code or request.POST.get('invitation_code') or '').strip().upper()
+    if not invitation_code:
+        messages.error(request, "Missing invitation code.")
+        return render(request, "activate_invite.html", {'form': ActivationForm()})
 
+    invite = get_object_or_404(GroupInvitation, invitation_code=invitation_code, status='pending')
+    borrower_profile = invite.invitee
+    parts = invite.invitee_name.split()
+    first_name, last_name = parts[0], (parts[-1] if len(parts) > 1 else "")
+
+    if request.method == "POST":
+        form = ActivationForm(request.POST)
+        if form.is_valid():
+            username = form.cleaned_data['username']
+            password = form.cleaned_data['password1']
+            email = form.cleaned_data.get('email') or invite.invitee_email
+            phone = form.cleaned_data.get('phone_number') or invite.invitee_phone
+
+            if borrower_profile.user:
+                user = borrower_profile.user
+                user.username, user.email = username, email
+                user.first_name, user.last_name = first_name, last_name
+                if hasattr(user, "phone_number"):
+                    user.phone_number = phone
+                user.set_password(password)
+                user.save()
+            else:
+                user = User.objects.create_user(username=username, email=email, password=password,
+                                                 first_name=first_name, last_name=last_name)
+                if hasattr(user, "phone_number"):
+                    user.phone_number = phone
+                    user.save()
+                borrower_profile.user = user
+                borrower_profile.save()
+
+            # --- record the person's DIGITAL consent (they consented themselves) ---
+            _record_consent(borrower_profile, method="digital", given=True)
+            # captured_by omitted: this is the PERSON's own consent, not an agent's
+
+            invite.status = 'accepted'
+            invite.responded_at = timezone.now()
+            invite.save()
+
+            GroupMembership.objects.get_or_create(          
+                group=invite.group, borrower=borrower_profile,
+                defaults={"role": "member", "status": "active",
+                          "verification_status": "identity_verified",
+                          "joined_date": timezone.now()})
+
+            login(request, user)
+            messages.success(request, f"Welcome {borrower_profile.full_name}, your account is now active.")
+            return redirect("borrowers:borrower_index")
+    else:
+        form = ActivationForm(initial={'email': invite.invitee_email, 'phone_number': invite.invitee_phone,
+                                       'first_name': first_name, 'last_name': last_name})
+
+    from groups.consent_statements import get_statement
+    return render(request, "activate_invite.html", {
+        "form": form, "invite": invite, "borrower_profile": borrower_profile,
+        "consent_statement": get_statement(),        
+    })
 
 """
 Fedha-Grow — consent views (capture + printable)
@@ -562,63 +624,6 @@ def withdraw_consent(request, borrower_id):
         messages.success(request, "Your consent has been withdrawn. This may affect "
                                   "our ability to provide the service.")
     return redirect("borrowers:borrower_index")
-
-
-
-def activate_invite(request, code=None):
-    """Public — invitee may not have an account yet."""
-    invitation_code = (code or request.POST.get('invitation_code') or '').strip().upper()
-    if not invitation_code:
-        messages.error(request, "Missing invitation code.")
-        return render(request, "activate_invite.html", {'form': ActivationForm()})
-
-    invite = get_object_or_404(GroupInvitation, invitation_code=invitation_code, status='pending')
-    borrower_profile = invite.invitee
-    parts = invite.invitee_name.split()
-    first_name, last_name = parts[0], (parts[-1] if len(parts) > 1 else "")
-
-    if request.method == "POST":
-        form = ActivationForm(request.POST)
-        if form.is_valid():
-            username = form.cleaned_data['username']
-            password = form.cleaned_data['password1']
-            email = form.cleaned_data.get('email') or invite.invitee_email
-            phone = form.cleaned_data.get('phone_number') or invite.invitee_phone
-
-            if borrower_profile.user:
-                user = borrower_profile.user
-                user.username, user.email = username, email
-                user.first_name, user.last_name = first_name, last_name
-                if hasattr(user, "phone_number"):
-                    user.phone_number = phone
-                user.set_password(password)
-                user.save()
-            else:
-                user = User.objects.create_user(username=username, email=email, password=password,
-                                                 first_name=first_name, last_name=last_name)
-                if hasattr(user, "phone_number"):
-                    user.phone_number = phone
-                    user.save()
-                borrower_profile.user = user
-                borrower_profile.save()
-
-            invite.status = 'accepted'
-            invite.responded_at = timezone.now()
-            invite.save()
-
-            GroupMembership.objects.create(
-                group=invite.group, borrower=borrower_profile, role='member',
-                status='active', verification_status='identity_verified',
-                joined_date=timezone.now())
-
-            login(request, user)
-            messages.success(request, f"Welcome {borrower_profile.full_name}, your account is now active.")
-            return redirect("borrowers:borrower_index")
-    else:
-        form = ActivationForm(initial={'email': invite.invitee_email, 'phone_number': invite.invitee_phone,
-                                       'first_name': first_name, 'last_name': last_name})
-    return render(request, "activate_invite.html",
-                  {"form": form, "invite": invite, "borrower_profile": borrower_profile})
 
 
 @login_required
