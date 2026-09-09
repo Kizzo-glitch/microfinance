@@ -1,0 +1,22 @@
+{% comment %}
+  Reusable single-field renderer. Handles checkboxes differently from other
+  inputs (checkbox + inline label reads better than label-above).
+  Usage:  {% include 'partials/_field.html' with field=field %}
+{% endcomment %}
+<div class="mb-3">
+  {% if field.field.widget.input_type == 'checkbox' %}
+    <div class="form-check">
+      {{ field }}
+      <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    </div>
+  {% else %}
+    <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+    {{ field }}
+  {% endif %}
+  {% if field.help_text %}
+    <div class="form-text">{{ field.help_text }}</div>
+  {% endif %}
+  {% if field.errors %}
+    <div class="text-danger small">{{ field.errors|striptags }}</div>
+  {% endif %}
+</div>

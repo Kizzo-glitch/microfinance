@@ -306,9 +306,29 @@ def group_edit(request, pk):
     return render(request, 'group_edit.html', {'form': form, 'group': group})
 
 
+
 @login_required
 @group_admin_only
 def group_constitution(request, group_id):
+    group = get_object_or_404(BorrowerGroup, id=group_id)
+    constitution, _ = GroupConstitution.objects.get_or_create(group=group)
+    if request.method == 'POST':
+        form = GroupConstitutionForm(request.POST, request.FILES, instance=constitution)  # <-- request.FILES
+        if form.is_valid():
+            obj = form.save(commit=False)
+            if 'document' in form.changed_data and obj.document:
+                obj.document_uploaded_at = timezone.now()   # stamp when a new file lands
+            obj.save()
+            messages.success(request, "Constitution saved.")
+            return redirect('groups:group_detail', group.id)
+    else:
+        form = GroupConstitutionForm(instance=constitution)
+    return render(request, 'group_constitution.html', {'group': group, 'form': form, 'constitution': constitution})
+
+
+@login_required
+@group_admin_only
+def group_constitution2(request, group_id):
     group = get_object_or_404(BorrowerGroup, id=group_id)
     constitution, _ = GroupConstitution.objects.get_or_create(group=group)
     if request.method == 'POST':

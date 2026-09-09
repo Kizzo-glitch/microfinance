@@ -898,7 +898,12 @@ class GroupConstitution(models.Model):
     # Cultural Provisions
     emergency_provisions = models.TextField(blank=True, help_text="Special rules for deaths, illness, etc.")
     seasonal_adjustments = models.TextField(blank=True, help_text="Rules for harvest season, school fees time, etc.")
-    
+    document = models.FileField(upload_to='constitutions/', null=True, blank=True,
+        help_text="The group's written constitution, if they have one "
+                "(scan, photo, or PDF). Optional — the structured fields below "
+                "capture the same rules for the system.")
+
+    document_uploaded_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     last_amended = models.DateTimeField(auto_now=True)
     approved_by_members = models.BooleanField(default=False)

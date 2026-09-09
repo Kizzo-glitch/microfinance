@@ -1,238 +1,148 @@
 {% extends 'group_dash_base.html' %}
-{% load static %}
-
 {% block content %}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-        crossorigin="anonymous"></script>
+<div class="container mt-4">
 
-<div class="container py-5">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="fw-bold text-primary mb-0">
-            <i class="bi bi-book me-2"></i>{{ group.name }} – Constitution
-        </h2>
-        <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i> Back to Group
-        </a>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h3 class="mb-0">Group Constitution</h3>
+      <p class="text-muted mb-0">{{ group.name }} — the rules your group agrees to run by</p>
+    </div>
+    <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Back to Group
+    </a>
+  </div>
+
+  <div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    This records your group's rules. It's optional — your group can run without it —
+    but writing your rules down helps everyone know where they stand and settles
+    disagreements against an agreed record.
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    {# ---- Upload an existing written constitution ---- #}
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-light fw-semibold"><i class="bi bi-file-earmark-arrow-up"></i> Your written constitution</div>
+      <div class="card-body">
+        <p class="small text-muted mb-3">
+          If your group already has a written constitution, upload it here (a scan,
+          photo, or PDF). This is your group's authoritative record. Filling in the
+          rules below as well is optional — do it if you'd like the system to hold
+          the key figures too.
+        </p>
+        {% if constitution.document %}
+          <div class="alert alert-success d-flex justify-content-between align-items-center">
+            <span>
+              <i class="bi bi-file-earmark-check"></i>
+              A constitution document is on file
+              {% if constitution.document_uploaded_at %}(uploaded {{ constitution.document_uploaded_at|date:"d M Y" }}){% endif %}.
+            </span>
+            <a href="{{ constitution.document.url }}" target="_blank" class="btn btn-sm btn-outline-success">View</a>
+          </div>
+          <p class="small text-muted mb-2">Upload a new file to replace it:</p>
+        {% endif %}
+        {% for field in form %}
+          {% if field.name == 'document' %}
+            {% include 'partials/_field.html' with field=field %}
+          {% endif %}
+        {% endfor %}
+      </div>
     </div>
 
-    <!-- Constitution Form -->
-    <div class="card shadow-sm border-0">
-        <div class="card-body">
-            <h5 class="card-title mb-4">
-                <i class="bi bi-journal-text me-2"></i>Group Constitution Form
-            </h5>
-
-            <form method="post">
-                {% csrf_token %}
-                {{ form.non_field_errors }}
-
-                <div class="accordion" id="constitutionAccordion">
-                    <!-- Guarantee Structure -->
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingGuarantee">
-                            <button class="accordion-button bg-success text-white rounded-pill shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseGuarantee" aria-expanded="true" aria-controls="collapseGuarantee">
-                                Guarantee Structure
-                            </button>
-                        </h2>
-                        <div id="collapseGuarantee" class="accordion-collapse collapse show" aria-labelledby="headingGuarantee">
-                            <div class="accordion-body">
-                                {{ form.guarantee_type.label_tag }} {{ form.guarantee_type }}                           
-                            </div>
-                            <div class="accordion-body">
-                                
-                                {{ form.guarantee_percentage_per_member.label_tag }} {{ form.guarantee_percentage_per_member }}
-                            </div>
-                        </div>
-                    </div>
-                    <br>
-                    <!-- Decision Making -->
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingDecision">
-                            <button class="accordion-button collapsed bg-success text-white rounded-pill shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDecision" aria-expanded="false" aria-controls="collapseDecision">
-                                Decision Making
-                            </button>
-                        </h2>
-                        <div id="collapseDecision" class="accordion-collapse collapse" aria-labelledby="headingDecision">
-                            <div class="accordion-body">
-                                {{ form.decision_threshold.label_tag }} {{ form.decision_threshold }}
-                                {{ form.loan_approval_threshold.label_tag }} {{ form.loan_approval_threshold }}
-                                <div class="form-check">
-                                    {{ form.admin_can_override }}
-                                    <label class="form-check-label" for="{{ form.admin_can_override.id_for_label }}">
-                                    Admin can override
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    {{ form.elder_approval_required }}
-                                    <label class="form-check-label" for="{{ form.elder_approval_required.id_for_label }}">
-                                    Elder approval required
-                                    </label> 
-                                </div>
-                                <!--{{ form.admin_can_override.label_tag }} {{ form.admin_can_override }}
-                                {{ form.elder_approval_required.label_tag }} {{ form.elder_approval_required }}-->
-                            </div>
-                        </div>
-                    </div>
-                    <br>
-                    <!-- Member Obligations -->
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingObligations">
-                            <button class="accordion-button collapsed bg-success text-white rounded-pill shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseObligations" aria-expanded="false" aria-controls="collapseObligations">
-                                Member Obligations
-                            </button>
-                        </h2>
-                        <div id="collapseObligations" class="accordion-collapse collapse" aria-labelledby="headingObligations">
-                            <div class="accordion-body">
-                                {{ form.monthly_savings_required.label_tag }} {{ form.monthly_savings_required }}
-                                {{ form.meeting_attendance_required.label_tag }} {{ form.meeting_attendance_required }}
-                                {{ form.can_miss_consecutive_meetings.label_tag }} {{ form.can_miss_consecutive_meetings }}
-                            </div>
-                        </div>
-                    </div>
-                    <br>
-                    <!-- Traditional Meeting Rules -->
-                    <div class="accordion-item">
-                    <h2 class="accordion-header" id="headingRules">
-                        <button class="accordion-button collapsed bg-success text-white rounded-pill shadow-sm" type="button"
-                        data-bs-toggle="collapse"
-                        data-bs-target="#collapseRules"
-                        aria-expanded="false"
-                        aria-controls="collapseRules">
-                        Traditional Meeting Rules
-                        </button>
-                    </h2>
-                    <div id="collapseRules" class="accordion-collapse collapse"
-                        aria-labelledby="headingRules"
-                        data-bs-parent="#constitutionAccordion">
-                        <div class="accordion-body">
-                        {{ form.meeting_frequency.label_tag }} {{ form.meeting_frequency }}
-                        {{ form.fines_for_late_arrival.label_tag }} {{ form.fines_for_late_arrival }}
-                        {{ form.fines_for_absence.label_tag }} {{ form.fines_for_absence }}
-
-                        <div class="form-check mt-2">
-                            {{ form.physical_meetings_required }}
-                            <label class="form-check-label" for="{{ form.physical_meetings_required.id_for_label }}">
-                            Physical meetings required
-                            </label>
-                        </div>
-                        </div>
-                    </div>
-                    </div>
-
-                    <br>
-                    <!-- Default Handling -->
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingDefault">
-                            <button class="accordion-button collapsed bg-success text-white rounded-pill shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDefault" aria-expanded="false" aria-controls="collapseDefault">
-                                Default Handling
-                            </button>
-                        </h2>
-                        <div id="collapseDefault" class="accordion-collapse collapse" aria-labelledby="headingDefault">
-                            <div class="accordion-body">
-                                {{ form.grace_period_days.label_tag }} {{ form.grace_period_days }}
-                                
-                                <div class="form-check">
-                                    {{ form.peer_support_activated }}
-                                    <label class="form-check-label" for="{{ form.peer_support_activated.id_for_label }}">
-                                    Peer support activated
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    {{ form.collective_responsibility }}
-                                    <label class="form-check-label" for="{{ form.collective_responsibility.id_for_label }}">
-                                    Collective responsibility
-                                    </label>
-                                </div>
-                                <div class="form-check">
-                                    {{ form.traditional_mediation_first }}
-                                    <label class="form-check-label" for="{{ form.traditional_mediation_first.id_for_label }}">
-                                    Traditional mediation first
-                                    </label>
-                                </div>
-                                <!--{{ form.peer_support_activated.label_tag }} {{ form.peer_support_activated }}
-                                {{ form.collective_responsibility.label_tag }} {{ form.collective_responsibility }}
-                                {{ form.traditional_mediation_first.label_tag }} {{ form.traditional_mediation_first }}-->
-                            </div>
-                        </div>
-                    </div>
-                    <br>
-                    <!-- Membership Rules -->
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingMembership">
-                            <button class="accordion-button collapsed bg-success text-white rounded-pill shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseMembership" aria-expanded="false" aria-controls="collapseMembership">
-                                Membership Rules
-                            </button>
-                        </h2>
-                        <div id="collapseMembership" class="accordion-collapse collapse" aria-labelledby="headingMembership">
-                            <div class="accordion-body">
-                                {{ form.minimum_membership_months.label_tag }} {{ form.minimum_membership_months }}
-                                {{ form.new_member_probation_months.label_tag }} {{ form.new_member_probation_months }}
-                                {{ form.exit_notice_period_days.label_tag }} {{ form.exit_notice_period_days }}
-
-                                <div class="form-check">
-                                    {{ form.leaving_member_must_clear_obligations }}
-                                    <label class="form-check-label" for="{{ form.leaving_member_must_clear_obligations.id_for_label }}">
-                                    Leaving member must clear obligations
-                                    </label>
-                                </div>
-                                <!--{{ form.leaving_member_must_clear_obligations.label_tag }} {{ form.leaving_member_must_clear_obligations }}-->
-                            </div>
-                        </div>
-                    </div>
-                    <br>
-                    <!-- Financial Rules -->
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingFinancial">
-                            <button class="accordion-button collapsed bg-success text-white rounded-pill shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFinancial" aria-expanded="false" aria-controls="collapseFinancial">
-                                Financial Rules
-                            </button>
-                        </h2>
-                        <div id="collapseFinancial" class="accordion-collapse collapse" aria-labelledby="headingFinancial">
-                            <div class="accordion-body">
-                                {{ form.maximum_loan_per_member.label_tag }} {{ form.maximum_loan_per_member }}
-                                <div class="form-check">
-                                    {{ form.loan_amount_based_on_savings }}
-                                    <label class="form-check-label" for="{{ form.loan_amount_based_on_savings.id_for_label }}">
-                                    Loan amount based on savings
-                                    </label>
-                                </div>
-                                <!--{{ form.loan_amount_based_on_savings.label_tag }} {{ form.loan_amount_based_on_savings }}-->
-                                {{ form.savings_multiplier.label_tag }} {{ form.savings_multiplier }}
-                            </div>
-                        </div>
-                    </div>
-                    <br>
-                    <!-- Cultural Provisions -->
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="headingCultural">
-                            <button class="accordion-button collapsed bg-success text-white rounded-pill shadow-sm" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCultural" aria-expanded="false" aria-controls="collapseCultural">
-                                Cultural & Traditional Provisions
-                            </button>
-                        </h2>
-                        <div id="collapseCultural" class="accordion-collapse collapse" aria-labelledby="headingCultural">
-                            <div class="accordion-body">
-                                {{ form.emergency_provisions.label_tag }} {{ form.emergency_provisions }}
-                                {{ form.seasonal_adjustments.label_tag }} {{ form.seasonal_adjustments }}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <br>
-                <!-- Save Buttons -->
-                <div class="d-flex justify-content-end mt-4">
-                    <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary me-2">
-                        Cancel
-                    </a>
-                    &nbsp;&nbsp;&nbsp;
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save me-1"></i> Save Constitution
-                    </button>
-                </div>
-            </form>
-        </div>
+    {# ---- Decision-making ---- #}
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-light fw-semibold"><i class="bi bi-people"></i> Decision-making</div>
+      <div class="card-body">
+        {% for field in form %}
+          {% if field.name == 'decision_threshold' or field.name == 'loan_approval_threshold' or field.name == 'admin_can_override' or field.name == 'elder_approval_required' %}
+            {% include 'partials/_field.html' with field=field %}
+          {% endif %}
+        {% endfor %}
+      </div>
     </div>
+
+    {# ---- Member obligations & meetings ---- #}
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-light fw-semibold"><i class="bi bi-calendar-check"></i> Member obligations &amp; meetings</div>
+      <div class="card-body">
+        {% for field in form %}
+          {% if field.name == 'monthly_savings_required' or field.name == 'meeting_attendance_required' or field.name == 'can_miss_consecutive_meetings' or field.name == 'physical_meetings_required' or field.name == 'meeting_frequency' or field.name == 'fines_for_late_arrival' or field.name == 'fines_for_absence' %}
+            {% include 'partials/_field.html' with field=field %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ---- Default handling ---- #}
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-light fw-semibold"><i class="bi bi-shield-exclamation"></i> Handling missed payments &amp; disputes</div>
+      <div class="card-body">
+        {% for field in form %}
+          {% if field.name == 'grace_period_days' or field.name == 'peer_support_activated' or field.name == 'traditional_mediation_first' %}
+            {% include 'partials/_field.html' with field=field %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ---- Membership rules ---- #}
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-light fw-semibold"><i class="bi bi-person-plus"></i> Membership rules</div>
+      <div class="card-body">
+        {% for field in form %}
+          {% if field.name == 'minimum_membership_months' or field.name == 'new_member_probation_months' or field.name == 'exit_notice_period_days' or field.name == 'leaving_member_must_clear_obligations' %}
+            {% include 'partials/_field.html' with field=field %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ---- Cultural provisions ---- #}
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-light fw-semibold"><i class="bi bi-globe"></i> Cultural &amp; seasonal provisions</div>
+      <div class="card-body">
+        {% for field in form %}
+          {% if field.name == 'emergency_provisions' or field.name == 'seasonal_adjustments' %}
+            {% include 'partials/_field.html' with field=field %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    {# ---- Deferred: guarantee / collective liability (recorded, not yet active) ---- #}
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-light fw-semibold">
+        <i class="bi bi-hourglass-split"></i> Group guarantees
+        <span class="badge bg-secondary ms-2">Recorded only — not yet active</span>
+      </div>
+      <div class="card-body">
+        <p class="small text-muted">
+          These record your group's intentions about guaranteeing members' loans.
+          Group-guaranteed lending is a future feature — for now these are stored as
+          your stated rules, but the platform does not act on them or create any
+          liability. Nothing here makes the group responsible for a member's loan today.
+        </p>
+        {% for field in form %}
+          {% if field.name == 'guarantee_type' or field.name == 'collective_responsibility' or field.name == 'maximum_loan_per_member' or field.name == 'loan_amount_based_on_savings' or field.name == 'savings_multiplier' or field.name == 'guarantee_percentage_per_member' %}
+            {% include 'partials/_field.html' with field=field %}
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2">
+      <a href="{% url 'groups:group_detail' group.id %}" class="btn btn-outline-secondary">Cancel</a>
+      &nbsp; &nbsp;
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-check-circle"></i> Save constitution
+      </button>
+    </div>
+  </form>
 </div>
-
 {% endblock %}

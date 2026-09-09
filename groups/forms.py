@@ -191,6 +191,8 @@ class GroupConstitutionForm(forms.ModelForm):
 			# Guarantee Structure
 			'guarantee_type', 'guarantee_percentage_per_member',
 
+			'document',
+
 			# Decision Making
 			'decision_threshold', 'loan_approval_threshold',
 			'admin_can_override', 'elder_approval_required',
@@ -268,6 +270,8 @@ class GroupConstitutionForm(forms.ModelForm):
 			# Approval
 			'approved_by_members': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
 			'approval_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+
+			'document': forms.ClearableFileInput(attrs={'class': 'form-control'}),
 		}
 
 		labels = {
@@ -290,6 +294,7 @@ class GroupConstitutionForm(forms.ModelForm):
 			'emergency_provisions': 'Emergency Provisions',
 			'seasonal_adjustments': 'Seasonal Adjustments',
 			'approval_date': 'Member Approval Date',
+			'document': 'Upload written constitution (optional)',
 		}
 
 	def __init__(self, *args, **kwargs):
@@ -672,21 +677,7 @@ class ActivationForm(UserCreationForm):
             if 'class' not in field.widget.attrs:
                 field.widget.attrs['class'] = 'form-control'
 
-class ActivationForm2(UserCreationForm):
-	email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
 
-	class Meta:
-		model = User
-		fields = ("username", 'first_name', 'last_name', "phone_number" ,"email", "password1", "password2")
-
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		for fieldname, field in self.fields.items():
-			# add bootstrap classes
-			if not getattr(field.widget, 'attrs', None):
-				field.widget.attrs = {}
-			if 'class' not in field.widget.attrs:
-				field.widget.attrs['class'] = 'form-control'
 
 
 # -----------------------------
