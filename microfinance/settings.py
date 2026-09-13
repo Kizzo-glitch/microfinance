@@ -229,7 +229,6 @@ INTEGRATIONS["sms"] = {
                },
 }
 
-
 INTEGRATIONS["document_analysis"] = {
     "label": "Document analysis (OCR)",
     "adapter": "integrations.verification.documents.ocr.TesseractDocumentAdapter",
