@@ -247,3 +247,24 @@ INTEGRATIONS["ussd"] = {
 
 
 SMS_TEST_MODE = os.environ.get("SMS_TEST_MODE") == "1"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "fedha": {          # catches fedha.sms and any other fedha.* loggers
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}

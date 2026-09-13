@@ -590,7 +590,8 @@ def send_otp(request):
 	if getattr(settings, "SMS_TEST_MODE", False):
 		logger.info("SMS TEST MODE — OTP for %s would be: %s", phone_number, otp_code)
 	else:
-		SmsPortalGateway().send(phone_number, message)
+		#SmsPortalGateway().send(phone_number, message)
+		send_sms_smsportal(phone_number, message)
 	
 	# Render the email content
 	subject = f"OTP Verification"

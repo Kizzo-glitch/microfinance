@@ -147,6 +147,8 @@ def send_sms(phone_number: str, message_type: str, context: dict = None) -> dict
             error="",
         )
         return {"success": True, "test_mode": True, "content": content}
+    #print("===== SMS TEST MODE (not sent) =====")
+    #print(f"  to: {phone_number} | type: {message_type} | message: {content}")
 
     # ---- PRODUCTION: send for real ----
     gateway = _get_gateway()
