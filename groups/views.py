@@ -594,6 +594,7 @@ def send_group_invite(request, group_id):
                   {'group': group, 'form': form, 'profile_form': profile_form})
 
 
+
 @login_required
 def borrower_search(request):
     q = (request.GET.get("q") or "").strip()
@@ -1622,10 +1623,13 @@ def import_confirm(request, group_id):
                     invitee_email=(data.get("email") or ""),
                 )
                 invited += 1
-                # send_sms(borrower.phone_number, "group_invitation", {
-                #     "name": borrower.full_name, "group": group.name,
-                #     "code": invitation.invitation_code,
-                #     "url": request.build_absolute_uri(invitation.get_activation_url())})
+                send_sms(borrower.phone_number, "group_invitation", {
+                     "name": borrower.full_name, "group": group.name,
+                     "code": invitation.invitation_code,
+                     "url": request.build_absolute_uri(invitation.get_activation_url())})
+                invitation.sms_sent = True
+                invitation.sms_sent_at = timezone.now()
+                invitation.save(update_fields=["sms_sent", "sms_sent_at"])
 
     # clear the stash
     request.session.pop(f"import_{group.id}", None)
