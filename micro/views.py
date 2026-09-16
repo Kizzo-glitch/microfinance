@@ -153,4 +153,3 @@ def role_based_redirect(request):
 	return redirect('landing')  # Default fallback
 
 
-	

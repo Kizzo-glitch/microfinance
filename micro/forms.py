@@ -80,3 +80,73 @@ class LenderRegistrationForm(UserCreationForm):
 
 
 
+"""
+Fedha-Grow — payment details form + reveal logic
+================================================
+A form each party uses to enter their own payment details, and a helper that
+decides when the OTHER party may see them (only within an approved loan).
+"""
+
+# The field list is the same for borrower and lender (both use the mixin).
+PAYMENT_DETAIL_FIELDS = [
+    "bank_name", "bank_account_name", "bank_account_number", "bank_branch_code",
+    "mobile_money_provider", "mobile_money_number", "mobile_money_name",
+    "payment_instructions",
+]
+
+PAYMENT_DETAIL_WIDGETS = {
+    "bank_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Standard Lesotho Bank"}),
+    "bank_account_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Account holder name"}),
+    "bank_account_number": forms.TextInput(attrs={"class": "form-control"}),
+    "bank_branch_code": forms.TextInput(attrs={"class": "form-control"}),
+    "mobile_money_provider": forms.Select(attrs={"class": "form-select"}),
+    "mobile_money_number": forms.TextInput(attrs={"class": "form-control", "placeholder": "+266..."}),
+    "mobile_money_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Registered name"}),
+    "payment_instructions": forms.TextInput(attrs={"class": "form-control",
+                             "placeholder": "e.g. Always use your loan reference"}),
+}
+
+
+def make_payment_details_form(model_cls):
+    """Build a ModelForm for a profile's payment details."""
+    class _PaymentDetailsForm(forms.ModelForm):
+        class Meta:
+            model = model_cls
+            fields = PAYMENT_DETAIL_FIELDS
+            widgets = PAYMENT_DETAIL_WIDGETS
+
+        def clean(self):
+            cleaned = super().clean()
+            # at least one method should be complete, if any details entered
+            bank_ok = cleaned.get("bank_account_number") and cleaned.get("bank_name")
+            mm_ok = cleaned.get("mobile_money_number") and cleaned.get("mobile_money_provider")
+            any_entered = any(cleaned.get(f) for f in PAYMENT_DETAIL_FIELDS)
+            if any_entered and not (bank_ok or mm_ok):
+                raise forms.ValidationError(
+                    "Please complete at least one full payment method — either a "
+                    "bank account (name + number) or a mobile-money account "
+                    "(provider + number).")
+            return cleaned
+
+    return _PaymentDetailsForm
+
+
+# ---- reveal logic: when may the counterparty see these details? ----
+def borrower_details_visible_to_lender(loan_or_application, lender) -> bool:
+    """
+    The lender may see the BORROWER's payment details (to disburse) only for a
+    loan/application that is theirs AND approved.
+    """
+    if getattr(loan_or_application, "lender_id", None) != getattr(lender, "id", None):
+        return False
+    return getattr(loan_or_application, "status", None) == "approved"
+
+
+def lender_details_visible_to_borrower(loan, borrower) -> bool:
+    """
+    The borrower may see the LENDER's payment details (to repay) only for their
+    own approved loan.
+    """
+    if getattr(loan, "borrower_id", None) != getattr(borrower, "id", None):
+        return False
+    return getattr(loan, "status", None) == "approved"

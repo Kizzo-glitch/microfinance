@@ -145,6 +145,15 @@
         </div>
     {% endif %}
 
+    <!--{%if compat %}
+        {% include '_payment_compatibility.html' with compat=compat %}
+    {% else %}
+        <div class="alert alert-info">
+            No payment compatibility information available for this application.
+        </div>
+    {% endif %}-->
+    {% include '_payment_compatibility.html' with compat=compat %}
+
     <br>
 
     <!-- ===================== Status Update ===================== -->

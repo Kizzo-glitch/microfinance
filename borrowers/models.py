@@ -10,6 +10,7 @@ import uuid
 from django.contrib.auth import get_user_model
 from django.conf import settings
 
+from micro.models import PaymentDetailsMixin
 
 
 class BorrowerProfileManager(models.Manager):
@@ -22,7 +23,8 @@ def get_upload_path(instance, filename):
 
 User = get_user_model()
 
-class BorrowerProfile(models.Model):
+
+class BorrowerProfile(PaymentDetailsMixin, models.Model):
 
 	GENDER_CHOICES = [
 		#('', ''),

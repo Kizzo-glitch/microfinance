@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from compliance.compliace_services import ComplianceDashboardService
+from micro.forms import make_payment_details_form
 
 #from compliance.models import LenderComplianceRecord
 from .forms import LenderInfoForm, LoanApplicationStatusForm, LoanStatusForm, LenderDocumentsForm
@@ -239,7 +240,36 @@ def lender_profile(request):
 	# 1. Get the existing profile for the logged-in user
 	# Use related_name='lender_profile' as defined in your model
 	profile, created = LenderProfile.objects.get_or_create(user=request.user)
-	
+	PaymentForm = make_payment_details_form(type(profile)) 
+
+	if request.method == 'POST':
+		if 'save_payment' in request.POST:
+			# --- payment details form submitted ---
+			payment_form = PaymentForm(request.POST, instance=profile)
+			form = LenderInfoForm(request.POST, request.FILES, instance=profile)   # keep the other form rendered
+			if payment_form.is_valid():
+				payment_form.save()
+				messages.success(request, "Payment details saved.")
+				return redirect('borrowers:borrower_index')
+			else:
+				print(payment_form.errors)
+		else:
+			# --- main profile form submitted ---
+			form = LenderInfoForm(request.POST, request.FILES, instance=profile)
+			payment_form = PaymentForm(instance=profile)   # keep payment form rendered
+			if form.is_valid():
+				profile = form.save(commit=False)
+				profile.user = request.user
+				profile.save()
+				messages.success(request, "Your Info Has Been Updated!!")
+				return redirect('borrowers:borrower_index')
+			else:
+				print(form.errors)
+	else:
+		form = LenderInfoForm(instance=profile)
+		payment_form = PaymentForm(instance=profile)
+
+	'''
 	if request.method == 'POST':
 		# 2. Pass request.FILES and the instance so it updates the EXISTING record
 		form = LenderInfoForm(request.POST, request.FILES, instance=profile)
@@ -251,8 +281,12 @@ def lender_profile(request):
 	else:
 		# 4. On a GET request, pass the instance so the fields are pre-filled
 		form = LenderInfoForm(instance=profile)
+	'''
 		
-	return render(request, 'lender_profile.html', {'form': form})
+	return render(request, 'lender_profile.html', {
+		'form': form,
+		'payment_form': payment_form
+	})
 
 # ==================
 # Soon to be replaced by Comliance registration
@@ -686,6 +720,69 @@ def view_borrower_documents(request, loan_id):
 		'loan_application': loan_application,
 		'documents': documents
 	})
+
+"""
+Fedha-Grow — payment method compatibility
+=========================================
+Surfaces which payment METHODS a party supports (not account numbers), and
+whether two parties share a method — so a lender can judge disbursement
+compatibility BEFORE approving, and borrowers can be nudged to add more methods.
+
+Design:
+  * Methods (M-Pesa / bank) are decision-relevant and not sensitive — safe to
+    show at review time. Account NUMBERS stay hidden until approval.
+  * Compatibility is INFORMATION, never a hard gate. The platform surfaces a
+    mismatch; the lender and borrower decide what to do (approve anyway, use
+    cash, or the borrower adds a method).
+"""
+
+
+def available_methods(profile) -> set:
+    """
+    The set of payment methods this profile can transact by.
+    Returns a set of {"bank", "mpesa", "ecocash"}.
+    """
+    methods = set()
+    if getattr(profile, "bank_account_number", "") and getattr(profile, "bank_name", ""):
+        methods.add("bank")
+    prov = getattr(profile, "mobile_money_provider", "")
+    if getattr(profile, "mobile_money_number", "") and prov:
+        methods.add(prov)   # "mpesa" or "ecocash"
+    return methods
+
+
+_LABELS = {"bank": "Bank transfer", "mpesa": "M-Pesa", "ecocash": "EcoCash"}
+
+
+def methods_label(methods: set) -> str:
+    if not methods:
+        return "None on file"
+    return ", ".join(_LABELS.get(m, m) for m in sorted(methods))
+
+
+def compatibility(borrower_profile, lender_profile) -> dict:
+    """
+    Compare what the borrower can RECEIVE by with what the lender can transact
+    by. Returns a summary for display at review time.
+    """
+    b = available_methods(borrower_profile)
+    l = available_methods(lender_profile)
+    shared = b & l
+
+    return {
+        "borrower_methods": b,
+        "borrower_methods_label": methods_label(b),
+        "lender_methods": l,
+        "lender_methods_label": methods_label(l),
+        "shared": shared,
+        "shared_label": methods_label(shared) if shared else "",
+        "borrower_has_any": bool(b),
+        "has_overlap": bool(shared),
+        # a warning is warranted only when BOTH have methods on file but none match
+        "warn_no_overlap": bool(b) and bool(l) and not shared,
+        # or when the borrower has no methods at all
+        "warn_borrower_none": not b,
+    }
 
 
 

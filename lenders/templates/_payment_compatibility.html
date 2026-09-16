@@ -1,0 +1,52 @@
+{% comment %}
+  Payment-method compatibility, shown on the LENDER's loan-review screen.
+  Shows which METHODS each side has (not account numbers) so the lender can
+  judge "can I disburse to this borrower?" before approving.
+
+  The view must pass `compat` = compatibility(borrower_profile, lender_profile).
+  Account NUMBERS are NOT shown here — only after approval, via _payment_details.
+
+  Include:
+    {% include 'loans/_payment_compatibility.html' with compat=compat %}
+{% endcomment %}
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light fw-semibold">
+    <i class="bi bi-arrow-left-right"></i> Disbursement compatibility
+  </div>
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-6 mb-2">
+        <div class="text-muted small text-uppercase">Borrower can receive by</div>
+        <div>{{ compat.borrower_methods_label }}</div>
+      </div>
+      <div class="col-md-6 mb-2">
+        <div class="text-muted small text-uppercase">You transact by</div>
+        <div>{{ compat.lender_methods_label }}</div>
+      </div>
+    </div>
+
+    {% if compat.warn_borrower_none %}
+      <div class="alert alert-warning mt-2 mb-0">
+        <i class="bi bi-exclamation-triangle"></i>
+        This borrower hasn't added any payment details yet — you won't be able to
+        disburse until they do. Consider asking them to add a method before approving.
+      </div>
+    {% elif compat.warn_no_overlap %}
+      <div class="alert alert-warning mt-2 mb-0">
+        <i class="bi bi-exclamation-triangle"></i>
+        <strong>No shared payment method.</strong> The borrower receives by
+        {{ compat.borrower_methods_label }}, but you transact by
+        {{ compat.lender_methods_label }}. You can still approve and arrange
+        disbursement another way, but there's no automatic match — worth
+        confirming how you'll pay them.
+      </div>
+    {% elif compat.has_overlap %}
+      <div class="alert alert-success mt-2 mb-0">
+        <i class="bi bi-check-circle"></i>
+        You share a method ({{ compat.shared_label }}) — disbursement will be
+        straightforward. Account details appear once you approve.
+      </div>
+    {% endif %}
+  </div>
+</div>

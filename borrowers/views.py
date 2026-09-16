@@ -54,6 +54,7 @@ from django.utils.timezone import now
 from lenders.models import LenderProfile
 from loans.models import LoanApplication, Loan, LoanPayment, Notification, Rating, ResponsibleLendingAssessment
 from micro.models import OTP
+from micro.forms import make_payment_details_form
 
 from .models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
 from .services import AffordabilityAdvisor
@@ -73,8 +74,6 @@ from .forms import (
 import logging
 
 logger = logging.getLogger(__name__)
-
-
 
 
 
@@ -107,6 +106,36 @@ def borrower_profile(request):
 	overdue_loans = Loan.objects.filter(borrower__user=request.user, due_date__lt=date.today(), outstanding_balance__gt=0).count()
 	total_debt = Loan.objects.filter(borrower__user=request.user).aggregate(total=Sum('outstanding_balance'))['total'] or 0
 
+	PaymentForm = make_payment_details_form(type(current_user))   # form class for BorrowerProfile
+
+	if request.method == 'POST':
+		if 'save_payment' in request.POST:
+			# --- payment details form submitted ---
+			payment_form = PaymentForm(request.POST, instance=current_user)
+			form = BorrowerProfileForm(instance=current_user, initial=initial_data)   # keep the other form rendered
+			if payment_form.is_valid():
+				payment_form.save()
+				messages.success(request, "Payment details saved.")
+				return redirect('borrowers:borrower_index')
+			else:
+				print(payment_form.errors)
+		else:
+			# --- main profile form submitted ---
+			form = BorrowerProfileForm(request.POST, request.FILES, instance=current_user)
+			payment_form = PaymentForm(instance=current_user)   # keep payment form rendered
+			if form.is_valid():
+				profile = form.save(commit=False)
+				profile.user = request.user
+				profile.save()
+				messages.success(request, "Your Info Has Been Updated!!")
+				return redirect('borrowers:borrower_index')
+			else:
+				print(form.errors)
+	else:
+		form = BorrowerProfileForm(instance=current_user, initial=initial_data)
+		payment_form = PaymentForm(instance=current_user)
+	
+	'''
 	if request.method == 'POST':
 		# Pass the instance to update an existing profile or create a new one
 		form = BorrowerProfileForm(request.POST, request.FILES, instance=current_user)
@@ -122,14 +151,16 @@ def borrower_profile(request):
 		# For a GET request, instantiate the form with initial data
 		# and the instance (if it exists)
 		form = BorrowerProfileForm(instance=current_user, initial=initial_data)
+	'''
 
 	return render(request, "borrower_profile.html", {
 		'form': form,
 		'outstanding_loans': outstanding_loans,
 		'overdue_loans': overdue_loans,
 		'total_debt': total_debt,
+    	'payment_form': payment_form,
+    
 	})
-
 
 
 @login_required

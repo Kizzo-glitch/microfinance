@@ -168,9 +168,30 @@
             </div>
 
             <br>
-
+            <!-- new: payment details section -->
+            <div class="card shadow-sm mb-4 mt-4">
+            <div class="card-header bg-light fw-semibold">
+                <i class="bi bi-bank"></i> Payment details
+                <span class="text-muted small">— how you receive money</span>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted">
+                Your bank or mobile-money details, so a lender can send you an approved loan.
+                Shared only with a lender you have an approved loan with — never public.
+                </p>
+                <form method="post">
+                {% csrf_token %}
+                {% for field in payment_form %}
+                    {% include 'partials/_field.html' with field=field %}
+                {% endfor %}
+                <button type="submit" name="save_payment" class="btn btn-success">
+                    Save payment details
+                </button>
+                </form>
+            </div>
+            </div>
             <br>
- 
+ {% include '_payment_methods_prompt.html' with profile=borrower %}
             <br><br>
 
                 <div class="form-check">

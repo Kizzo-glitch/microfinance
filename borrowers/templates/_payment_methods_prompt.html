@@ -1,0 +1,37 @@
+{% comment %}
+  Borrower nudge — encourages adding ALL payment methods they can receive by,
+  so lenders can disburse easily and mismatches are prevented at source.
+  Show on the borrower's profile / payment-details section, and optionally at
+  application time.
+
+  View passes `borrower_methods` = available_methods(borrower_profile)
+  (or just check the profile's fields directly in the template).
+
+  Include:
+    {% include 'borrowers/_payment_methods_prompt.html' with profile=borrower %}
+{% endcomment %}
+
+{% with has_bank=profile.bank_account_number has_mm=profile.mobile_money_number %}
+  {% if has_bank and has_mm %}
+    <div class="alert alert-success">
+      <i class="bi bi-check-circle"></i>
+      You've added both a bank account and mobile money — lenders can disburse to
+      you easily either way.
+    </div>
+  {% elif has_bank or has_mm %}
+    <div class="alert alert-info">
+      <i class="bi bi-lightbulb"></i>
+      <strong>Tip:</strong> you've added
+      {% if has_bank %}a bank account{% else %}mobile money{% endif %}.
+      Adding {% if has_bank %}mobile money too{% else %}a bank account too{% endif %}
+      gives lenders more ways to send you a loan — which can make approval and
+      disbursement easier.
+    </div>
+  {% else %}
+    <div class="alert alert-warning">
+      <i class="bi bi-exclamation-triangle"></i>
+      You haven't added any payment details yet. Add at least one way to receive
+      money (bank account or mobile money) so a lender can disburse an approved loan to you.
+    </div>
+  {% endif %}
+{% endwith %}

@@ -1,0 +1,45 @@
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light fw-semibold">
+    <i class="bi bi-bank"></i> {{ action|default:"Pay" }} {{ party.full_name|default:party.company_name }}
+  </div>
+  <div class="card-body">
+    {% if party.has_payment_details %}
+ 
+      {% if party.bank_account_number and party.bank_name %}
+      <div class="mb-3">
+        <div class="text-muted small text-uppercase">Bank</div>
+        <div><strong>{{ party.bank_name }}</strong></div>
+        <div>Account name: {{ party.bank_account_name|default:"—" }}</div>
+        <div>Account number: <strong>{{ party.bank_account_number }}</strong></div>
+        {% if party.bank_branch_code %}<div>Branch code: {{ party.bank_branch_code }}</div>{% endif %}
+      </div>
+      {% endif %}
+ 
+      {% if party.mobile_money_number and party.mobile_money_provider %}
+      <div class="mb-3">
+        <div class="text-muted small text-uppercase">Mobile money</div>
+        <div><strong>{{ party.get_mobile_money_provider_display }}</strong></div>
+        <div>Number: <strong>{{ party.mobile_money_number }}</strong></div>
+        {% if party.mobile_money_name %}<div>Name: {{ party.mobile_money_name }}</div>{% endif %}
+      </div>
+      {% endif %}
+ 
+      {% if ref %}
+      <div class="alert alert-info mb-2">
+        <i class="bi bi-tag"></i> Use reference <strong>{{ ref }}</strong> so the payment can be matched.
+      </div>
+      {% endif %}
+      {% if party.payment_instructions %}
+      <div class="small text-muted">{{ party.payment_instructions }}</div>
+      {% endif %}
+ 
+    {% else %}
+      <div class="alert alert-warning mb-0">
+        {{ who|default:"This party" }} hasn't added payment details yet.
+        {% if who == "lender" %}Contact them for their account details to repay.
+        {% else %}Ask them to add their payment details so funds can be sent.{% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>

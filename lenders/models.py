@@ -16,9 +16,12 @@ from django.db.models.functions import Coalesce
 from django.db.models import ExpressionWrapper, FloatField
 from django.db.models.functions import Cast
 
+from micro.models import PaymentDetailsMixin
+
 
 
 User = get_user_model()
+
 
 
 COMPLIANCE_POLICY_FIELDS = [
@@ -103,7 +106,7 @@ def get_upload_path(instance, filename):
 	return f"Lender-photos/{instance.user.username}.{ext}"
 
 
-class LenderProfile(models.Model):
+class LenderProfile(PaymentDetailsMixin, models.Model):
 	"""
 	Core lender profile - combines operational settings with CBL compliance status.
 	This is the main profile that links to the User model.
