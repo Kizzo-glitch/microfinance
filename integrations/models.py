@@ -9,7 +9,6 @@ Records every inbound webhook so callbacks are:
   - auditable   (every settlement confirmation traces to a stored raw payload)
 """
 
-
 class WebhookEvent(models.Model):
     """One received provider callback. De-duplicated on (provider, event_id)."""
 

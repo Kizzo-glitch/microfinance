@@ -47,13 +47,14 @@ INSTALLED_APPS = [
     'compliance',
     'regulation',
     'integrations',
-    #'comms',
+    'comms',
     "comms.ussd.apps.UssdConfig",
     "comms.sms.apps.SmsConfig",
     
     'widget_tweaks',
     #'drf-yasg', 
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
