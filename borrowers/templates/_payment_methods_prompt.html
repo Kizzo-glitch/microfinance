@@ -8,7 +8,7 @@
   (or just check the profile's fields directly in the template).
 
   Include:
-    {% include 'borrowers/_payment_methods_prompt.html' with profile=borrower %}
+    {% include '_payment_methods_prompt.html' with profile=borrower %}
 {% endcomment %}
 
 {% with has_bank=profile.bank_account_number has_mm=profile.mobile_money_number %}

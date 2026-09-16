@@ -191,6 +191,15 @@
             </div>
             </div>
             <br>
+            {% if borrower_methods is not None %}
+                {% include '_payment_methods_prompt.html' with profile=borrower %}
+            {% else %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    You haven't added any payment details yet. Add at least one way to receive
+                    money (bank account or mobile money) so a lender can disburse an approved loan to you.
+                </div>
+            {% endif %}
  {% include '_payment_methods_prompt.html' with profile=borrower %}
             <br><br>
 

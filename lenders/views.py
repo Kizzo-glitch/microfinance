@@ -672,6 +672,8 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 		# The affordability verdict comes from the IMMUTABLE snapshot captured at
 		# submission — not recomputed here. Guard for older apps without one.
 		assessment = getattr(loan_application, "affordability_assessment", None)
+
+		compat = compatibility(borrower, self.request.user.lender)
 		
  
 		context.update({
@@ -688,7 +690,7 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
  
 			"documents": documents,
 			"assessment": assessment,
-			
+			"compat": compat,
 			"group_profile": _build_group_standing(loan_application)
 		})
 		return context

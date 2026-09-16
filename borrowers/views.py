@@ -33,6 +33,8 @@ from django.views.decorators.http import require_POST
 
 from django.conf import settings
 from comms.sms.smsportal import SmsPortalGateway
+
+from lenders.views import available_methods
 from loans.utils import send_sms_smsportal
 from micro.utils import generate_otp 
 from comms.sms.service import send_sms
@@ -107,7 +109,7 @@ def borrower_profile(request):
 	total_debt = Loan.objects.filter(borrower__user=request.user).aggregate(total=Sum('outstanding_balance'))['total'] or 0
 
 	PaymentForm = make_payment_details_form(type(current_user))   # form class for BorrowerProfile
-
+	
 	if request.method == 'POST':
 		if 'save_payment' in request.POST:
 			# --- payment details form submitted ---
@@ -159,6 +161,7 @@ def borrower_profile(request):
 		'overdue_loans': overdue_loans,
 		'total_debt': total_debt,
     	'payment_form': payment_form,
+		
     
 	})
 
@@ -602,6 +605,7 @@ def rate_lender(request, lender_id):
 			messages.error(request, "Invalid rating. Please select a value between 1 and 5.")
 		return redirect('borrowers:lender_details', lender_id=lender.id)
 
+
 # =======================================
 # Start of Application Process Views
 # =======================================
@@ -621,8 +625,8 @@ def send_otp(request):
 	if getattr(settings, "SMS_TEST_MODE", False):
 		logger.info("SMS TEST MODE — OTP for %s would be: %s", phone_number, otp_code)
 	else:
-		#SmsPortalGateway().send(phone_number, message)
-		send_sms_smsportal(phone_number, message)
+		SmsPortalGateway().send(phone_number, message)
+		#send_sms(phone_number, message)
 	
 	# Render the email content
 	subject = f"OTP Verification"
