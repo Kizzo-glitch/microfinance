@@ -109,7 +109,8 @@ def borrower_profile(request):
 	overdue_loans = Loan.objects.filter(borrower__user=request.user, due_date__lt=date.today(), outstanding_balance__gt=0).count()
 	total_debt = Loan.objects.filter(borrower__user=request.user).aggregate(total=Sum('outstanding_balance'))['total'] or 0
 
-	PaymentForm = make_payment_details_form(type(BorrowerProfile))   # form class for BorrowerProfile
+	#PaymentForm = make_payment_details_form(type(BorrowerProfile))
+	PaymentForm = make_payment_details_form(BorrowerProfile)   
 	
 	if request.method == 'POST':
 		if 'save_payment' in request.POST:
