@@ -87,7 +87,8 @@ def borrower_profile(request):
 
 	# Get or create the BorrowerProfile instance for the current user
 	try:
-		current_user = BorrowerProfile.objects.get(user=request.user)
+		#current_user = BorrowerProfile.objects.get(user=request.user)
+		current_user, _ = BorrowerProfile.objects.get_or_create(user=request.user)
 		# Pre-fill initial data from the User model for existing profiles
 		initial_data = {
 			'phone_number': user.phone_number,
@@ -108,7 +109,7 @@ def borrower_profile(request):
 	overdue_loans = Loan.objects.filter(borrower__user=request.user, due_date__lt=date.today(), outstanding_balance__gt=0).count()
 	total_debt = Loan.objects.filter(borrower__user=request.user).aggregate(total=Sum('outstanding_balance'))['total'] or 0
 
-	PaymentForm = make_payment_details_form(type(current_user))   # form class for BorrowerProfile
+	PaymentForm = make_payment_details_form(type(BorrowerProfile))   # form class for BorrowerProfile
 	
 	if request.method == 'POST':
 		if 'save_payment' in request.POST:
