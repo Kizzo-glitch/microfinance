@@ -98,9 +98,6 @@ class OTP(models.Model):
 # counterparty in an approved loan, and consider masking (show last 4) in any
 # list view — full details only on the specific loan's action screen.
 
-from django.db import models
-
-
 class PaymentDetailsMixin(models.Model):
     """
     Reusable payment-detail fields for a profile. Supports the two common

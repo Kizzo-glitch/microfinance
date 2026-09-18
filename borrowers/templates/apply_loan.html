@@ -35,6 +35,36 @@
         </div>
     </div>
 
+
+        <!-- ===== Payment Details ==========-->
+        <div class="card shadow-sm mb-4 border-warning">
+            <div class="card-header bg-light fw-semibold">
+                <i class="bi bi-bank"></i> How you'll receive this loan
+            </div>
+            <div class="card-body">
+            
+                {# status prompt — reads the SAVED profile, adapts to none/one/both methods #}
+                {% include '_payment_methods_prompt.html' %}
+            
+                <details class="mt-3" {% if not borrower.has_payment_details %}open{% endif %}>
+                <summary class="fw-semibold" style="cursor:pointer;">
+                    {% if borrower.has_payment_details %}Update your payment details{% else %}Add your payment details{% endif %}
+                </summary>
+            
+                <form method="post" action="{% url 'borrowers:save_payment_details' %}" class="mt-3">
+                    {% csrf_token %}
+                    {% for field in payment_form %}
+                    {% include 'partials/_field.html' with field=field %}
+                    {% endfor %}
+                    {# come back HERE after saving #}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <button type="submit" class="btn btn-success">Save payment details</button>
+                </form>
+                </details>
+            
+            </div>
+        </div>
+
     {% if not assessment.assessable %}
         <!-- ===================== Not assessable (no income) ===================== -->
         <div class="alert alert-warning">
@@ -227,6 +257,8 @@
         {% endif %}
 
     {% endif %}
+
+    <br></br>
 
     {% if my_groups %}
     <div class="mb-3">

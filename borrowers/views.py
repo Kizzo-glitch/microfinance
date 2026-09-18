@@ -120,7 +120,7 @@ def borrower_profile(request):
 			if payment_form.is_valid():
 				payment_form.save()
 				messages.success(request, "Payment details saved.")
-				return redirect('borrowers:borrower_index')
+				return redirect('borrowers:borrower_profile')
 			else:
 				print(payment_form.errors)
 		else:
@@ -163,6 +163,7 @@ def borrower_profile(request):
 		'overdue_loans': overdue_loans,
 		'total_debt': total_debt,
     	'payment_form': payment_form,
+		'profile': current_user,
 		
     
 	})
@@ -1295,11 +1296,15 @@ def apply_loan(request):
 	my_groups = BorrowerGroup.objects.filter(          
 		memberships__borrower=borrower, memberships__status="active"
 	).distinct()
+	payment_form = make_payment_details_form(BorrowerProfile)(instance=borrower)
+	current_user, _ = BorrowerProfile.objects.get_or_create(user=request.user)
 
 	return render(request, "apply_loan.html", {
 		"loan_app": loan_app,
 		"assessment": assessment,
 		"my_groups": my_groups,
+		"payment_form": payment_form,
+		'profile': current_user,
 	})
  
  
@@ -1345,7 +1350,31 @@ def _run_document_verification(borrower, loan_app, result):
 	except Exception:
 		# Never let document analysis break loan submission.
 		return None
+
+
  
+@login_required
+def save_payment_details(request):
+    profile, _ = BorrowerProfile.objects.get_or_create(user=request.user)
+    PaymentForm = make_payment_details_form(BorrowerProfile)
+ 
+    # where to return: the page they came from (apply-loan or profile)
+    next_url = request.POST.get("next") or request.GET.get("next")
+ 
+    if request.method == "POST":
+        form = PaymentForm(request.POST, instance=profile)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Payment details saved.")
+        else:
+            # surface the error to the user (not just console)
+            messages.error(request, "Please check your payment details and try again.")
+            # fall through to redirect; the target page re-renders the form bound
+            # to the saved profile. For inline error display you could stash the
+            # form in the session, but a clear message + valid data is usually enough.
+ 
+    return redirect(next_url or "borrowers:borrower_profile")
+
  
 @login_required
 def abandon_draft(request, application_id):
