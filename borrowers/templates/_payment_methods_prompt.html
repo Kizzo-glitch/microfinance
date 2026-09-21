@@ -1,15 +1,4 @@
-{% comment %}
-  Borrower nudge — encourages adding ALL payment methods they can receive by,
-  so lenders can disburse easily and mismatches are prevented at source.
-  Show on the borrower's profile / payment-details section, and optionally at
-  application time.
 
-  View passes `borrower_methods` = available_methods(borrower_profile)
-  (or just check the profile's fields directly in the template).
-
-  Include:
-    {% include '_payment_methods_prompt.html' with profile=borrower %}
-{% endcomment %}
 
 {% with has_bank=profile.bank_account_number has_mm=profile.mobile_money_number %}
   {% if has_bank and has_mm %}

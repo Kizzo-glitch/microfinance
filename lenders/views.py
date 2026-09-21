@@ -240,7 +240,7 @@ def lender_profile(request):
 	# 1. Get the existing profile for the logged-in user
 	# Use related_name='lender_profile' as defined in your model
 	profile, created = LenderProfile.objects.get_or_create(user=request.user)
-	PaymentForm = make_payment_details_form(type(profile)) 
+	PaymentForm = make_payment_details_form(LenderProfile) 
 
 	if request.method == 'POST':
 		if 'save_payment' in request.POST:
@@ -250,7 +250,7 @@ def lender_profile(request):
 			if payment_form.is_valid():
 				payment_form.save()
 				messages.success(request, "Payment details saved.")
-				return redirect('borrowers:borrower_index')
+				return redirect('lenders:lender_profile')
 			else:
 				print(payment_form.errors)
 		else:
@@ -262,7 +262,7 @@ def lender_profile(request):
 				profile.user = request.user
 				profile.save()
 				messages.success(request, "Your Info Has Been Updated!!")
-				return redirect('borrowers:borrower_index')
+				return redirect('lenders:lender_index')
 			else:
 				print(form.errors)
 	else:
