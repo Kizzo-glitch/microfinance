@@ -84,7 +84,7 @@ class LoanApplication(models.Model):
 		("affordability", "Affordability"),
 		
 		("loan_calculator", "Loan Calculator"),
-		("apply_loan", "Apply Loan"),
+		("apply_loan", "Submit Loan"),
 		("submitted", "Final Review"),
 				
 	]

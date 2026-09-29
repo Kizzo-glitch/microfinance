@@ -1317,8 +1317,11 @@ def apply_loan(request):
 	my_groups = BorrowerGroup.objects.filter(          
 		memberships__borrower=borrower, memberships__status="active"
 	).distinct()
+
 	payment_form = make_payment_details_form(BorrowerProfile)(instance=borrower)
+	
 	current_user, _ = BorrowerProfile.objects.get_or_create(user=request.user)
+	mm_formset = get_mobile_money_formset(current_user, is_lender=False)
 
 	return render(request, "apply_loan.html", {
 		"loan_app": loan_app,
@@ -1326,8 +1329,10 @@ def apply_loan(request):
 		"my_groups": my_groups,
 		"payment_form": payment_form,
 		'profile': current_user,
+		'mm_formset': mm_formset,
 	})
  
+
  
 def _run_document_verification(borrower, loan_app, result):
 	"""
@@ -1438,7 +1443,6 @@ def abandon_draft(request, application_id):
 # ==========================================
 # Resume Application
 # =========================================	
-
 @login_required
 def resume_application(request, app_id):
 	#lender_id = request.session.get('lender_id')

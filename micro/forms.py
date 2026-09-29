@@ -164,7 +164,7 @@ class MobileMoneyAccountForm(forms.ModelForm):
 MobileMoneyFormSet = modelformset_factory(
     MobileMoneyAccount,
     form=MobileMoneyAccountForm,
-    extra=3,            # 2 blank rows for adding
+    extra=2,            
     can_delete=True,
 )
  

@@ -39,16 +39,16 @@
                        name="loan_amount"
                        id="loan_amount"
                        class="loan-amount-input"
-                       value="{{ lender.min_loan }}"
-                       min="{{ lender.min_loan }}"
-                       max="{{ lender.max_loan }}"
-                       data-min="{{ lender.min_loan }}"
-                       data-max="{{ lender.max_loan }}">
+                       value="{{ lender.min_loan_amount }}"
+                       min="{{ lender.min_loan_amount }}"
+                       max="{{ lender.max_loan_amount }}"
+                       data-min="{{ lender.min_loan_amount }}"
+                       data-max="{{ lender.max_loan_amount }}">
                        <small id="loan_error" style="color: red;"></small>
 
 
                     <p class="text-muted">
-                        Lender's: Minimum Loan Amount: R{{ lender.min_loan }} | Maximum Loan Amount: R{{ lender.max_loan }}
+                        Lender's: Minimum Loan Amount: R{{ lender.min_loan_amount }} | Maximum Loan Amount: R{{ lender.max_loan_amount }}
                     </p>
                     <br><br><br>
                     <h3>Select Loan Term</h3>

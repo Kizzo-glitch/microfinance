@@ -226,9 +226,7 @@ class LenderProfile(PaymentDetailsMixin, models.Model):
 		help_text="Operating under platform's umbrella license"
 	)
 	
-	
 	# ============ CAPITAL INFORMATION ============
-	
 	stated_capital = models.DecimalField(max_digits=15, decimal_places=2, null=True, blank=True,
 		help_text="Declared capital in Maloti",
 		default=0
