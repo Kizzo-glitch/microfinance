@@ -139,7 +139,6 @@ def make_payment_details_form(model_cls):
 
 
 
- 
 class MobileMoneyAccountForm(forms.ModelForm):
     class Meta:
         model = MobileMoneyAccount

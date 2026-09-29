@@ -1,5 +1,69 @@
 
-<div class="mb-3">
+<div class="card shadow-sm border-0 mb-4">
+  <div class="card-body p-4">
+    <!-- Header Section -->
+    <div class="d-flex align-items-center mb-1">
+      <i class="bi bi-phone-vibrate fs-5 text-primary me-2"></i>
+      <h6 class="fw-bold mb-0">Mobile Money Accounts</h6>
+    </div>
+    <p class="text-muted small mb-3">
+      Add each mobile-money account you can receive funds on (e.g., M-Pesa, EcoCash, C-Pay). You can add multiple accounts.
+    </p>
+
+    {{ mm_formset.management_form }}
+
+    <!-- Dynamic Rows Container -->
+    <div id="mm-rows" class="d-flex flex-column gap-3">
+      {% for form in mm_formset %}
+        <div class="mm-row bg-light border rounded p-3 position-relative">
+          {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+          
+          <div class="row g-3 align-items-center">
+            <!-- Provider Field -->
+            <div class="col-12 col-md-4">
+              <label class="form-label small fw-semibold text-secondary mb-1">Provider</label>
+              {{ form.provider }}
+            </div>
+
+            <!-- Number Field -->
+            <div class="col-12 col-md-4">
+              <label class="form-label small fw-semibold text-secondary mb-1">Mobile Number</label>
+              {{ form.number }}
+            </div>
+
+            <!-- Name Field -->
+            <div class="col-12 col-md-3">
+              <label class="form-label small fw-semibold text-secondary mb-1">Account Holder Name</label>
+              {{ form.account_name }}
+            </div>
+
+            <!-- Delete Toggle Option -->
+            <div class="col-12 col-md-1 d-flex justify-content-md-center align-items-center mt-3 mt-md-0">
+              {% if form.instance.pk %}
+                <div class="form-check form-check-inline m-0" title="Mark for removal">
+                  {{ form.DELETE }}
+                  <label class="form-check-label small text-danger fw-semibold cursor-pointer" for="{{ form.DELETE.id_for_label }}">
+                    <i class="bi bi-trash me-1 d-md-none"></i>Remove
+                  </label>
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Form Errors -->
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger py-1 px-2 small mt-2 mb-0">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>
+              {{ form.non_field_errors|striptags }}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!--<div class="mb-3">
   <label class="form-label fw-semibold">Mobile money accounts</label>
   <div class="form-text mb-2">
     Add each mobile-money account you can receive money on — M-Pesa, EcoCash,
@@ -40,4 +104,4 @@
       </div>
     {% endfor %}
   </div>
-</div>
+</div>-->

@@ -1,6 +1,46 @@
 
+{% comment %}
+  Payment-methods status nudge. Reads the SAVED profile:
+    * profile.has_bank            — bank fields filled
+    * profile.has_mobile_money    — at least one MobileMoneyAccount
+  Nudges toward whichever is missing; celebrates when both are present.
+{% endcomment %}
 
-{% with has_bank=profile.bank_account_number has_mm=profile.mobile_money_number %}
+{% if profile.has_bank and profile.has_mobile_money %}
+  <div class="alert alert-success">
+    <i class="bi bi-check-circle"></i>
+    You've added both a bank account and mobile money — lenders can disburse to
+    you easily either way.
+  </div>
+
+{% elif profile.has_mobile_money %}
+  {# has mobile money, no bank — nudge bank #}
+  <div class="alert alert-info">
+    <i class="bi bi-lightbulb"></i>
+    <strong>Good — you've added mobile money.</strong>
+    Adding a <strong>bank account</strong> too gives lenders another way to send
+    you a loan, which can make approval and disbursement easier.
+  </div>
+
+{% elif profile.has_bank %}
+  {# has bank, no mobile money — nudge mobile money #}
+  <div class="alert alert-info">
+    <i class="bi bi-lightbulb"></i>
+    <strong>Good — you've added a bank account.</strong>
+    Adding <strong>mobile money</strong> (M-Pesa, EcoCash or C-Pay) too gives
+    lenders more ways to send you a loan.
+  </div>
+
+{% else %}
+  {# nothing at all #}
+  <div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    You haven't added any payment details yet. Add at least one way to receive
+    money — a bank account or a mobile-money account — so a lender can disburse
+    an approved loan to you.
+  </div>
+{% endif %}
+<!--{% with has_bank=profile.bank_account_number has_mm=profile.mobile_money_number %}
   {% if has_bank and has_mm %}
     <div class="alert alert-success">
       <i class="bi bi-check-circle"></i>
@@ -23,4 +63,4 @@
       money (bank account or mobile money) so a lender can disburse an approved loan to you.
     </div>
   {% endif %}
-{% endwith %}
+{% endwith %}-->

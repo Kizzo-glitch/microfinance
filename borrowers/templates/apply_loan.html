@@ -53,12 +53,38 @@
             
                 <form method="post" action="{% url 'borrowers:save_borrower_payment_details' %}" class="mt-3">
                     {% csrf_token %}
-                    {% for field in payment_form %}
-                    {% include 'partials/_field.html' with field=field %}
-                    {% endfor %}
-                    {# come back HERE after saving #}
                     
-                    {% include 'loans/_mobile_money_formset.html' with mm_formset=mm_formset %}
+                    <details class="mb-3" {% if profile.has_bank %}{% else %}open{% endif %}>
+                        <summary class="fw-semibold py-2" style="cursor:pointer;">
+                            <i class="bi bi-bank"></i> Bank account
+                            {% if profile.has_bank %}
+                                <span class="badge bg-success ms-2">Added</span>
+                            {% else %}
+                                <span class="badge bg-warning ms-2">Not Added</span>
+                            {% endif %}
+                        </summary>
+                        <div class="pt-3">
+                            {% for field in payment_form %}
+                            {% include 'partials/_field.html' with field=field %}
+                            {% endfor %}
+                        </div>
+                    </details>
+                    
+                    
+                    <details class="mb-3" {% if profile.has_mobile_money %}{% else %}open{% endif %}>
+                        <summary class="fw-semibold py-2" style="cursor:pointer;">
+                            <i class="bi bi-phone"></i> Mobile money
+                            {% if profile.has_mobile_money %}
+                            <span class="badge bg-success ms-2">{{ profile.mobile_money_accounts.count }} added</span>
+                            {% else %}
+                                <span class="badge bg-warning ms-2">None Added</span>
+                            {% endif %}
+                        </summary>
+                        <div class="pt-3">
+                            {% include 'loans/_mobile_money_formset.html' with mm_formset=mm_formset %}
+                        </div>
+                    </details>
+
                     <input type="hidden" name="next" value="{{ request.get_full_path }}">
                     <button type="submit" class="btn btn-success">Save payment details</button>
                 </form>
