@@ -346,7 +346,7 @@
             </div>
         </div>
 
-                    <!-- new: payment details section -->
+            <!-- new: payment details section -->
             <div class="card shadow-sm mb-4 mt-4">
             <div class="card-header bg-light fw-semibold">
                 <i class="bi bi-bank"></i> Payment details
@@ -362,6 +362,7 @@
                 {% for field in payment_form %}
                     {% include 'partials/_field.html' with field=field %}
                 {% endfor %}
+                {% include 'loans/_mobile_money_formset.html' with mm_formset=mm_formset %}
                 <button type="submit" name="save_payment" class="btn btn-success">
                     Save payment details
                 </button>

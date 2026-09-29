@@ -642,4 +642,6 @@ class ResponsibleLendingAssessment(models.Model):
 	@property
 	def is_affordable(self) -> bool:
 		return self.disposable_income_after >= 0 and self.outcome != "unaffordable"
+
+
  

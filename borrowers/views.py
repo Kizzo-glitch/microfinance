@@ -56,7 +56,7 @@ from django.utils.timezone import now
 from lenders.models import LenderProfile
 from loans.models import LoanApplication, Loan, LoanPayment, Notification, Rating, ResponsibleLendingAssessment
 from micro.models import OTP
-from micro.forms import make_payment_details_form
+from micro.forms import get_mobile_money_formset, make_payment_details_form, save_mobile_money_formset
 
 from .models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
 from .services import AffordabilityAdvisor
@@ -66,12 +66,10 @@ from groups.utils import is_group_admin, is_sub_admin, can_manage_operations, is
 from groups.models import BorrowerGroup, GroupActivity, GroupDocument, GroupInvitation, GroupJoinRequest, GroupMembership
 from groups.forms import BorrowerJoinRequestForm, GroupJoinRequestForm
 
-
 from .forms import (
 	LoanPaymentClaimForm, RatingForm, BorrowerProfileForm, LoanApplicationForm, BorrowerDocumentsForm, 
 	LoanPaymentForm, OTPForm, EmploymentTypeForm, EmployedDocumentsForm, SelfEmployedDocumentsForm, 
-	RegisteredBusinessDocumentsForm, ExpenseForm, DynamicExpenseForm
-	)
+	RegisteredBusinessDocumentsForm, ExpenseForm, DynamicExpenseForm)
 
 import logging
 
@@ -103,7 +101,6 @@ def borrower_profile(request):
 			'email_address': user.email,
 			'full_name': f"{user.first_name} {user.last_name}" if user.first_name and user.last_name else "",
 		}
-
 	# Get borrower's outstanding and overdue loans
 	outstanding_loans = Loan.objects.filter(borrower__user=request.user, outstanding_balance__gt=0).count()
 	overdue_loans = Loan.objects.filter(borrower__user=request.user, due_date__lt=date.today(), outstanding_balance__gt=0).count()
@@ -116,21 +113,24 @@ def borrower_profile(request):
 		if 'save_payment' in request.POST:
 			# --- payment details form submitted ---
 			payment_form = PaymentForm(request.POST, instance=current_user)
+			mm_formset = get_mobile_money_formset(current_user, is_lender=False, data=request.POST)
 			form = BorrowerProfileForm(instance=current_user, initial=initial_data)   # keep the other form rendered
 			if payment_form.is_valid():
 				payment_form.save()
+				save_mobile_money_formset(mm_formset, current_user, is_lender=False)
 				messages.success(request, "Payment details saved.")
 				return redirect('borrowers:borrower_profile')
 			else:
-				print(payment_form.errors)
+				print(payment_form.errors, mm_formset.errors)
 		else:
 			# --- main profile form submitted ---
 			form = BorrowerProfileForm(request.POST, request.FILES, instance=current_user)
 			payment_form = PaymentForm(instance=current_user)   # keep payment form rendered
+			mm_formset = get_mobile_money_formset(current_user, is_lender=False)
 			if form.is_valid():
-				profile = form.save(commit=False)
-				profile.user = request.user
-				profile.save()
+				current_user = form.save(commit=False)
+				current_user.user = request.user
+				current_user.save()
 				messages.success(request, "Your Info Has Been Updated!!")
 				return redirect('borrowers:borrower_index')
 			else:
@@ -138,24 +138,7 @@ def borrower_profile(request):
 	else:
 		form = BorrowerProfileForm(instance=current_user, initial=initial_data)
 		payment_form = PaymentForm(instance=current_user)
-	
-	'''
-	if request.method == 'POST':
-		# Pass the instance to update an existing profile or create a new one
-		form = BorrowerProfileForm(request.POST, request.FILES, instance=current_user)
-		if form.is_valid():
-			profile = form.save(commit=False)
-			profile.user = request.user
-			profile.save()
-			messages.success(request, "Your Info Has Been Updated!!")
-			return redirect('borrowers:borrower_index')
-		else:
-			print(form.errors)
-	else:
-		# For a GET request, instantiate the form with initial data
-		# and the instance (if it exists)
-		form = BorrowerProfileForm(instance=current_user, initial=initial_data)
-	'''
+		mm_formset = get_mobile_money_formset(current_user, is_lender=False)
 
 	return render(request, "borrower_profile.html", {
 		'form': form,
@@ -163,10 +146,48 @@ def borrower_profile(request):
 		'overdue_loans': overdue_loans,
 		'total_debt': total_debt,
     	'payment_form': payment_form,
+		"mm_formset": mm_formset,
 		'profile': current_user,
-		
-    
+			  
 	})
+
+
+@login_required
+def save_borrower_payment_details(request):
+    profile, _ = BorrowerProfile.objects.get_or_create(user=request.user)
+    PaymentForm = make_payment_details_form(BorrowerProfile)
+    next_url = request.POST.get("next") or request.GET.get("next")
+ 
+    if request.method == "POST":
+        bank_form = PaymentForm(request.POST, instance=profile)
+        mm_formset = get_mobile_money_formset(profile, is_lender=False, data=request.POST)
+ 
+        bank_ok = bank_form.is_valid()
+        mm_ok = mm_formset.is_valid()
+ 
+        if bank_ok and mm_ok:
+            bank_form.save()
+            save_mobile_money_formset(mm_formset, profile, is_lender=False)
+            messages.success(request, "Payment details saved.")
+            return redirect(next_url or "borrowers:borrower_profile")
+        else:
+            messages.error(request, "Please check your payment details and try again.")
+            # re-render with errors (don't redirect, so errors show)
+            return render(request, "loans/_payment_details.html", {
+                "form": bank_form,
+                "mm_formset": mm_formset,
+                "next": next_url or "",
+            })
+ 
+    # GET
+    bank_form = PaymentForm(instance=profile)
+    mm_formset = get_mobile_money_formset(profile, is_lender=False)
+    return render(request, "loans/_payment_details.html", {
+        "form": bank_form,
+        "mm_formset": mm_formset,
+        "next": next_url or "",
+    })
+ 
 
 
 @login_required
@@ -1352,9 +1373,10 @@ def _run_document_verification(borrower, loan_app, result):
 		return None
 
 
- 
+
+"""
 @login_required
-def save_payment_details(request):
+def save_payment_details2(request):
     profile, _ = BorrowerProfile.objects.get_or_create(user=request.user)
     PaymentForm = make_payment_details_form(BorrowerProfile)
  
@@ -1375,6 +1397,7 @@ def save_payment_details(request):
  
     return redirect(next_url or "borrowers:borrower_profile")
 
+"""
  
 @login_required
 def abandon_draft(request, application_id):
@@ -1418,9 +1441,10 @@ def abandon_draft(request, application_id):
 
 @login_required
 def resume_application(request, app_id):
-	lender_id = request.session.get('lender_id')
-	lender = LenderProfile.objects.get(id=lender_id)
-	loan_app = LoanApplication.objects.get(id=app_id, borrower=request.user.borrower, lender=lender)
+	#lender_id = request.session.get('lender_id')
+	#lender = LenderProfile.objects.get(id=lender_id)
+	loan_app = LoanApplication.objects.get(id=app_id, borrower=request.user.borrower)
+	request.session['lender_id'] = loan_app.lender_id
 
 	if loan_app.current_stage == "employment":
 		return redirect("borrowers:employment_type")
@@ -1428,9 +1452,9 @@ def resume_application(request, app_id):
 	elif loan_app.current_stage == "documents":
 		if loan_app.borrower.employment_type == "employed":
 			return redirect("borrowers:upload_documents_employed")
-		elif loan_app.employment_type == "self_employed":
+		elif loan_app.borrower.employment_type == "self_employed":
 			return redirect("borrowers:upload_documents_self_employed")
-		elif loan_app.employment_type == "registered_business":
+		elif loan_app.borrower.employment_type == "registered_business":
 			return redirect("borrowers:upload_documents_registered_business")
 		else:
 			# fallback if employment_type is missing/corrupt

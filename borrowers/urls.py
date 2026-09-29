@@ -38,7 +38,7 @@ urlpatterns = [
     path('calculate-loan/', views.calculate_loan, name='calculate-loan'),
     path('loan-calculator/', views.loan_calculator, name='loan-calculator'),
 
-    path('save-payment-details', views.save_payment_details, name='save_payment_details'),
+    path('save-payment-details', views.save_borrower_payment_details, name='save_borrower_payment_details'),
 
     path('apply-loan-list/', views.apply_for_loan_list, name='apply-for-loan-list'),
     

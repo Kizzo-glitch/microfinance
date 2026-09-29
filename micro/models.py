@@ -97,7 +97,7 @@ class OTP(models.Model):
 # PRIVACY: account numbers are sensitive. Reveal them only to the specific
 # counterparty in an approved loan, and consider masking (show last 4) in any
 # list view — full details only on the specific loan's action screen.
-
+'''
 class PaymentDetailsMixin(models.Model):
     """
     Reusable payment-detail fields for a profile. Supports the two common
@@ -147,33 +147,111 @@ class PaymentDetailsMixin(models.Model):
         if self.mobile_money_number and self.mobile_money_provider:
             parts.append(dict(self.MOBILE_MONEY_CHOICES).get(self.mobile_money_provider, "Mobile money"))
         return " · ".join(parts) if parts else "No payment details on file"
+'''
+
+
+
+
+
+
+
+
+"""
+Fedha-Grow — mobile money accounts (related model)
+=================================================
+Replaces the single mobile_money_* fields with a one-to-many model, so a person
+can hold M-Pesa, EcoCash, AND C-Pay (or a future provider). Adding a new
+CBL-licensed issuer is just a new choice here — no schema change to the profile.
+
+Attaches to BOTH BorrowerProfile and LenderProfile via a generic owner, OR use
+two nullable FKs — here we use a generic-ish approach with two nullable FKs so
+each account belongs to exactly one profile of either type. (Kept explicit
+rather than GenericForeignKey for simpler queries and admin.)
+
+The bank account stays as flat fields on the profile (people usually have one
+primary bank; banks aren't a fast-growing enumerable set like e-money issuers).
+"""
+
+
+class MobileMoneyAccount(models.Model):
+    # Lesotho mobile-money issuers. Add a new CBL-licensed issuer as one line
+    # here — no profile migration needed.
+    PROVIDER_CHOICES = [
+        ("mpesa",   "M-Pesa (Vodacom)"),
+        ("ecocash", "EcoCash (Econet)"),
+        ("cpay",    "C-Pay (Chaperone)"),
+    ]
+
+    # Each account belongs to exactly one profile (borrower OR lender).
+    borrower = models.ForeignKey(
+        "borrowers.BorrowerProfile", on_delete=models.CASCADE,
+        null=True, blank=True, related_name="mobile_money_accounts")
+    lender = models.ForeignKey(
+        "lenders.LenderProfile", on_delete=models.CASCADE,
+        null=True, blank=True, related_name="mobile_money_accounts")
+
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES)
+    number   = models.CharField(max_length=20, help_text="The number money is sent to.")
+    account_name = models.CharField(max_length=200, blank=True,
+                     help_text="Name registered on the mobile-money account.")
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # one account per provider per profile (no duplicate M-Pesa rows)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["borrower", "provider"],
+                condition=models.Q(borrower__isnull=False),
+                name="uniq_borrower_provider"),
+            models.UniqueConstraint(
+                fields=["lender", "provider"],
+                condition=models.Q(lender__isnull=False),
+                name="uniq_lender_provider"),
+        ]
+
+    def __str__(self):
+        return f"{self.get_provider_display()} · {self.number}"
+
+    @property
+    def owner(self):
+        return self.borrower or self.lender
 
 
 # =====================================================================
-# How to apply (two options)
+# The profile mixin — bank fields stay flat; mobile money is now the related set
 # =====================================================================
-#
-# OPTION A — inherit the mixin (cleanest; identical fields on both):
-#
-#   class BorrowerProfile(PaymentDetailsMixin, models.Model):
-#       ...existing fields...
-#
-#   class LenderProfile(PaymentDetailsMixin, models.Model):
-#       ...existing fields...
-#
-#   (Mixin must be BEFORE models.Model in the inheritance list. Because the
-#   mixin is abstract, its fields are added to each concrete model. Run
-#   makemigrations after.)
-#
-# OPTION B — if you can't change the base classes easily, paste the field
-# block (bank_* , mobile_money_* , payment_instructions) directly into each
-# model. Identical result, more duplication.
-#
-# Either way: makemigrations + migrate. Existing rows get blank details
-# (correct — they simply haven't entered any yet).
+# Replace the mobile_money_* fields in PaymentDetailsMixin with just the bank
+# fields; mobile money comes from the related MobileMoneyAccount set.
 
+class PaymentDetailsMixin(models.Model):
+    """Bank fields on the profile; mobile money via related MobileMoneyAccount."""
 
+    bank_name            = models.CharField(max_length=100, blank=True)
+    bank_account_name    = models.CharField(max_length=200, blank=True,
+                              help_text="Name the account is held under.")
+    bank_account_number  = models.CharField(max_length=40, blank=True)
+    bank_branch_code     = models.CharField(max_length=20, blank=True)
 
+    payment_instructions = models.CharField(max_length=255, blank=True)
 
+    class Meta:
+        abstract = True
 
+    # ---- helpers (now aware of the related mobile-money set) ----
+    @property
+    def has_bank(self) -> bool:
+        return bool(self.bank_account_number and self.bank_name)
 
+    @property
+    def mobile_money_list(self):
+        """The profile's mobile-money accounts (queryset)."""
+        return self.mobile_money_accounts.all()
+
+    @property
+    def has_mobile_money(self) -> bool:
+        return self.mobile_money_accounts.exists()
+
+    @property
+    def has_payment_details(self) -> bool:
+        return self.has_bank or self.has_mobile_money

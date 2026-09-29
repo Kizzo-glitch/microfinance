@@ -1,0 +1,43 @@
+
+<div class="mb-3">
+  <label class="form-label fw-semibold">Mobile money accounts</label>
+  <div class="form-text mb-2">
+    Add each mobile-money account you can receive money on — M-Pesa, EcoCash,
+    or C-Pay. You can add more than one.
+  </div>
+
+  {{ mm_formset.management_form }}
+
+  <div id="mm-rows">
+    {% for form in mm_formset %}
+      <div class="mm-row border rounded p-2 mb-2">
+        {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+        <div class="row g-2 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label small">Provider</label>
+            {{ form.provider }}
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small">Number</label>
+            {{ form.number }}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small">Name (optional)</label>
+            {{ form.account_name }}
+          </div>
+          <div class="col-md-1">
+            {% if form.instance.pk %}
+              <div class="form-check">
+                {{ form.DELETE }}
+                <label class="form-check-label small text-danger">Remove</label>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+        {% if form.non_field_errors %}
+          <div class="text-danger small mt-1">{{ form.non_field_errors|striptags }}</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</div>

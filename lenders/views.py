@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 
 from compliance.compliace_services import ComplianceDashboardService
-from micro.forms import make_payment_details_form
+from micro.forms import MobileMoneyAccountForm, get_mobile_money_formset, make_payment_details_form, save_mobile_money_formset
 
 #from compliance.models import LenderComplianceRecord
 from .forms import LenderInfoForm, LoanApplicationStatusForm, LoanStatusForm, LenderDocumentsForm
@@ -235,17 +235,65 @@ def risk_customer_list(request, category):
 	return render(request, "risk_customer_list.html", context)
 
 
-
 def lender_profile(request):
+    profile, created = LenderProfile.objects.get_or_create(user=request.user)
+    PaymentForm = make_payment_details_form(LenderProfile)
+
+    if request.method == 'POST':
+        if 'save_payment' in request.POST:
+            # --- payment details (bank form + mobile-money formset) ---
+            payment_form = PaymentForm(request.POST, instance=profile)
+            mm_formset = get_mobile_money_formset(profile, is_lender=True, data=request.POST)
+            form = LenderInfoForm(instance=profile)   # keep the main form rendered
+
+            if payment_form.is_valid() and mm_formset.is_valid():
+                payment_form.save()
+                save_mobile_money_formset(mm_formset, profile, is_lender=True)
+                messages.success(request, "Payment details saved.")
+                return redirect('lenders:lender_profile')
+            else:
+                messages.error(request, "Please check your payment details.")
+                print(payment_form.errors, mm_formset.errors)
+
+        else:
+            # --- main profile form submitted ---
+            form = LenderInfoForm(request.POST, request.FILES, instance=profile)
+            payment_form = PaymentForm(instance=profile)
+            mm_formset = get_mobile_money_formset(profile, is_lender=True)
+            if form.is_valid():
+                profile = form.save(commit=False)
+                profile.user = request.user
+                profile.save()
+                messages.success(request, "Your Info Has Been Updated!!")
+                return redirect('lenders:lender_index')
+            else:
+                print(form.errors)
+
+    else:
+        # GET
+        form = LenderInfoForm(instance=profile)
+        payment_form = PaymentForm(instance=profile)
+        mm_formset = get_mobile_money_formset(profile, is_lender=True)
+
+    return render(request, "lender_profile.html", {
+        "form": form,
+        "payment_form": payment_form,
+        "mm_formset": mm_formset,
+        "profile": profile,          # so the prompt/details can read saved data
+    })
+
+def lender_profile2(request):
 	# 1. Get the existing profile for the logged-in user
 	# Use related_name='lender_profile' as defined in your model
 	profile, created = LenderProfile.objects.get_or_create(user=request.user)
-	PaymentForm = make_payment_details_form(LenderProfile) 
+	PaymentForm = make_payment_details_form(LenderProfile)
+	
 
 	if request.method == 'POST':
 		if 'save_payment' in request.POST:
 			# --- payment details form submitted ---
 			payment_form = PaymentForm(request.POST, instance=profile)
+			lender_mm = MobileMoneyAccountForm(request.POST, instance=profile)
 			form = LenderInfoForm(request.POST, request.FILES, instance=profile)   # keep the other form rendered
 			if payment_form.is_valid():
 				payment_form.save()
@@ -257,6 +305,7 @@ def lender_profile(request):
 			# --- main profile form submitted ---
 			form = LenderInfoForm(request.POST, request.FILES, instance=profile)
 			payment_form = PaymentForm(instance=profile)   # keep payment form rendered
+			lender_mm = MobileMoneyAccountForm(request.POST, instance=profile)
 			if form.is_valid():
 				profile = form.save(commit=False)
 				profile.user = request.user
@@ -287,6 +336,43 @@ def lender_profile(request):
 		'form': form,
 		'payment_form': payment_form
 	})
+
+
+@login_required
+def save_lender_payment_details(request):
+    profile, _ = BorrowerProfile.objects.get_or_create(user=request.user)
+    PaymentForm = make_payment_details_form(BorrowerProfile)
+    next_url = request.POST.get("next") or request.GET.get("next")
+ 
+    if request.method == "POST":
+        bank_form = PaymentForm(request.POST, instance=profile)
+        mm_formset = get_mobile_money_formset(profile, is_lender=False, data=request.POST)
+ 
+        bank_ok = bank_form.is_valid()
+        mm_ok = mm_formset.is_valid()
+ 
+        if bank_ok and mm_ok:
+            bank_form.save()
+            save_mobile_money_formset(mm_formset, profile, is_lender=False)
+            messages.success(request, "Payment details saved.")
+            return redirect(next_url or "borrowers:borrower_profile")
+        else:
+            messages.error(request, "Please check your payment details and try again.")
+            # re-render with errors (don't redirect, so errors show)
+            return render(request, "micro/loans/_payment_details.html", {
+                "form": bank_form,
+                "mm_formset": mm_formset,
+                "next": next_url or "",
+            })
+ 
+    # GET
+    bank_form = PaymentForm(instance=profile)
+    mm_formset = get_mobile_money_formset(profile, is_lender=False)
+    return render(request, "micro/loans/_payment_details.html", {
+        "form": bank_form,
+        "mm_formset": mm_formset,
+        "next": next_url or "",
+    })
 
 # ==================
 # Soon to be replaced by Comliance registration
@@ -785,6 +871,7 @@ def compatibility(borrower_profile, lender_profile) -> dict:
         # or when the borrower has no methods at all
         "warn_borrower_none": not b,
     }
+	
 
 
 
