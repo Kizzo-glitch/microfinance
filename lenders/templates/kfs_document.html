@@ -1,0 +1,135 @@
+{% extends 'micro_base.html' %}
+{% block content %}
+<div class="container my-4" style="max-width: 900px;">
+
+  <!-- Header -->
+  <div class="text-center mb-4">
+    <h3 class="fw-bold mb-1">{{ data.provider.name }}</h3>
+    <div class="h5 text-uppercase">Key Facts Statement</div>
+    <div class="text-muted small">Reference {{ kfs.reference }} · Generated {{ kfs.generated_at|date:"d M Y, H:i" }}</div>
+  </div>
+
+  {% if kfs.status == "acknowledged" %}
+    <div class="alert alert-success"><i class="bi bi-lock"></i> This statement is fully acknowledged and finalised.</div>
+  {% elif kfs.borrower_has_acknowledged %}
+    <div class="alert alert-info">Borrower acknowledged — awaiting credit provider.</div>
+  {% else %}
+    <div class="alert alert-warning">Please review this statement carefully before acknowledging.</div>
+  {% endif %}
+
+  <!-- 1. Credit provider -->
+  <h5 class="mt-4">1. Credit Provider Details</h5>
+  <table class="table table-sm table-bordered">
+    <tr><th style="width:40%">Credit Provider</th><td>{{ data.provider.registered_name }}</td></tr>
+    <tr><th>CBL Licence / Registration No.</th><td>{{ data.provider.cbl_licence_number }}</td></tr>
+    <tr><th>Registered Address</th><td>{{ data.provider.registered_address }}</td></tr>
+    <tr><th>Customer Service</th><td>{{ data.provider.service_phone }} · {{ data.provider.service_email }}</td></tr>
+    <tr><th>Complaints</th><td>{{ data.provider.complaints_phone }} · {{ data.provider.complaints_email }}</td></tr>
+  </table>
+
+  <!-- 2. Borrower -->
+  <h5 class="mt-4">2. Borrower & Application Details</h5>
+  <table class="table table-sm table-bordered">
+    <tr><th style="width:40%">Borrower</th><td>{{ data.borrower.full_name }}</td></tr>
+    <tr><th>ID Number</th><td>{{ data.borrower.id_number_masked }}</td></tr>
+    <tr><th>Mobile Number</th><td>{{ data.borrower.mobile_masked }}</td></tr>
+    <tr><th>Approved Amount</th><td>M {{ data.terms.approved_amount }}</td></tr>
+  </table>
+
+  <!-- 3. Key terms -->
+  <h5 class="mt-4">3. Credit Facility — Key Terms</h5>
+  <table class="table table-sm table-bordered">
+    <tr><th style="width:40%">Loan Term</th><td>{{ data.terms.term_months }} months</td></tr>
+    <tr><th>Repayment Frequency</th><td>{{ data.product.repayment_frequency }}</td></tr>
+    <tr><th>Annual Interest Rate</th><td>{{ data.terms.annual_interest_rate }} % per annum</td></tr>
+    <tr><th>Monthly Interest Rate</th><td>{{ data.terms.monthly_interest_rate }} % per month</td></tr>
+    <tr><th>Interest Calculation</th><td>{{ data.product.interest_calculation_note|default:data.product.interest_type }}</td></tr>
+  </table>
+
+  <!-- 4. Fees -->
+  <h5 class="mt-4">4. Fees & Charges</h5>
+  <table class="table table-sm table-bordered">
+    <thead class="table-light"><tr><th>Charge</th><th>Amount</th><th>Basis / When Payable</th><th>Applicable</th></tr></thead>
+    <tbody>
+      {% for f in data.fees %}
+      <tr>
+        <td>{{ f.label }}</td>
+        <td>M {{ f.amount }}</td>
+        <td>{{ f.basis_label }}{% if f.note %} · {{ f.note }}{% endif %}</td>
+        <td>{% if f.applicable %}Yes{% else %}No{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- 5. Total cost -->
+  <h5 class="mt-4">5. Total Cost of Credit</h5>
+  <table class="table table-sm table-bordered">
+    <tr><th style="width:60%">Principal / Approved Credit</th><td>M {{ data.cost.principal }}</td></tr>
+    <tr><th>Total Interest</th><td>M {{ data.cost.total_interest }}</td></tr>
+    <tr><th>Total Fees</th><td>M {{ data.cost.total_fees }}</td></tr>
+    <tr class="table-light fw-bold"><th>TOTAL AMOUNT PAYABLE</th><td>M {{ data.cost.total_payable }}</td></tr>
+  </table>
+
+  <!-- 6. Schedule -->
+  <h5 class="mt-4">6. Repayment Schedule</h5>
+  <div class="table-responsive">
+    <table class="table table-sm table-bordered">
+      <thead class="table-light"><tr><th>#</th><th>Principal</th><th>Interest</th><th>Fees</th><th>Total</th><th>Balance</th></tr></thead>
+      <tbody>
+        {% for i in data.schedule %}
+        <tr>
+          <td>{{ i.number }}</td><td>M {{ i.principal }}</td><td>M {{ i.interest }}</td>
+          <td>M {{ i.fees }}</td><td>M {{ i.total }}</td><td>M {{ i.balance }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 10. Acknowledgement -->
+  <h5 class="mt-4">Borrower Acknowledgement</h5>
+  <p class="small">I confirm that I have received and had an opportunity to review this Key Facts
+     Statement before entering into the credit agreement. I understand that the credit provider,
+     not Fedha-Grow, is responsible for the lending decision and the terms of the credit agreement.</p>
+
+  {% if can_ack_borrower or can_ack_lender %}
+    <form method="post" action="{% url 'loans:acknowledge_kfs' kfs.id %}" class="card card-body bg-light">
+      {% csrf_token %}
+      <div class="mb-2">
+        <label class="form-label fw-semibold">Type your full name to acknowledge</label>
+        <input type="text" name="typed_name" class="form-control" required
+               value="{% if can_ack_borrower %}{{ data.borrower.full_name }}{% endif %}">
+      </div>
+      <div class="form-check mb-3">
+        <input type="checkbox" name="confirm" id="confirm_ack" class="form-check-input" required>
+        <label for="confirm_ack" class="form-check-label">
+          I confirm I have reviewed this statement.
+        </label>
+      </div>
+      <button type="submit" class="btn btn-success">
+        {% if can_ack_borrower %}Acknowledge as borrower{% else %}Acknowledge as credit provider{% endif %}
+      </button>
+    </form>
+  {% endif %}
+
+  <!-- acknowledgement record -->
+  {% if kfs.acknowledgements.all %}
+  <table class="table table-sm table-bordered mt-3">
+    <thead class="table-light"><tr><th>Party</th><th>Name</th><th>Date</th></tr></thead>
+    <tbody>
+      {% for a in kfs.acknowledgements.all %}
+      <tr><td>{{ a.get_party_display }}</td><td>{{ a.typed_name }}</td><td>{{ a.acknowledged_at|date:"d M Y, H:i" }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <div class="text-muted small mt-4 border-top pt-2">
+    Generated by Fedha-Grow KFS Engine · {{ kfs.kfs_version }} ·
+    {% if kfs.is_locked %}Immutable record after acknowledgement{% else %}Draft until acknowledged{% endif %}.
+    Fedha-Grow provides the disclosure and record-keeping infrastructure; it does not make the
+    credit decision, originate the loan, or hold or disburse funds.
+  </div>
+</div>
+{% endblock %}

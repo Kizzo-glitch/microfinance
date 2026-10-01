@@ -1,13 +1,13 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import LenderProfile, LenderDocs
+
+from django.forms import inlineformset_factory
+
+from .models import LenderProfile, LenderDocs, LenderProduct, ProductFee
 from loans.models import LoanApplication, Loan
 
-
-from django import forms
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
-# Assuming LenderProfile, LOAN_TERM_CHOICES, etc. are imported or defined above
 
 
 class LenderInfoForm(forms.ModelForm):
@@ -170,41 +170,6 @@ class LoanApplicationStatusForm(forms.ModelForm):
 		}
 
 
-'''class LoanApplicationStatusForm(forms.ModelForm):
-	class Meta:
-		model = LoanApplication
-		fields = ['status', 'rejection_reasons', 'pending_reasons']
-
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-
-		if self.instance.status == 'rejected':
-			self.fields['rejection_reasons'].widget = forms.CheckboxSelectMultiple()
-		elif self.instance.status == 'pending':
-			self.fields['pending_reasons'].widget = forms.CheckboxSelectMultiple()
-		else:
-			self.fields.pop('rejection_reasons')
-			self.fields.pop('pending_reasons')'''
-
-
-'''class LoanApplicationStatusForm(forms.ModelForm):
-	class Meta:
-		model = LoanApplication
-		fields = ['status', 'status_reason']
-		widgets = {
-			'status': forms.Select(choices=LoanApplication.status),
-		}
-	def clean(self):
-		cleaned_data = super().clean()
-		status = cleaned_data.get("status")
-		reason = cleaned_data.get("status_reason")
-
-		if status in ['rejected', 'pending'] and not reason:
-			raise forms.ValidationError("Please provide a reason for rejection or pending status.")
-		return cleaned_data'''
-
-
-
 class LoanStatusForm(forms.ModelForm):
 	class Meta:
 		model = Loan
@@ -214,5 +179,73 @@ class LoanStatusForm(forms.ModelForm):
 		}
 
 
+"""
+Fedha-Grow — lender product configuration (lender UI)
+=====================================================
+Lenders create and manage their loan PRODUCTS (each with rate, amount/term
+bounds, and fees). Additive: products live alongside the existing LenderProfile
+terms — a lender who hasn't made products yet keeps working on the old flow;
+once they add products, the borrower flow uses them.
+ 
+Screens:
+  * product_list   — the lender's products, with "add product"
+  * product_edit   — create/edit a product AND its fees (fees as an inline formset)
+"""
 
+# ---------------- forms ----------------
+class LenderProductForm(forms.ModelForm):
+    class Meta:
+        model = LenderProduct
+        fields = [
+            "name", "product_code", "version", "effective_from",
+            "annual_interest_rate", "interest_type", "interest_calculation_note",
+            "repayment_frequency", "min_amount", "max_amount", "min_term", "max_term",
+            "is_active",
+        ]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Standard Personal Loan"}),
+            "product_code": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. LP-STD-03"}),
+            "version": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. 03"}),
+            "effective_from": forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+            "annual_interest_rate": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "interest_type": forms.Select(attrs={"class": "form-select"}),
+            "interest_calculation_note": forms.TextInput(attrs={"class": "form-control",
+                "placeholder": "e.g. Flat interest on the original principal"}),
+            "repayment_frequency": forms.Select(attrs={"class": "form-select"}),
+            "min_amount": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "max_amount": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "min_term": forms.NumberInput(attrs={"class": "form-control"}),
+            "max_term": forms.NumberInput(attrs={"class": "form-control"}),
+            "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+ 
+    def clean(self):
+        cleaned = super().clean()
+        mn, mx = cleaned.get("min_amount"), cleaned.get("max_amount")
+        if mn and mx and mn > mx:
+            raise forms.ValidationError("Minimum amount can't exceed maximum amount.")
+        tmn, tmx = cleaned.get("min_term"), cleaned.get("max_term")
+        if tmn and tmx and tmn > tmx:
+            raise forms.ValidationError("Minimum term can't exceed maximum term.")
+        return cleaned
+ 
+ 
+class ProductFeeForm(forms.ModelForm):
+    class Meta:
+        model = ProductFee
+        fields = ["fee_type", "amount", "basis", "applicable", "note"]
+        widgets = {
+            "fee_type": forms.Select(attrs={"class": "form-select"}),
+            "amount": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "basis": forms.Select(attrs={"class": "form-select"}),
+            "applicable": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "note": forms.TextInput(attrs={"class": "form-control", "placeholder": "Optional"}),
+        }
+ 
+ 
+ProductFeeFormSet = inlineformset_factory(
+    LenderProduct, ProductFee, form=ProductFeeForm,
+    extra=3, can_delete=True)
+ 
+ 
 

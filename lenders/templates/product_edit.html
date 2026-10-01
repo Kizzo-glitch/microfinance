@@ -1,0 +1,79 @@
+{% extends 'lender_base.html' %}
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">{% if product %}Edit product{% else %}New product{% endif %}</h3>
+    <a href="{% url 'lenders:product_list' %}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> Back to products
+    </a>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-light fw-semibold">Product terms</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-semibold">Name</label>{{ form.name }}
+            {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="col-md-3"><label class="form-label">Product code</label>{{ form.product_code }}</div>
+          <div class="col-md-3"><label class="form-label">Version</label>{{ form.version }}</div>
+
+          <div class="col-md-3"><label class="form-label fw-semibold">Interest rate (% p.a.)</label>{{ form.annual_interest_rate }}</div>
+          <div class="col-md-3"><label class="form-label">Interest type</label>{{ form.interest_type }}</div>
+          <div class="col-md-3"><label class="form-label">Repayment frequency</label>{{ form.repayment_frequency }}</div>
+          <div class="col-md-3"><label class="form-label">Effective from</label>{{ form.effective_from }}</div>
+
+          <div class="col-12"><label class="form-label">Interest calculation note (shown on the statement)</label>{{ form.interest_calculation_note }}</div>
+
+          <div class="col-md-3"><label class="form-label">Min amount (M)</label>{{ form.min_amount }}</div>
+          <div class="col-md-3"><label class="form-label">Max amount (M)</label>{{ form.max_amount }}</div>
+          <div class="col-md-3"><label class="form-label">Min term (months)</label>{{ form.min_term }}</div>
+          <div class="col-md-3"><label class="form-label">Max term (months)</label>{{ form.max_term }}</div>
+
+          <div class="col-12">
+            <div class="form-check">{{ form.is_active }}
+              <label class="form-check-label">Active — borrowers can apply for this product</label></div>
+          </div>
+        </div>
+        {% if form.non_field_errors %}<div class="text-danger small mt-2">{{ form.non_field_errors }}</div>{% endif %}
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+      <div class="card-header bg-light fw-semibold">
+        Fees &amp; charges
+        <span class="text-muted small">— these appear on the borrower's Key Facts Statement</span>
+      </div>
+      <div class="card-body">
+        {{ fee_formset.management_form }}
+        {% for fee_form in fee_formset %}
+          <div class="border rounded p-2 mb-2">
+            {% for hidden in fee_form.hidden_fields %}{{ hidden }}{% endfor %}
+            <div class="row g-2 align-items-end">
+              <div class="col-md-3"><label class="form-label small">Charge</label>{{ fee_form.fee_type }}</div>
+              <div class="col-md-2"><label class="form-label small">Amount (M)</label>{{ fee_form.amount }}</div>
+              <div class="col-md-3"><label class="form-label small">When payable</label>{{ fee_form.basis }}</div>
+              <div class="col-md-2"><label class="form-label small">Note</label>{{ fee_form.note }}</div>
+              <div class="col-md-1"><div class="form-check">{{ fee_form.applicable }}<label class="form-check-label small">Applies</label></div></div>
+              <div class="col-md-1">
+                {% if fee_form.instance.pk %}<div class="form-check">{{ fee_form.DELETE }}<label class="form-check-label small text-danger">Remove</label></div>{% endif %}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+        <div class="form-text">Leave a row blank to skip it. Contingent charges (late payment, legal) are disclosed but not added to the total upfront.</div>
+      </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2">
+      <a href="{% url 'lenders:product_list' %}" class="btn btn-outline-secondary">Cancel</a>
+      <button type="submit" class="btn btn-success"><i class="bi bi-check-circle"></i> Save product</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

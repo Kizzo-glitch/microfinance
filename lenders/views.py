@@ -1,67 +1,54 @@
 import os
+import json
+import calendar
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-
-from compliance.compliace_services import ComplianceDashboardService
-from micro.forms import MobileMoneyAccountForm, get_mobile_money_formset, make_payment_details_form, save_mobile_money_formset
-
-#from compliance.models import LenderComplianceRecord
-from .forms import LenderInfoForm, LoanApplicationStatusForm, LoanStatusForm, LenderDocumentsForm
-from .models import LenderProfile, LenderDocs
 from django.contrib import messages
-from loans.models import Notification, LoanApplication, Loan, LoanPayment
 from django.http import JsonResponse
-from borrowers.models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
-
 from django.shortcuts import get_object_or_404, Http404
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponse
 from django.urls import reverse, reverse_lazy
 
 from django.views.generic import ListView, UpdateView, DetailView
+from django.views.decorators.csrf import csrf_exempt
 from decimal import Decimal
-from datetime import timedelta
-from datetime import date
-from django.db import models
-
+from datetime import timedelta, date
+from django.utils.timezone import now
 from django.db.models import Sum, Count, Q, F
 from django.utils import timezone
 from django.utils.decorators import method_decorator
+
+from django.db import models
 from django.db.models.functions import TruncMonth
-
-import json
-import calendar
-
-from django.utils.timezone import now
-from datetime import timedelta
-
-from django.http import JsonResponse
-from collections import OrderedDict
-
-from loans.utils import get_loans_by_risk_category, send_sms_smsportal, calculate_affordability
-from comms.sms.service import send_sms
-
 from django.views.decorators.http import require_POST
-from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 
-
 from django.template.loader import render_to_string
 from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
-from django.http import HttpResponse
+from collections import OrderedDict
+
+
+from compliance.compliace_services import ComplianceDashboardService
 from compliance.models import ComplianceProfile, PersonnelProfile
-from comms.sms.service import send_sms   
+from micro.forms import MobileMoneyAccountForm, get_mobile_money_formset, make_payment_details_form, save_mobile_money_formset
 
+from .forms import (LenderInfoForm, LenderProductForm, LoanApplicationStatusForm, 
+					LoanStatusForm, LenderDocumentsForm, ProductFeeFormSet)
+from .models import LenderProfile, LenderDocs, LenderProduct, ProductFee
 
+from loans.models import Notification, LoanApplication, Loan, LoanPayment
+from loans.utils import get_loans_by_risk_category, send_sms_smsportal, calculate_affordability
+from borrowers.models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
+from comms.sms.service import send_sms
 
 
 
 # ==================
 # Dashboard
 # ==================
-
-
 def lender_index(request):
 	if request.user.is_authenticated and request.user.is_lender:
 		lender = request.user.lender
@@ -235,6 +222,9 @@ def risk_customer_list(request, category):
 	return render(request, "risk_customer_list.html", context)
 
 
+# ======================================
+# Lender Profile and Product Listings
+# ======================================
 def lender_profile(request):
     profile, created = LenderProfile.objects.get_or_create(user=request.user)
     PaymentForm = make_payment_details_form(LenderProfile)
@@ -265,12 +255,11 @@ def lender_profile(request):
                 profile.user = request.user
                 profile.save()
                 messages.success(request, "Your Info Has Been Updated!!")
-                return redirect('lenders:lender_index')
+                return redirect('lenders:product_list')
             else:
                 print(form.errors)
 
     else:
-        # GET
         form = LenderInfoForm(instance=profile)
         payment_form = PaymentForm(instance=profile)
         mm_formset = get_mobile_money_formset(profile, is_lender=True)
@@ -279,65 +268,74 @@ def lender_profile(request):
         "form": form,
         "payment_form": payment_form,
         "mm_formset": mm_formset,
-        "profile": profile,          # so the prompt/details can read saved data
+        "profile": profile,          
     })
 
-def lender_profile2(request):
-	# 1. Get the existing profile for the logged-in user
-	# Use related_name='lender_profile' as defined in your model
-	profile, created = LenderProfile.objects.get_or_create(user=request.user)
-	PaymentForm = make_payment_details_form(LenderProfile)
-	
 
-	if request.method == 'POST':
-		if 'save_payment' in request.POST:
-			# --- payment details form submitted ---
-			payment_form = PaymentForm(request.POST, instance=profile)
-			lender_mm = MobileMoneyAccountForm(request.POST, instance=profile)
-			form = LenderInfoForm(request.POST, request.FILES, instance=profile)   # keep the other form rendered
-			if payment_form.is_valid():
-				payment_form.save()
-				messages.success(request, "Payment details saved.")
-				return redirect('lenders:lender_profile')
-			else:
-				print(payment_form.errors)
-		else:
-			# --- main profile form submitted ---
-			form = LenderInfoForm(request.POST, request.FILES, instance=profile)
-			payment_form = PaymentForm(instance=profile)   # keep payment form rendered
-			lender_mm = MobileMoneyAccountForm(request.POST, instance=profile)
-			if form.is_valid():
-				profile = form.save(commit=False)
-				profile.user = request.user
-				profile.save()
-				messages.success(request, "Your Info Has Been Updated!!")
-				return redirect('lenders:lender_index')
-			else:
-				print(form.errors)
-	else:
-		form = LenderInfoForm(instance=profile)
-		payment_form = PaymentForm(instance=profile)
+# ---------------- Products and Fees ----------------
+@login_required
+def product_list(request):
+    lender = get_object_or_404(LenderProfile, user=request.user)
+    products = lender.products.all()
+    return render(request, "product_list.html", {
+        "lender": lender, "products": products,
+    })
+ 
+ 
+@login_required
+def product_edit(request, product_id=None):
+    lender = get_object_or_404(LenderProfile, user=request.user)
+ 
+    if product_id:
+        product = get_object_or_404(LenderProduct, id=product_id, lender=lender)
+    else:
+        product = LenderProduct(lender=lender)
+ 
+    if request.method == "POST":
+        form = LenderProductForm(request.POST, instance=product)
+        # fees formset only binds once the product can be saved
+        if form.is_valid():
+            product = form.save(commit=False)
+            product.lender = lender
+            product.save()
+            fee_formset = ProductFeeFormSet(request.POST, instance=product)
+            if fee_formset.is_valid():
+                fee_formset.save()
+                messages.success(request, f"Product '{product.name}' saved.")
+                return redirect("lenders:product_list")
+            else:
+                # product saved but fees invalid — re-render with fee errors
+                messages.error(request, "Please check the fees below.")
+        else:
+            fee_formset = ProductFeeFormSet(request.POST, instance=product if product.pk else None)
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = LenderProductForm(instance=product)
+        fee_formset = ProductFeeFormSet(instance=product if product.pk else None)
+ 
+    return render(request, "product_edit.html", {
+        "lender": lender, "form": form, "fee_formset": fee_formset,
+        "product": product if product.pk else None,
+    })
+ 
+ 
+@login_required
+def product_toggle_active(request, product_id):
+    """Quick activate/deactivate without full edit."""
+    lender = get_object_or_404(LenderProfile, user=request.user)
+    product = get_object_or_404(LenderProduct, id=product_id, lender=lender)
+    if request.method == "POST":
+        product.is_active = not product.is_active
+        product.save(update_fields=["is_active"])
+        messages.success(request,
+            f"'{product.name}' is now {'active' if product.is_active else 'inactive'}.")
+    return redirect("lenders:product_list")
 
-	'''
-	if request.method == 'POST':
-		# 2. Pass request.FILES and the instance so it updates the EXISTING record
-		form = LenderInfoForm(request.POST, request.FILES, instance=profile)
-		if form.is_valid():
-			form.save()
-			# 3. Redirect to the same page to "refresh" the data (PRG pattern)
-			messages.success(request, "Your Info Has Been Updated!!")
-			return redirect('lenders:lender_index')
-	else:
-		# 4. On a GET request, pass the instance so the fields are pre-filled
-		form = LenderInfoForm(instance=profile)
-	'''
-		
-	return render(request, 'lender_profile.html', {
-		'form': form,
-		'payment_form': payment_form
-	})
 
 
+# ===========================
+# Payment details
+# ===========================
 @login_required
 def save_lender_payment_details(request):
     profile, _ = BorrowerProfile.objects.get_or_create(user=request.user)

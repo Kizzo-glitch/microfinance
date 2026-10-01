@@ -15,6 +15,11 @@ urlpatterns = [
     path('lender_index/', views.lender_index, name='lender_index'),
     
     path('lender_profile/', views.lender_profile, name='lender_profile'),
+    path('product-list/', views.product_list, name='product_list'),
+    path("products/new/", views.product_edit, name="product_create"),
+    path('product-edit/<int:product_id>/', views.product_edit, name='product_edit'),
+    path('product-toggle-active/<int:product_id>/', views.product_toggle_active, name='product_toggle_active'),
+    
 
     # Lender Documents
     path('upload-lender-docs/', views.upload_lender_docs, name='upload_lender_docs'),

@@ -1,0 +1,69 @@
+{% extends 'lender_base.html' %}
+{% block content %}
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="mb-0">My Loan Products</h3>
+      <p class="text-muted mb-0">The products borrowers can choose when applying to you</p>
+    </div>
+    <a href="{% url 'lenders:product_create' %}" class="btn btn-success">
+      <i class="bi bi-plus-circle"></i> Add product
+    </a>
+  </div>
+
+  {% if not lender.cbl_licence_number %}
+  <div class="alert alert-warning">
+    <i class="bi bi-exclamation-triangle"></i>
+    Your CBL licence number isn't set on your profile. It's required on the Key
+    Facts Statement borrowers receive — please add it in your profile.
+  </div>
+  {% endif %}
+
+  {% if products %}
+  <div class="row g-3">
+    {% for p in products %}
+    <div class="col-md-6">
+      <div class="card shadow-sm border-0 h-100 {% if not p.is_active %}opacity-75{% endif %}">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <h5 class="mb-0">{{ p.name }}</h5>
+              <div class="small text-muted">{{ p.product_code }}{% if p.version %} · v{{ p.version }}{% endif %}</div>
+            </div>
+            <span class="badge {% if p.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+              {% if p.is_active %}Active{% else %}Inactive{% endif %}
+            </span>
+          </div>
+
+          <div class="mt-3 small">
+            <div><strong>Rate:</strong> {{ p.annual_interest_rate }}% p.a. ({{ p.get_interest_type_display }})</div>
+            <div><strong>Amount:</strong>
+              {% if p.min_amount %}M{{ p.min_amount }}{% else %}—{% endif %}
+              to {% if p.max_amount %}M{{ p.max_amount }}{% else %}—{% endif %}</div>
+            <div><strong>Term:</strong>
+              {% if p.min_term %}{{ p.min_term }}{% else %}—{% endif %}–{% if p.max_term %}{{ p.max_term }}{% else %}—{% endif %} months</div>
+            <div><strong>Fees configured:</strong> {{ p.fees.count }}</div>
+          </div>
+        </div>
+        <div class="card-footer bg-white border-0 d-flex gap-2">
+          <a href="{% url 'lenders:product_edit' p.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+          <form method="post" action="{% url 'lenders:product_toggle_active' p.id %}" class="d-inline">
+            {% csrf_token %}
+            <button class="btn btn-sm btn-outline-secondary">
+              {% if p.is_active %}Deactivate{% else %}Activate{% endif %}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-light border text-muted">
+    You haven't added any products yet. Add your first loan product so borrowers
+    can apply to you with clear, upfront terms and fees.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -18,12 +18,46 @@ from django.db.models.functions import Cast
 
 from micro.models import PaymentDetailsMixin
 
+from loans.references import generate_reference
+from .kfs_layer3_schedule import build_schedule
 
 
 User = get_user_model()
 
 
+# =====================================================================
+# LAYER 1 — Credit-provider fields on LenderProfile (KFS Section 1)
+# =====================================================================
+class LenderCreditProviderFieldsMixin(models.Model):
+    """Credit-provider identity + contact fields required on a Key Facts Statement."""
 
+    # --- regulatory identity (KFS-critical) ---
+    cbl_licence_number = models.CharField(
+        max_length=60, blank=True,
+        help_text="CBL licence / registration number, e.g. CBL/MFI/XXXX/2026.")
+    registered_name = models.CharField(
+        max_length=200, blank=True,
+        help_text="Registered legal name, if different from the display/company name.")
+    registered_address = models.CharField(max_length=300, blank=True)
+
+    # --- contacts shown to the borrower ---
+    service_phone = models.CharField(max_length=30, blank=True)
+    service_email = models.EmailField(blank=True)
+    complaints_phone = models.CharField(max_length=30, blank=True)
+    complaints_email = models.EmailField(blank=True)
+
+    class Meta:
+        abstract = True
+
+    @property
+    def kfs_ready(self) -> bool:
+        """Minimum credit-provider info present to generate a compliant KFS."""
+        return bool(self.cbl_licence_number and (self.service_phone or self.service_email))
+
+
+# =====================================================================
+# Profile Managers
+# =====================================================================
 COMPLIANCE_POLICY_FIELDS = [
 		'has_kyc_policy',
 		'has_aml_policy',
@@ -106,7 +140,10 @@ def get_upload_path(instance, filename):
 	return f"Lender-photos/{instance.user.username}.{ext}"
 
 
-class LenderProfile(PaymentDetailsMixin, models.Model):
+# =====================================================================
+# Main Lender Profile
+# =====================================================================
+class LenderProfile(PaymentDetailsMixin, LenderCreditProviderFieldsMixin, models.Model):
 	"""
 	Core lender profile - combines operational settings with CBL compliance status.
 	This is the main profile that links to the User model.
@@ -584,168 +621,294 @@ def create_lender_profile(sender, instance, created, **kwargs):
 
 	if getattr(instance, 'role', None) == 'lender':
 		LenderProfile.objects.get_or_create(user=instance)
-
-
-
-
-
-
-
+# =====================================================================
+# End of Lender Profile
+# =====================================================================
 
 
 """
-# Create a user Profile by default when user signs up
-def create_profile(sender, instance, created, **kwargs):
-	if created:
-		lender_profile = LenderProfile(user=instance)
-		lender_profile.save()
+Fedha-Grow — LAYER 2: lender products & fees (KFS Section 4)
+============================================================
+A lender offers one or more named PRODUCTS (e.g. "Standard Loan LP-STD-03"),
+each with an interest rate and a set of configurable FEES. A loan is an instance
+of a product, so its KFS can disclose exactly the product's fees.
+
+Why a product model (not fees on the lender profile):
+  * The KFS template carries a "Product Version" (LP-STD-03) — it assumes named,
+    versioned products.
+  * Real MFIs offer several products (standard, business, emergency) with
+    different rates and fees.
+  * A loan freezes a reference to the product version it was issued under, so a
+    later fee change never rewrites a historical loan's disclosure.
+
+Fedha-Grow standardises the DISCLOSURE STRUCTURE; the lender plugs in the actual
+amounts. This is the "we provide the infrastructure, the lender sets the terms"
+boundary, in the data model.
+"""
+class LenderProduct(models.Model):
+    lender = models.ForeignKey(
+        "lenders.LenderProfile", on_delete=models.CASCADE, related_name="products")
+
+    name = models.CharField(max_length=120, help_text="e.g. Standard Personal Loan")
+    product_code = models.CharField(max_length=40, help_text="e.g. LP-STD-03")
+    version = models.CharField(max_length=20, blank=True, help_text="e.g. 03")
+    effective_from = models.DateField(null=True, blank=True)
+
+    # core terms
+    annual_interest_rate = models.DecimalField(
+        max_digits=6, decimal_places=2,
+        help_text="Nominal annual interest rate, %.")
+    INTEREST_TYPE_CHOICES = [
+        ("flat", "Flat"),
+        ("reducing", "Reducing balance"),
+    ]
+    interest_type = models.CharField(max_length=12, choices=INTEREST_TYPE_CHOICES, default="flat")
+    interest_calculation_note = models.CharField(
+        max_length=200, blank=True,
+        help_text="Free-text description of how interest is calculated (shown on KFS).")
+
+    REPAYMENT_FREQUENCY_CHOICES = [
+        ("monthly", "Monthly"),
+        ("weekly", "Weekly"),
+        ("fortnightly", "Fortnightly"),
+    ]
+    repayment_frequency = models.CharField(
+        max_length=12, choices=REPAYMENT_FREQUENCY_CHOICES, default="monthly")
+
+    # bounds
+    min_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    max_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    min_term = models.PositiveIntegerField(null=True, blank=True, help_text="months")
+    max_term = models.PositiveIntegerField(null=True, blank=True, help_text="months")
+
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["lender", "name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.product_code}) — {self.lender.company_name}"
+
+    @property
+    def monthly_interest_rate(self) -> Decimal:
+        return (self.annual_interest_rate / Decimal("12")).quantize(Decimal("0.01"))
 
 
-# Automate the profile thing
-post_save.connect(create_profile, sender=User)
+class ProductFee(models.Model):
+    """A single configurable fee on a product — mirrors a KFS Section 4 row."""
 
+    product = models.ForeignKey(LenderProduct, on_delete=models.CASCADE, related_name="fees")
 
+    # named fee types match the KFS rows, but 'other' allows extensibility
+    FEE_TYPE_CHOICES = [
+        ("initiation",   "Initiation Fee"),
+        ("service",      "Service / Administration Fee"),
+        ("credit_bureau","Credit Bureau Fee"),
+        ("insurance",    "Insurance Premium"),
+        ("late_payment", "Late Payment Charge"),
+        ("early_settlement", "Early Settlement Charge"),
+        ("restructuring","Restructuring Fee"),
+        ("legal_recovery","Legal / Recovery Costs"),
+        ("other",        "Other Charge"),
+    ]
+    fee_type = models.CharField(max_length=20, choices=FEE_TYPE_CHOICES)
 
-class LenderProfile(models.Model):
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
 
-	OWNERSHIP = [
-		(None, 'Select...'),
-		('Sole Proprietorship', 'Sole Proprietorship'),
-		('Partnership', 'Partnership'),
-		('Limited Liability Company', 'Limited Liability Company'),
-		('Corporation', 'Corporation'),
-	]
+    # how/when it applies — drives the KFS "Basis / When Payable" column
+    BASIS_CHOICES = [
+        ("once_origination", "Once — at origination"),
+        ("once_predisbursement", "Once — before disbursement"),
+        ("per_instalment", "Per instalment"),
+        ("per_occurrence", "Per applicable occurrence"),
+        ("as_incurred", "As incurred"),
+        ("conditional", "If / when applicable"),
+        ("na", "Not applicable"),
+    ]
+    basis = models.CharField(max_length=24, choices=BASIS_CHOICES, default="conditional")
+    applicable = models.BooleanField(default=True, help_text="Does this fee apply to this product?")
+    note = models.CharField(max_length=200, blank=True)
 
-	KYC_POLICY_IMPLEMENTATION = [
-		(None, 'Select...'),
-		('Yes', 'Yes'),
-		('No', 'No'),
-	]
+    class Meta:
+        ordering = ["product", "fee_type"]
 
-	AML_POLICY_IMPLEMENTATION = [
-		(None, 'Select...'),
-		('Yes', 'Yes'),
-		('No', 'No'),
-	]
+    def __str__(self):
+        return f"{self.get_fee_type_display()}: M{self.amount} ({self.product.product_code})"
 
-	DATA_PROTECTION_POLICY_IMPLEMENTATION = [
-		(None, 'Select...'),
-		('Yes', 'Yes'),
-		('No', 'No'),
-	]
-
-	CODE_OF_ETHICS = [
-		(None, 'Select...'),
-		('Yes', 'Yes'),
-		('No', 'No'),
-	]
-
-	BENCHMARKING = [
-		(None, 'Select...'),
-		('Yes', 'Yes'),
-		('No', 'No'),
-	]
-
-	REPORTING = [
-		(None, 'Select...'),
-		('Yes', 'Yes'),
-		('No', 'No'),
-	]
-	RECALCULATION_CHOICES = [
-		('recalculate', 'Recalculate Interest on Skipped Payment'),
-		('standard', 'Standard Double Payment'),
-	]
-
-	VERIFICATION_CHOICES = [
-		('unverified', 'Unverified'),
-		('pending', 'Pending Review'),
-		('verified', 'Verified'),
-		('licensed', 'Licensed'),
-	]
-
-	LOAN_TERM_CHOICES = [
-		(1, "1 month"),
-		(3, "3 months"),
-		(6, "6 months"),
-		(9, "9 months"),
-		(12, "12 months"),
-		(24, "24 months"),
-		(36, "36 months"),
-	]
-
-	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='lender')
-	ceo_first_name = models.CharField(max_length=20, blank=False)
-	ceo_last_name = models.CharField( max_length=20, blank=False)
-	date_modified = models.DateTimeField(User, auto_now=True)
-	company_name = models.CharField(max_length=20, default='')
-	registration_no = models.CharField(max_length=20, default='')
-	office_address = models.CharField(max_length=100, default='')
-	min_loan = models.DecimalField(decimal_places=2, max_digits=50, null=True, blank=True)
-	max_loan = models.DecimalField(decimal_places=2, max_digits=50, null=True, blank=True)
-	interest_rate = models.DecimalField(decimal_places=2, max_digits=50, null=True, blank=True)
-	phone_number = models.CharField(max_length=20, default='')
-
-
-	date_of_stablishment = models.CharField(max_length=20, default='')
-	business_email_ddress = models.CharField(max_length=20, default='')
-
-	ownership = models.CharField(max_length=100, choices=OWNERSHIP, default='', blank=False)
-	licence_no = models.CharField(max_length=20, blank=True, default='')
-	regulatory_body_name = models.CharField(max_length=100, blank=True, default='')
-	regulatory_body_no = models.CharField(max_length=100, blank=True, default='')
-
-	kyc_policy_implementation = models.CharField(max_length=100, choices=KYC_POLICY_IMPLEMENTATION, default='', blank=False)
-	aml_policy_implementation = models.CharField(max_length=100, choices=AML_POLICY_IMPLEMENTATION, default='', blank=False)
-	data_protection_policy_implementation = models.CharField(max_length=100, choices=DATA_PROTECTION_POLICY_IMPLEMENTATION, default='', blank=False)
-	tax_number = models.CharField(max_length=50, default='', blank=False)
-
-	code_of_ethics = models.CharField(max_length=100, choices=CODE_OF_ETHICS, default='', blank=False)
-	association_name = models.CharField(max_length=100, default='')
-	membership_no = models.CharField(max_length=20, default='')
-	
-	benchmarking = models.CharField(max_length=100, choices=BENCHMARKING, default='', blank=False)
-	reporting = models.CharField(max_length=100, choices=REPORTING, default='', blank=False)
-
-	agrees_to_terms = models.BooleanField(default=False, blank=False)
-	agrees_to_credit_conditions = models.BooleanField(default=False, blank=False)
-
-	missed_payment_policy = models.CharField(
-		max_length=20,
-		choices=RECALCULATION_CHOICES,
-		default='standard',
-		help_text="How this lender handles missed payments.",
-		blank=False,
-
-	)
-	verification_status = models.CharField(max_length=20, choices=VERIFICATION_CHOICES, default='unverified')
-	loan_terms = models.JSONField(default=list, blank=True)
-
-	def get_loan_terms_display(self):
-		terms_map = dict(self.LOAN_TERM_CHOICES)
-		return [terms_map[int(term)] for term in self.loan_terms]
-
-	objects = LenderProfileManager()
-	
-	
-	def average_rating(self):
-		ratings = self.ratings.all()
-		return sum(rating.rating for rating in ratings) / ratings.count() if ratings else 0
-
-
-	def __str__(self):
-		return self.user.username
-
-# Create a user Profile by default when user signs up
-def create_profile(sender, instance, created, **kwargs):
-	if created:
-		lender_profile = LenderProfile(user=instance)
-		lender_profile.save()
-
-
-# Automate the profile thing
-post_save.connect(create_profile, sender=User)
 
 """
+Fedha-Grow — LAYER 4: the Key Facts Statement (immutable snapshot)
+=================================================================
+A KFS is generated right after loan approval and FROZEN. It captures — as a
+snapshot, not live references — everything the disclosure shows: provider
+identity, product terms, fees, the computed schedule and total cost. This means
+a later change to the lender's product or fees never alters an already-issued
+KFS. Same immutability discipline as the affordability snapshot.
+
+Lifecycle:  generated -> borrower acknowledges -> lender rep acknowledges ->
+fully acknowledged (locked). Disbursement is gated on borrower acknowledgement
+(see Layer 5).
+"""
+class KeyFactsStatement(models.Model):
+    loan = models.OneToOneField(
+        "loans.Loan", on_delete=models.CASCADE, related_name="kfs")
+    loan_application = models.ForeignKey(
+        "loans.LoanApplication", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="kfs_statements")
+
+    # public reference for the KFS itself (KFS Reference on the document)
+    reference = models.CharField(max_length=24, unique=True, editable=False, null=True, blank=True)
+
+    # --- frozen snapshot data (JSON — the whole disclosure, as generated) ---
+    # Held as JSON so the exact disclosed values are preserved verbatim even if
+    # every source model changes later. The template renders from this.
+    snapshot = models.JSONField(default=dict)
+
+    # a few promoted fields for querying/display without parsing the JSON
+    approved_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    total_payable = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    product_code = models.CharField(max_length=40, blank=True)
+
+    # --- acknowledgement lifecycle ---
+    STATUS_CHOICES = [
+        ("generated", "Generated — awaiting borrower acknowledgement"),
+        ("borrower_ack", "Borrower acknowledged — awaiting lender"),
+        ("acknowledged", "Fully acknowledged (locked)"),
+        ("void", "Void / superseded"),
+    ]
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="generated")
+
+    generated_at = models.DateTimeField(default=timezone.now)
+    kfs_version = models.CharField(max_length=20, default="KFS v1.0")
+
+    class Meta:
+        ordering = ["-generated_at"]
+
+    def __str__(self):
+        return f"KFS {self.reference} — Loan {self.loan_id} ({self.status})"
+
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            self.reference = generate_reference(KeyFactsStatement, "reference", prefix="FGK")
+        super().save(*args, **kwargs)
+
+    @property
+    def is_locked(self) -> bool:
+        """Once fully acknowledged, the KFS is immutable."""
+        return self.status == "acknowledged"
+
+    @property
+    def borrower_has_acknowledged(self) -> bool:
+        return self.status in ("borrower_ack", "acknowledged")
+
+
+# =====================================================================
+# Generation — assemble the frozen snapshot from the approved loan
+# =====================================================================
+def generate_kfs(loan, *, product=None):
+    """
+    Build (or return existing) the immutable KFS for an approved loan.
+    Freezes provider details, product terms, fees, schedule and totals into
+    the snapshot JSON. Idempotent: won't regenerate if one already exists.
+    """
+    existing = getattr(loan, "kfs", None)
+    if existing:
+        return existing
+
+    lender = loan.lender
+    borrower = loan.borrower
+    product = product or _resolve_product(loan)
+
+    # fees as plain dicts for the schedule builder + the snapshot
+    fee_rows = []
+    if product:
+        for f in product.fees.all():
+            fee_rows.append({
+                "fee_type": f.fee_type, "label": f.get_fee_type_display(),
+                "amount": str(f.amount), "basis": f.basis,
+                "basis_label": f.get_basis_display(),
+                "applicable": f.applicable, "note": f.note,
+            })
+
+    annual_rate = product.annual_interest_rate if product else loan.interest_rate
+    term = loan.loan_term
+    interest_type = product.interest_type if product else "flat"
+
+    cb = build_schedule(
+        principal=loan.amount, annual_rate=annual_rate, term_months=term,
+        fees=[{**fr, "amount": Decimal(fr["amount"])} for fr in fee_rows],
+        interest_type=interest_type)
+
+    snapshot = {
+        "provider": {
+            "name": lender.company_name,
+            "registered_name": getattr(lender, "registered_name", "") or lender.company_name,
+            "cbl_licence_number": getattr(lender, "cbl_licence_number", ""),
+            "registered_address": getattr(lender, "registered_address", ""),
+            "service_phone": getattr(lender, "service_phone", ""),
+            "service_email": getattr(lender, "service_email", ""),
+            "complaints_phone": getattr(lender, "complaints_phone", ""),
+            "complaints_email": getattr(lender, "complaints_email", ""),
+        },
+        "borrower": {
+            "full_name": borrower.full_name,
+            "id_number_masked": _mask(getattr(borrower, "id_number", "")),
+            "mobile_masked": _mask(getattr(borrower, "phone_number", "")),
+        },
+        "product": {
+            "name": product.name if product else "",
+            "code": product.product_code if product else "",
+            "version": product.version if product else "",
+            "interest_type": interest_type,
+            "interest_calculation_note": getattr(product, "interest_calculation_note", "") if product else "",
+            "repayment_frequency": product.get_repayment_frequency_display() if product else "Monthly",
+        },
+        "terms": {
+            "approved_amount": str(loan.amount),
+            "term_months": term,
+            "annual_interest_rate": str(annual_rate),
+            "monthly_interest_rate": str((Decimal(str(annual_rate)) / 12).quantize(Decimal("0.01"))),
+        },
+        "fees": fee_rows,
+        "cost": {
+            "principal": str(cb.principal),
+            "total_interest": str(cb.total_interest),
+            "total_fees": str(cb.total_fees),
+            "fees_by_type": {k: str(v) for k, v in cb.fees_by_type.items()},
+            "total_payable": str(cb.total_payable),
+        },
+        "schedule": [
+            {"number": i.number, "principal": str(i.principal), "interest": str(i.interest),
+             "fees": str(i.fees), "total": str(i.total), "balance": str(i.balance)}
+            for i in cb.instalments
+        ],
+    }
+
+    kfs = KeyFactsStatement.objects.create(
+        loan=loan, loan_application=getattr(loan, "application_source", None),
+        snapshot=snapshot, approved_amount=loan.amount,
+        total_payable=cb.total_payable,
+        product_code=product.product_code if product else "",
+    )
+    return kfs
+
+
+def _resolve_product(loan):
+    """Which product this loan was issued under. Adjust to your linkage."""
+    return getattr(loan, "product", None)
+
+
+def _mask(value: str) -> str:
+    """Mask all but the last 4 chars for display (ID, phone)."""
+    s = str(value or "")
+    if len(s) <= 4:
+        return s
+    return "•" * (len(s) - 4) + s[-4:]
+
+
+
+
 
 def upload_to_lender_docs(instance, filename):
 	return f'lender_documents/{instance.lender.user.username}/{instance.document_type}/{filename}'
