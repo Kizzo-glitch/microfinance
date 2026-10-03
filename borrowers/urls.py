@@ -16,6 +16,7 @@ urlpatterns = [
     path('borrower_profile/', views.borrower_profile, name='borrower_profile'),
 
     path('lender_details/<int:lender_id>/', views.lender_details, name='lender_details'),
+    path('lender/<int:lender_id>/product/<int:product_id>/choose/', views.choose_product, name='choose_product'),
     
     path('send-otp/', views.send_otp, name='send_otp'),
     path('verify-otp/', views.verify_otp, name='verify_otp'),

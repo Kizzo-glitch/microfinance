@@ -5,7 +5,232 @@
 
 {% block content %}
 
-                <div class="container mt-5">
+<div class="container mt-5">
+                    <div class="card shadow">
+                        <div class="card-header bg-secondary text-white">
+                            <h2 class="card-title mb-0">{{ lender.company_name }}</h2>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">
+                                <strong>Address:</strong> {{ lender.physical_address }}
+                            </p>
+                            <p class="card-text">
+                                <strong>Interest Rate:</strong> {{ lender.interest_rate }}%
+                            </p>
+                            <p class="card-text">
+                                <strong>Minimum Loan:</strong> M{{ lender.min_loan_amount }}
+                            </p>
+                            <p class="card-text">
+                                <strong>Maximum Loan:</strong> M{{ lender.max_loan_amount }}
+                            </p>
+                            <p class="card-text">
+                                <strong>Lender Loan Terms:</strong> {{ lender.get_loan_terms_display|join:", " }}
+                            </p>
+                            <p class="card-text">
+                                <strong>Contact:</strong> {{ lender.phone_number }}
+                            </p>
+                            <p class="card-text">
+                                <strong>Missed Payment Policy:</strong> {{ lender.missed_payment_policy }}
+                            </p>
+                            <p class="card-text">
+                                <strong>Platform Verification Status:</strong> {{ lender.verification_status }}
+                            </p>
+
+                             <p><strong>Average Rating:</strong> 
+                                <span>
+                                    {% for _ in rating_range %}
+                                        <i class="fas fa-star"style="color:blue"></i>
+                                    {% endfor %}
+                                    {% if rating_range|length == 0 %}
+                                        No ratings yet
+                                    {% endif %}
+                                </span>
+                            </p>
+
+                        
+                            <br>
+
+                            
+                        </div>
+                    </div>
+                     <br>
+
+                    <div class="card shadow">
+                        <div class="card-body">
+                        <!-- Display ratings -->
+                        <div class="card-header bg-secondary text-white">
+                            <h5>My Rating:</h5></div><br>
+                            <ul>
+                                {% if existing_rating %}
+                                <p>You Last Rated {{ lender.company_name }}: {{ existing_rating.rating }} <i class="fas fa-star"style="color:blue"></i>s</p>
+                            {% else %}
+                                <p>You have not rated this lender yet.</p>
+                            {% endif %}
+                            </ul>
+                            <div class="card-header bg-secondary text-white">
+
+                            <h5>Rate The Lender</h5></div><br>
+                            {% if user.is_authenticated %}
+                                <form method="post">
+                                    {% csrf_token %}
+                                    {{ form.as_p }}
+                                    <button type="submit" class="btn btn-primary">
+                                        {% if existing_rating %}
+                                            Update Rating
+                                        {% else %}
+                                            Submit Rating
+                                        {% endif %}
+                                    </button>
+                                </form>
+                                {% if existing_rating %}
+                                    <p class="text-muted mt-2">You rated this lender: {{ existing_rating.rating }} Stars</p>
+                                {% endif %}
+                            {% else %}
+                                <p class="text-danger">You must <a href="{% url 'login' %}">log in</a> to rate this lender.</p>
+                            {% endif %}
+                            <br><br>
+                            <center>
+                                
+                            <!--<button class="animated-button" onclick="window.location.href='{% url 'borrowers:employment_type' %}?'">
+                              <svg viewBox="0 0 24 24" class="arr-2" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                  d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"
+                                ></path>
+                              </svg>
+                              <span class="text">Apply from this Lender</span>
+                              <span class="circle"></span>
+                              <svg viewBox="0 0 24 24" class="arr-1" xmlns="http://www.w3.org/2000/svg">
+                                <path
+                                  d="M16.1716 10.9999L10.8076 5.63589L12.2218 4.22168L20 11.9999L12.2218 19.778L10.8076 18.3638L16.1716 12.9999H4V10.9999H16.1716Z"
+                                ></path>
+                              </svg>
+                            </button>-->
+
+                        </center>                       
+                            <br>
+                    </div>
+                    </div>
+                </div>
+
+
+<div class="container mt-5">
+ 
+  <!-- Lender identity (fuller — CBL wanted more borrower-facing info) -->
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-dark text-white">
+      <h3 class="mb-0">{{ lender.company_name }}</h3>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <p class="mb-1"><strong>Address:</strong> {{ lender.physical_address|default:"—" }}</p>
+          <p class="mb-1"><strong>Contact:</strong> {{ lender.service_phone|default:lender.phone_number|default:"—" }}</p>
+          {% if lender.service_email %}<p class="mb-1"><strong>Email:</strong> {{ lender.service_email }}</p>{% endif %}
+        </div>
+        <div class="col-md-6">
+          <p class="mb-1">
+            <strong>CBL Licence No.:</strong>
+            {% if lender.cbl_licence_number %}
+              {{ lender.cbl_licence_number }}
+              <span class="badge bg-success ms-1"><i class="bi bi-patch-check"></i> Licensed</span>
+            {% else %}
+              <span class="text-muted">Not provided</span>
+            {% endif %}
+          </p>
+          <p class="mb-1">
+            <strong>Verification:</strong>
+            {% if lender.is_verified %}
+              <span class="badge bg-success">Verified</span>
+            {% else %}
+              <span class="badge bg-secondary">Unverified</span>
+            {% endif %}
+          </p>
+          {% if lender.complaints_phone or lender.complaints_email %}
+          <p class="mb-1"><strong>Complaints:</strong> {{ lender.complaints_phone }} {{ lender.complaints_email }}</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <!-- Products -->
+  <h4 class="mb-3">Loan products</h4>
+ 
+  {% if has_products %}
+    <p class="text-muted small">Choose the product that suits you. All fees are shown upfront — you'll
+      receive a full Key Facts Statement before any loan is disbursed.</p>
+ 
+    {% for p in products %}
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <div>
+          <strong>{{ p.name }}</strong>
+          <span class="text-muted small ms-2">{{ p.product_code }}{% if p.version %} · v{{ p.version }}{% endif %}</span>
+        </div>
+        <span class="badge bg-primary text-white">{{ p.annual_interest_rate }}% p.a.</span>
+      </div>
+      <div class="card-body">
+        <div class="row small mb-3">
+          <div class="col-md-4"><strong>Amount:</strong> M{{ p.min_amount|default:"—" }} – M{{ p.max_amount|default:"—" }}</div>
+          <div class="col-md-4"><strong>Term:</strong> {{ p.min_term|default:"—" }}–{{ p.max_term|default:"—" }} months</div>
+          <div class="col-md-4"><strong>Interest:</strong> {{ p.get_interest_type_display }}</div>
+        </div>
+ 
+        {% if p.fees.all %}
+        <div class="mb-3">
+          <div class="small fw-semibold text-muted text-uppercase mb-1">Fees &amp; charges</div>
+          <table class="table table-sm mb-0">
+            <tbody>
+              {% for f in p.fees.all %}
+                {% if f.applicable %}
+                <tr>
+                  <td>{{ f.get_fee_type_display }}</td>
+                  <td>M{{ f.amount }}</td>
+                  <td class="text-muted small">{{ f.get_basis_display }}</td>
+                </tr>
+                {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+          <p class="small text-muted">No additional fees on this product.</p>
+        {% endif %}
+ 
+        <form method="post" action="{% url 'borrowers:choose_product' lender.id p.id %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-success">
+            <i class="bi bi-check-circle"></i> Apply with this product
+          </button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+ 
+  {% else %}
+    <!-- Fallback: lender hasn't set up products yet — show legacy flat terms -->
+    <div class="card shadow-sm border-0 mb-3">
+      <div class="card-body">
+        <p class="text-muted small">This lender hasn't published detailed products yet. General terms:</p>
+        <div class="row small">
+          <div class="col-md-4"><strong>Interest Rate:</strong> {{ lender.interest_rate }}%</div>
+          <div class="col-md-4"><strong>Amount:</strong> M{{ lender.min_loan }} – M{{ lender.max_loan }}</div>
+          <div class="col-md-4"><strong>Terms:</strong> {{ lender.loan_terms }}</div>
+        </div>
+        <form method="post" action="{% url 'borrowers:choose_lender' lender.id %}" class="mt-3">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-outline-success">Apply to this lender</button>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+ 
+  <a href="{% url 'borrowers:borrower_index' %}" class="btn btn-outline-secondary mt-2">
+    <i class="bi bi-arrow-left"></i> Back to lenders
+  </a>
+</div>
+
+                <!--<div class="container mt-5">
                     <div class="card shadow">
                         <div class="card-header bg-secondary text-white">
                             <h2 class="card-title mb-0">{{ lender.company_name }}</h2>
@@ -57,21 +282,10 @@
 
                     <div class="card shadow">
                         <div class="card-body">
-                        <!-- Display ratings -->
+                        
                         <div class="card-header bg-secondary text-white">
-                            <!--<h5>My Rating:</h5>
-                            {% if existing_rating %}
-                                <p>I gave {{ lender.company_name }}: {{ existing_rating.rating }} ★s</p>
-                            {% else %}
-                                <p>I have not rated this lender yet.</p>
-                            {% endif %}-->
                             <h5>My Rating:</h5></div><br>
                             <ul>
-                                <!--<{% for rating in ratings %}
-                                    <li>I gave {{ rating.lender.company_name }}: {{ rating.rating }} ★s</li>
-                                {% empty %}
-                                    <li>No ratings available for this lender.</li>
-                                {% endfor %}-->
                                 {% if existing_rating %}
                                 <p>You Last Rated {{ lender.company_name }}: {{ existing_rating.rating }} <i class="fas fa-star"style="color:blue"></i>s</p>
                             {% else %}
@@ -117,16 +331,11 @@
                               </svg>
                             </button>
 
-
-                            <!--<a href="{% url 'borrowers:loan_application' %}" class="btn btn-secondary mt-3">
-                                <i class="fas fa-arrow-right"></i> Apply for Loan
-                            </a>-->
-
                         </center>                       
                             <br>
                     </div>
                     </div>
-                </div>
+                </div>-->
 
 
                 <style>

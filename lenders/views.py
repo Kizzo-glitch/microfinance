@@ -40,6 +40,7 @@ from .forms import (LenderInfoForm, LenderProductForm, LoanApplicationStatusForm
 from .models import LenderProfile, LenderDocs, LenderProduct, ProductFee
 
 from loans.models import Notification, LoanApplication, Loan, LoanPayment
+from loans.views import on_loan_approved
 from loans.utils import get_loans_by_risk_category, send_sms_smsportal, calculate_affordability
 from borrowers.models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
 from comms.sms.service import send_sms
@@ -226,110 +227,110 @@ def risk_customer_list(request, category):
 # Lender Profile and Product Listings
 # ======================================
 def lender_profile(request):
-    profile, created = LenderProfile.objects.get_or_create(user=request.user)
-    PaymentForm = make_payment_details_form(LenderProfile)
+	profile, created = LenderProfile.objects.get_or_create(user=request.user)
+	PaymentForm = make_payment_details_form(LenderProfile)
 
-    if request.method == 'POST':
-        if 'save_payment' in request.POST:
-            # --- payment details (bank form + mobile-money formset) ---
-            payment_form = PaymentForm(request.POST, instance=profile)
-            mm_formset = get_mobile_money_formset(profile, is_lender=True, data=request.POST)
-            form = LenderInfoForm(instance=profile)   # keep the main form rendered
+	if request.method == 'POST':
+		if 'save_payment' in request.POST:
+			# --- payment details (bank form + mobile-money formset) ---
+			payment_form = PaymentForm(request.POST, instance=profile)
+			mm_formset = get_mobile_money_formset(profile, is_lender=True, data=request.POST)
+			form = LenderInfoForm(instance=profile)   # keep the main form rendered
 
-            if payment_form.is_valid() and mm_formset.is_valid():
-                payment_form.save()
-                save_mobile_money_formset(mm_formset, profile, is_lender=True)
-                messages.success(request, "Payment details saved.")
-                return redirect('lenders:lender_profile')
-            else:
-                messages.error(request, "Please check your payment details.")
-                print(payment_form.errors, mm_formset.errors)
+			if payment_form.is_valid() and mm_formset.is_valid():
+				payment_form.save()
+				save_mobile_money_formset(mm_formset, profile, is_lender=True)
+				messages.success(request, "Payment details saved.")
+				return redirect('lenders:lender_profile')
+			else:
+				messages.error(request, "Please check your payment details.")
+				print(payment_form.errors, mm_formset.errors)
 
-        else:
-            # --- main profile form submitted ---
-            form = LenderInfoForm(request.POST, request.FILES, instance=profile)
-            payment_form = PaymentForm(instance=profile)
-            mm_formset = get_mobile_money_formset(profile, is_lender=True)
-            if form.is_valid():
-                profile = form.save(commit=False)
-                profile.user = request.user
-                profile.save()
-                messages.success(request, "Your Info Has Been Updated!!")
-                return redirect('lenders:product_list')
-            else:
-                print(form.errors)
+		else:
+			# --- main profile form submitted ---
+			form = LenderInfoForm(request.POST, request.FILES, instance=profile)
+			payment_form = PaymentForm(instance=profile)
+			mm_formset = get_mobile_money_formset(profile, is_lender=True)
+			if form.is_valid():
+				profile = form.save(commit=False)
+				profile.user = request.user
+				profile.save()
+				messages.success(request, "Your Info Has Been Updated!!")
+				return redirect('lenders:product_list')
+			else:
+				print(form.errors)
 
-    else:
-        form = LenderInfoForm(instance=profile)
-        payment_form = PaymentForm(instance=profile)
-        mm_formset = get_mobile_money_formset(profile, is_lender=True)
+	else:
+		form = LenderInfoForm(instance=profile)
+		payment_form = PaymentForm(instance=profile)
+		mm_formset = get_mobile_money_formset(profile, is_lender=True)
 
-    return render(request, "lender_profile.html", {
-        "form": form,
-        "payment_form": payment_form,
-        "mm_formset": mm_formset,
-        "profile": profile,          
-    })
+	return render(request, "lender_profile.html", {
+		"form": form,
+		"payment_form": payment_form,
+		"mm_formset": mm_formset,
+		"profile": profile,          
+	})
 
 
 # ---------------- Products and Fees ----------------
 @login_required
 def product_list(request):
-    lender = get_object_or_404(LenderProfile, user=request.user)
-    products = lender.products.all()
-    return render(request, "product_list.html", {
-        "lender": lender, "products": products,
-    })
+	lender = get_object_or_404(LenderProfile, user=request.user)
+	products = lender.products.all()
+	return render(request, "product_list.html", {
+		"lender": lender, "products": products,
+	})
  
  
 @login_required
 def product_edit(request, product_id=None):
-    lender = get_object_or_404(LenderProfile, user=request.user)
+	lender = get_object_or_404(LenderProfile, user=request.user)
  
-    if product_id:
-        product = get_object_or_404(LenderProduct, id=product_id, lender=lender)
-    else:
-        product = LenderProduct(lender=lender)
+	if product_id:
+		product = get_object_or_404(LenderProduct, id=product_id, lender=lender)
+	else:
+		product = LenderProduct(lender=lender)
  
-    if request.method == "POST":
-        form = LenderProductForm(request.POST, instance=product)
-        # fees formset only binds once the product can be saved
-        if form.is_valid():
-            product = form.save(commit=False)
-            product.lender = lender
-            product.save()
-            fee_formset = ProductFeeFormSet(request.POST, instance=product)
-            if fee_formset.is_valid():
-                fee_formset.save()
-                messages.success(request, f"Product '{product.name}' saved.")
-                return redirect("lenders:product_list")
-            else:
-                # product saved but fees invalid — re-render with fee errors
-                messages.error(request, "Please check the fees below.")
-        else:
-            fee_formset = ProductFeeFormSet(request.POST, instance=product if product.pk else None)
-            messages.error(request, "Please correct the errors below.")
-    else:
-        form = LenderProductForm(instance=product)
-        fee_formset = ProductFeeFormSet(instance=product if product.pk else None)
+	if request.method == "POST":
+		form = LenderProductForm(request.POST, instance=product)
+		# fees formset only binds once the product can be saved
+		if form.is_valid():
+			product = form.save(commit=False)
+			product.lender = lender
+			product.save()
+			fee_formset = ProductFeeFormSet(request.POST, instance=product)
+			if fee_formset.is_valid():
+				fee_formset.save()
+				messages.success(request, f"Product '{product.name}' saved.")
+				return redirect("lenders:product_list")
+			else:
+				# product saved but fees invalid — re-render with fee errors
+				messages.error(request, "Please check the fees below.")
+		else:
+			fee_formset = ProductFeeFormSet(request.POST, instance=product if product.pk else None)
+			messages.error(request, "Please correct the errors below.")
+	else:
+		form = LenderProductForm(instance=product)
+		fee_formset = ProductFeeFormSet(instance=product if product.pk else None)
  
-    return render(request, "product_edit.html", {
-        "lender": lender, "form": form, "fee_formset": fee_formset,
-        "product": product if product.pk else None,
-    })
+	return render(request, "product_edit.html", {
+		"lender": lender, "form": form, "fee_formset": fee_formset,
+		"product": product if product.pk else None,
+	})
  
  
 @login_required
 def product_toggle_active(request, product_id):
-    """Quick activate/deactivate without full edit."""
-    lender = get_object_or_404(LenderProfile, user=request.user)
-    product = get_object_or_404(LenderProduct, id=product_id, lender=lender)
-    if request.method == "POST":
-        product.is_active = not product.is_active
-        product.save(update_fields=["is_active"])
-        messages.success(request,
-            f"'{product.name}' is now {'active' if product.is_active else 'inactive'}.")
-    return redirect("lenders:product_list")
+	"""Quick activate/deactivate without full edit."""
+	lender = get_object_or_404(LenderProfile, user=request.user)
+	product = get_object_or_404(LenderProduct, id=product_id, lender=lender)
+	if request.method == "POST":
+		product.is_active = not product.is_active
+		product.save(update_fields=["is_active"])
+		messages.success(request,
+			f"'{product.name}' is now {'active' if product.is_active else 'inactive'}.")
+	return redirect("lenders:product_list")
 
 
 
@@ -338,39 +339,39 @@ def product_toggle_active(request, product_id):
 # ===========================
 @login_required
 def save_lender_payment_details(request):
-    profile, _ = BorrowerProfile.objects.get_or_create(user=request.user)
-    PaymentForm = make_payment_details_form(BorrowerProfile)
-    next_url = request.POST.get("next") or request.GET.get("next")
+	profile, _ = BorrowerProfile.objects.get_or_create(user=request.user)
+	PaymentForm = make_payment_details_form(BorrowerProfile)
+	next_url = request.POST.get("next") or request.GET.get("next")
  
-    if request.method == "POST":
-        bank_form = PaymentForm(request.POST, instance=profile)
-        mm_formset = get_mobile_money_formset(profile, is_lender=False, data=request.POST)
+	if request.method == "POST":
+		bank_form = PaymentForm(request.POST, instance=profile)
+		mm_formset = get_mobile_money_formset(profile, is_lender=False, data=request.POST)
  
-        bank_ok = bank_form.is_valid()
-        mm_ok = mm_formset.is_valid()
+		bank_ok = bank_form.is_valid()
+		mm_ok = mm_formset.is_valid()
  
-        if bank_ok and mm_ok:
-            bank_form.save()
-            save_mobile_money_formset(mm_formset, profile, is_lender=False)
-            messages.success(request, "Payment details saved.")
-            return redirect(next_url or "borrowers:borrower_profile")
-        else:
-            messages.error(request, "Please check your payment details and try again.")
-            # re-render with errors (don't redirect, so errors show)
-            return render(request, "micro/loans/_payment_details.html", {
-                "form": bank_form,
-                "mm_formset": mm_formset,
-                "next": next_url or "",
-            })
+		if bank_ok and mm_ok:
+			bank_form.save()
+			save_mobile_money_formset(mm_formset, profile, is_lender=False)
+			messages.success(request, "Payment details saved.")
+			return redirect(next_url or "borrowers:borrower_profile")
+		else:
+			messages.error(request, "Please check your payment details and try again.")
+			# re-render with errors (don't redirect, so errors show)
+			return render(request, "micro/loans/_payment_details.html", {
+				"form": bank_form,
+				"mm_formset": mm_formset,
+				"next": next_url or "",
+			})
  
-    # GET
-    bank_form = PaymentForm(instance=profile)
-    mm_formset = get_mobile_money_formset(profile, is_lender=False)
-    return render(request, "micro/loans/_payment_details.html", {
-        "form": bank_form,
-        "mm_formset": mm_formset,
-        "next": next_url or "",
-    })
+	# GET
+	bank_form = PaymentForm(instance=profile)
+	mm_formset = get_mobile_money_formset(profile, is_lender=False)
+	return render(request, "micro/loans/_payment_details.html", {
+		"form": bank_form,
+		"mm_formset": mm_formset,
+		"next": next_url or "",
+	})
 
 # ==================
 # Soon to be replaced by Comliance registration
@@ -667,9 +668,13 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 						due_date=loan_application.date_applied + timedelta(days=365),
 						status="approved",
 						group=loan_application.group,
+						product=loan_application.product,
 					)
 					# Use the SAME relationship name as the guard above.
 					loan_application.linked_loan = loan
+					# --- KFS auto-generation + choreography ---
+					
+					on_loan_approved(self.request, loan_application, loan)
 
 				Notification.objects.create(
 					user=borrower_user.user,
@@ -784,15 +789,15 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 
 # in the seam file — simplify to return the profile directly:
 def _build_group_standing(loan_application):
-    """Return a GroupCreditProfile for a consenting group applicant, or None."""
-    group = getattr(loan_application, "group", None)
-    consent = getattr(loan_application, "group_data_consent", False)
-    if not group or not consent:
-        return None
-    from groups.group_credit_profile import build_group_credit_profile
-    borrower = loan_application.borrower
-    membership = group.memberships.filter(borrower=borrower, status="active").first()
-    return build_group_credit_profile(group, for_membership=membership)
+	"""Return a GroupCreditProfile for a consenting group applicant, or None."""
+	group = getattr(loan_application, "group", None)
+	consent = getattr(loan_application, "group_data_consent", False)
+	if not group or not consent:
+		return None
+	from groups.group_credit_profile import build_group_credit_profile
+	borrower = loan_application.borrower
+	membership = group.memberships.filter(borrower=borrower, status="active").first()
+	return build_group_credit_profile(group, for_membership=membership)
 
 # To be removed
 def view_borrower_documents(request, loan_id):
@@ -816,59 +821,59 @@ compatibility BEFORE approving, and borrowers can be nudged to add more methods.
 
 Design:
   * Methods (M-Pesa / bank) are decision-relevant and not sensitive — safe to
-    show at review time. Account NUMBERS stay hidden until approval.
+	show at review time. Account NUMBERS stay hidden until approval.
   * Compatibility is INFORMATION, never a hard gate. The platform surfaces a
-    mismatch; the lender and borrower decide what to do (approve anyway, use
-    cash, or the borrower adds a method).
+	mismatch; the lender and borrower decide what to do (approve anyway, use
+	cash, or the borrower adds a method).
 """
 
 
 def available_methods(profile) -> set:
-    """
-    The set of payment methods this profile can transact by.
-    Returns a set of {"bank", "mpesa", "ecocash"}.
-    """
-    methods = set()
-    if getattr(profile, "bank_account_number", "") and getattr(profile, "bank_name", ""):
-        methods.add("bank")
-    prov = getattr(profile, "mobile_money_provider", "")
-    if getattr(profile, "mobile_money_number", "") and prov:
-        methods.add(prov)   # "mpesa" or "ecocash"
-    return methods
+	"""
+	The set of payment methods this profile can transact by.
+	Returns a set of {"bank", "mpesa", "ecocash"}.
+	"""
+	methods = set()
+	if getattr(profile, "bank_account_number", "") and getattr(profile, "bank_name", ""):
+		methods.add("bank")
+	prov = getattr(profile, "mobile_money_provider", "")
+	if getattr(profile, "mobile_money_number", "") and prov:
+		methods.add(prov)   # "mpesa" or "ecocash"
+	return methods
 
 
 _LABELS = {"bank": "Bank transfer", "mpesa": "M-Pesa", "ecocash": "EcoCash"}
 
 
 def methods_label(methods: set) -> str:
-    if not methods:
-        return "None on file"
-    return ", ".join(_LABELS.get(m, m) for m in sorted(methods))
+	if not methods:
+		return "None on file"
+	return ", ".join(_LABELS.get(m, m) for m in sorted(methods))
 
 
 def compatibility(borrower_profile, lender_profile) -> dict:
-    """
-    Compare what the borrower can RECEIVE by with what the lender can transact
-    by. Returns a summary for display at review time.
-    """
-    b = available_methods(borrower_profile)
-    l = available_methods(lender_profile)
-    shared = b & l
+	"""
+	Compare what the borrower can RECEIVE by with what the lender can transact
+	by. Returns a summary for display at review time.
+	"""
+	b = available_methods(borrower_profile)
+	l = available_methods(lender_profile)
+	shared = b & l
 
-    return {
-        "borrower_methods": b,
-        "borrower_methods_label": methods_label(b),
-        "lender_methods": l,
-        "lender_methods_label": methods_label(l),
-        "shared": shared,
-        "shared_label": methods_label(shared) if shared else "",
-        "borrower_has_any": bool(b),
-        "has_overlap": bool(shared),
-        # a warning is warranted only when BOTH have methods on file but none match
-        "warn_no_overlap": bool(b) and bool(l) and not shared,
-        # or when the borrower has no methods at all
-        "warn_borrower_none": not b,
-    }
+	return {
+		"borrower_methods": b,
+		"borrower_methods_label": methods_label(b),
+		"lender_methods": l,
+		"lender_methods_label": methods_label(l),
+		"shared": shared,
+		"shared_label": methods_label(shared) if shared else "",
+		"borrower_has_any": bool(b),
+		"has_overlap": bool(shared),
+		# a warning is warranted only when BOTH have methods on file but none match
+		"warn_no_overlap": bool(b) and bool(l) and not shared,
+		# or when the borrower has no methods at all
+		"warn_borrower_none": not b,
+	}
 	
 
 
@@ -1063,77 +1068,77 @@ def applied_loans(request):
 @login_required
 @require_POST
 def confirm_payment(request, payment_id):
-    """Lender confirms receipt of a claimed payment. This settles it."""
-    lender = request.user.lender
-    payment = get_object_or_404(
-        LoanPayment, id=payment_id, loan__lender=lender, status="claimed"
-    )
+	"""Lender confirms receipt of a claimed payment. This settles it."""
+	lender = request.user.lender
+	payment = get_object_or_404(
+		LoanPayment, id=payment_id, loan__lender=lender, status="claimed"
+	)
 
-    payment.confirm(by_lender=lender)   # moves the balance (confirmed-only)
-    loan = payment.loan
+	payment.confirm(by_lender=lender)   # moves the balance (confirmed-only)
+	loan = payment.loan
 
-    # Notify the borrower their payment is confirmed.
-    fully = loan.is_fully_paid()
-    Notification.objects.create(
-        user=loan.borrower.user,
-        category="payment_update",      
-        message=(
-            f"Your payment of M{payment.amount} (ref {payment.reference}) for loan "
-            f"{loan.reference_number} has been confirmed."
-            + (" Your loan is now fully paid." if fully else "")
-        ),
-        loan=loan,
-    )
+	# Notify the borrower their payment is confirmed.
+	fully = loan.is_fully_paid()
+	Notification.objects.create(
+		user=loan.borrower.user,
+		category="payment_update",      
+		message=(
+			f"Your payment of M{payment.amount} (ref {payment.reference}) for loan "
+			f"{loan.reference_number} has been confirmed."
+			+ (" Your loan is now fully paid." if fully else "")
+		),
+		loan=loan,
+	)
 
-    send_sms(
-        loan.borrower.phone_number,
-        "payment_confirmed",
-        {
-            "name": loan.borrower.full_name,
-            "amount": payment.amount,
-            "lender": loan.lender.company_name,
-            "ref": payment.reference,
-            "fully_paid": fully,        # so the SMS can add "fully paid" too
-        },
-    )
+	send_sms(
+		loan.borrower.phone_number,
+		"payment_confirmed",
+		{
+			"name": loan.borrower.full_name,
+			"amount": payment.amount,
+			"lender": loan.lender.company_name,
+			"ref": payment.reference,
+			"fully_paid": fully,        # so the SMS can add "fully paid" too
+		},
+	)
 
-    messages.success(request, f"Payment {payment.reference} confirmed.")
-    return redirect("lenders:approved-loans")
+	messages.success(request, f"Payment {payment.reference} confirmed.")
+	return redirect("lenders:approved-loans")
  
 
 @login_required
 @require_POST
 def reject_payment(request, payment_id):
-    """
-    Lender rejects a claimed payment (e.g. not received, wrong reference).
-    The borrower can then edit and resubmit — this does NOT delete the record.
-    """
-    lender = request.user.lender
-    payment = get_object_or_404(
-        LoanPayment, id=payment_id, loan__lender=lender, status="claimed"
-    )
+	"""
+	Lender rejects a claimed payment (e.g. not received, wrong reference).
+	The borrower can then edit and resubmit — this does NOT delete the record.
+	"""
+	lender = request.user.lender
+	payment = get_object_or_404(
+		LoanPayment, id=payment_id, loan__lender=lender, status="claimed"
+	)
  
-    reason = (request.POST.get("reason") or "").strip()
-    payment.reject(by_lender=lender, reason=reason)
-    loan = payment.loan
+	reason = (request.POST.get("reason") or "").strip()
+	payment.reject(by_lender=lender, reason=reason)
+	loan = payment.loan
  
-    Notification.objects.create(
-        user=loan.borrower.user,
-        message=(
-            f"Your payment claim of M{payment.amount} (ref {payment.reference}) for "
-            f"loan {loan.reference_number} could not be confirmed. "
-            f"{('Reason: ' + reason + '. ') if reason else ''}"
-            f"Please check the details and resubmit."
-        ),
-        category="loan_payment",
-        loan=loan,
-    )
-    send_sms(loan.borrower.phone_number, "payment_rejected",
-              {"name": loan.borrower.full_name, "amount": payment.amount,
-               "ref": payment.reference, "reason": reason or "details did not match"})
+	Notification.objects.create(
+		user=loan.borrower.user,
+		message=(
+			f"Your payment claim of M{payment.amount} (ref {payment.reference}) for "
+			f"loan {loan.reference_number} could not be confirmed. "
+			f"{('Reason: ' + reason + '. ') if reason else ''}"
+			f"Please check the details and resubmit."
+		),
+		category="loan_payment",
+		loan=loan,
+	)
+	send_sms(loan.borrower.phone_number, "payment_rejected",
+			  {"name": loan.borrower.full_name, "amount": payment.amount,
+			   "ref": payment.reference, "reason": reason or "details did not match"})
  
-    messages.info(request, f"Payment {payment.reference} rejected. The borrower can correct and resubmit.")
-    return redirect("lenders:approved-loans")
+	messages.info(request, f"Payment {payment.reference} rejected. The borrower can correct and resubmit.")
+	return redirect("lenders:approved-loans")
 
 
 def borrower_payment_history(request, borrower_id):

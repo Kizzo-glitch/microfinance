@@ -4,12 +4,10 @@ import os
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-
-
 from django.contrib import messages
 
-from django.contrib.auth.decorators import login_required
-from django.db.models import Avg
+
+from django.db.models import Avg, Count, Sum, Q
 
 from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
@@ -21,7 +19,7 @@ from datetime import date
 from django.db import models
 
 from datetime import timedelta
-from django.db.models import Count, Sum, Q
+
 from collections import defaultdict
 
 from django.views.generic import ListView
@@ -34,11 +32,10 @@ from django.views.decorators.http import require_POST
 from django.conf import settings
 from comms.sms.smsportal import SmsPortalGateway
 
-from lenders.views import available_methods
-from loans.utils import send_sms_smsportal
-from micro.utils import generate_otp 
+
+
+
 from comms.sms.service import send_sms
-#from loans.utils import send_sms_smsportal
 from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
 
 from django.utils.safestring import mark_safe
@@ -46,15 +43,16 @@ from django.utils.safestring import mark_safe
 from django.db.models.functions import TruncMonth
 
 
-from decimal import Decimal, InvalidOperation
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.timezone import now
 
-from lenders.models import LenderProfile
-from loans.models import LoanApplication, Loan, LoanPayment, Notification, Rating, ResponsibleLendingAssessment
+from lenders.views import available_methods
+from loans.models import LenderProfile, LoanApplication, Loan, LoanPayment, Notification, Rating, ResponsibleLendingAssessment
+
+from loans.views import generate_kfs
+
+from micro.utils import generate_otp 
 from micro.models import OTP
 from micro.forms import get_mobile_money_formset, make_payment_details_form, save_mobile_money_formset
 
@@ -145,7 +143,7 @@ def borrower_profile(request):
 		'outstanding_loans': outstanding_loans,
 		'overdue_loans': overdue_loans,
 		'total_debt': total_debt,
-    	'payment_form': payment_form,
+		'payment_form': payment_form,
 		"mm_formset": mm_formset,
 		'profile': current_user,
 			  
@@ -154,39 +152,39 @@ def borrower_profile(request):
 
 @login_required
 def save_borrower_payment_details(request):
-    profile, _ = BorrowerProfile.objects.get_or_create(user=request.user)
-    PaymentForm = make_payment_details_form(BorrowerProfile)
-    next_url = request.POST.get("next") or request.GET.get("next")
+	profile, _ = BorrowerProfile.objects.get_or_create(user=request.user)
+	PaymentForm = make_payment_details_form(BorrowerProfile)
+	next_url = request.POST.get("next") or request.GET.get("next")
  
-    if request.method == "POST":
-        bank_form = PaymentForm(request.POST, instance=profile)
-        mm_formset = get_mobile_money_formset(profile, is_lender=False, data=request.POST)
+	if request.method == "POST":
+		bank_form = PaymentForm(request.POST, instance=profile)
+		mm_formset = get_mobile_money_formset(profile, is_lender=False, data=request.POST)
  
-        bank_ok = bank_form.is_valid()
-        mm_ok = mm_formset.is_valid()
+		bank_ok = bank_form.is_valid()
+		mm_ok = mm_formset.is_valid()
  
-        if bank_ok and mm_ok:
-            bank_form.save()
-            save_mobile_money_formset(mm_formset, profile, is_lender=False)
-            messages.success(request, "Payment details saved.")
-            return redirect(next_url or "borrowers:borrower_profile")
-        else:
-            messages.error(request, "Please check your payment details and try again.")
-            # re-render with errors (don't redirect, so errors show)
-            return render(request, "loans/_payment_details.html", {
-                "form": bank_form,
-                "mm_formset": mm_formset,
-                "next": next_url or "",
-            })
+		if bank_ok and mm_ok:
+			bank_form.save()
+			save_mobile_money_formset(mm_formset, profile, is_lender=False)
+			messages.success(request, "Payment details saved.")
+			return redirect(next_url or "borrowers:borrower_profile")
+		else:
+			messages.error(request, "Please check your payment details and try again.")
+			# re-render with errors (don't redirect, so errors show)
+			return render(request, "loans/_payment_details.html", {
+				"form": bank_form,
+				"mm_formset": mm_formset,
+				"next": next_url or "",
+			})
  
-    # GET
-    bank_form = PaymentForm(instance=profile)
-    mm_formset = get_mobile_money_formset(profile, is_lender=False)
-    return render(request, "loans/_payment_details.html", {
-        "form": bank_form,
-        "mm_formset": mm_formset,
-        "next": next_url or "",
-    })
+	# GET
+	bank_form = PaymentForm(instance=profile)
+	mm_formset = get_mobile_money_formset(profile, is_lender=False)
+	return render(request, "loans/_payment_details.html", {
+		"form": bank_form,
+		"mm_formset": mm_formset,
+		"next": next_url or "",
+	})
  
 
 
@@ -579,8 +577,13 @@ def lender_details(request, lender_id):
 	form = RatingForm()
 
 	request.session['lender_id'] = lender_id
-	#request.session['interest_rate'] = interest_rate
-
+	# active products the borrower can actually apply for, each with fees
+	products = (lender.products.filter(is_active=True)
+				.prefetch_related("fees"))
+	# keep the legacy flat terms available as a fallback when the lender has no
+	# products yet (additive migration — old lenders still display sensibly)
+	has_products = products.exists()
+ 
 	# Check if the borrower already rated this lender
 	existing_rating = Rating.objects.filter(lender=lender, borrower=borrower).first()
 
@@ -612,10 +615,67 @@ def lender_details(request, lender_id):
 		'ratings': ratings,  # List of all ratings for this lender
 		'average_rating': average_rating,  # Calculated average rating
 		'rating_range': range(int(average_rating)),  # For displaying stars
+		"products": products,
+        "has_products": has_products,
 	}
 	return render(request, 'lender_details.html', context)
 
 
+"""
+Fedha-Grow — choose_product + D: KFS auto-generation & choreography
+==================================================================
+"""
+# =====================================================================
+# C — borrower chooses a product, then enters the application flow
+# =====================================================================
+@login_required
+def choose_product(request, lender_id, product_id):
+    """
+    Borrower picks a specific product. We stash BOTH the lender and the product
+    so the draft application records the product, and the flow proceeds as before.
+    """
+    from lenders.models import LenderProfile, LenderProduct
+    lender = get_object_or_404(LenderProfile, id=lender_id)
+    product = get_object_or_404(LenderProduct, id=product_id, lender=lender, is_active=True)
+
+    # same session pattern you already use for lender selection, plus the product
+    request.session["lender_id"] = lender.id
+    request.session["product_id"] = product.id
+
+    messages.success(request, f"Applying for {product.name} from {lender.company_name}.")
+    return redirect("borrowers:employment_type")   # entry point of your apply flow
+
+
+
+def on_borrower_acknowledged_kfs(request, kfs):
+    """
+    Call from acknowledge_kfs after the BORROWER acknowledges. Opens the
+    disbursement gate and notifies the lender it's their turn.
+    """
+    loan = kfs.loan
+
+    # disbursement status -> ready (borrower has seen the terms)
+    if hasattr(loan, "disbursement_status"):
+        loan.disbursement_status = "ready"
+        loan.save(update_fields=["disbursement_status"])
+
+    # notify the lender
+    lender_user = getattr(loan.lender, "user", None)
+    if lender_user:
+        Notification.objects.create(
+            user=lender_user, category="loan_payment",
+            message=(f"{loan.borrower.full_name} has acknowledged the Key Facts "
+                     f"Statement for loan {loan.reference_number}. You can now "
+                     f"acknowledge and disburse."),
+            loan=loan)
+        # send_sms(loan.lender.phone_number, "kfs_borrower_ack", {...})
+
+
+def on_loan_disbursed(request, loan):
+    """Call when the lender records disbursement — final status."""
+    if hasattr(loan, "disbursement_status"):
+        loan.disbursement_status = "disbursed"
+        loan.save(update_fields=["disbursement_status"])
 
 def rate_lender(request, lender_id):
 	if request.method == 'POST':
@@ -628,6 +688,8 @@ def rate_lender(request, lender_id):
 		else:
 			messages.error(request, "Invalid rating. Please select a value between 1 and 5.")
 		return redirect('borrowers:lender_details', lender_id=lender.id)
+
+
 
 
 # =======================================
@@ -1382,25 +1444,25 @@ def _run_document_verification(borrower, loan_app, result):
 """
 @login_required
 def save_payment_details2(request):
-    profile, _ = BorrowerProfile.objects.get_or_create(user=request.user)
-    PaymentForm = make_payment_details_form(BorrowerProfile)
+	profile, _ = BorrowerProfile.objects.get_or_create(user=request.user)
+	PaymentForm = make_payment_details_form(BorrowerProfile)
  
-    # where to return: the page they came from (apply-loan or profile)
-    next_url = request.POST.get("next") or request.GET.get("next")
+	# where to return: the page they came from (apply-loan or profile)
+	next_url = request.POST.get("next") or request.GET.get("next")
  
-    if request.method == "POST":
-        form = PaymentForm(request.POST, instance=profile)
-        if form.is_valid():
-            form.save()
-            messages.success(request, "Payment details saved.")
-        else:
-            # surface the error to the user (not just console)
-            messages.error(request, "Please check your payment details and try again.")
-            # fall through to redirect; the target page re-renders the form bound
-            # to the saved profile. For inline error display you could stash the
-            # form in the session, but a clear message + valid data is usually enough.
+	if request.method == "POST":
+		form = PaymentForm(request.POST, instance=profile)
+		if form.is_valid():
+			form.save()
+			messages.success(request, "Payment details saved.")
+		else:
+			# surface the error to the user (not just console)
+			messages.error(request, "Please check your payment details and try again.")
+			# fall through to redirect; the target page re-renders the form bound
+			# to the saved profile. For inline error display you could stash the
+			# form in the session, but a clear message + valid data is usually enough.
  
-    return redirect(next_url or "borrowers:borrower_profile")
+	return redirect(next_url or "borrowers:borrower_profile")
 
 """
  

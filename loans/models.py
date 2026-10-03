@@ -136,6 +136,15 @@ class LoanApplication(models.Model):
 						   related_name='member_loan_applications',help_text="Set when the applicant applied as a member of this group. ")
 	group_data_consent = models.BooleanField(default=False)
 
+	product = models.ForeignKey(
+		'lenders.LenderProduct',
+		on_delete=models.SET_NULL,
+		null=True, blank=True,
+		related_name='applications',
+		help_text="The product the borrower chose when applying. Drives the Key "
+				"Facts Statement's fees. May be null for legacy lenders without products."
+	)
+
 
 	def save(self, *args, **kwargs):
 		if not self.reference_number:
@@ -167,6 +176,11 @@ class Loan(models.Model):
 		('overdue', 'Overdue'),
 		('defaulted', 'Defaulted'),
 	]
+	DISBURSEMENT_STATUS_CHOICES = [
+       ("pending_kfs", "Awaiting borrower acknowledgement"),
+       ("ready",       "Ready to disburse"),
+       ("disbursed",   "Disbursed"),
+   ]
 	application = models.OneToOneField(LoanApplication, on_delete=models.CASCADE, null=True, blank=True)
 	
 	borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE, related_name='loans')
@@ -191,6 +205,15 @@ class Loan(models.Model):
 	)
 	group = models.ForeignKey('groups.BorrowerGroup', on_delete=models.SET_NULL,null=True, blank=True, 
 							   related_name='member_loans',help_text="Set when the loan is taken as a member of this group. ")
+	disbursement_status = models.CharField(max_length=16, choices=DISBURSEMENT_STATUS_CHOICES, default="pending_kfs", blank=True)
+
+	product = models.ForeignKey(
+		'lenders.LenderProduct',
+		on_delete=models.SET_NULL,
+		null=True, blank=True,
+		related_name='loans',
+		help_text="Carried from the application at approval. The KFS generator reads this."
+	)
 
 	def __str__(self):
 			return f"Loan {self.id} - {self.borrower.user.username} - {self.lender.user.username} - {self.status}"		
@@ -319,6 +342,71 @@ class Loan(models.Model):
 		from loans.models import LoanPayment
 		return LoanPayment.claimed_total(self)
 
+
+"""
+Fedha-Grow — LAYER 4: the Key Facts Statement (immutable snapshot)
+=================================================================
+A KFS is generated right after loan approval and FROZEN. It captures — as a
+snapshot, not live references — everything the disclosure shows: provider
+identity, product terms, fees, the computed schedule and total cost. This means
+a later change to the lender's product or fees never alters an already-issued
+KFS. Same immutability discipline as the affordability snapshot.
+
+Lifecycle:  generated -> borrower acknowledges -> lender rep acknowledges ->
+fully acknowledged (locked). Disbursement is gated on borrower acknowledgement
+(see Layer 5).
+"""
+class KeyFactsStatement(models.Model):
+    loan = models.OneToOneField(
+        "loans.Loan", on_delete=models.CASCADE, related_name="kfs")
+    loan_application = models.ForeignKey(
+        "loans.LoanApplication", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="kfs_statements")
+
+    # public reference for the KFS itself (KFS Reference on the document)
+    reference = models.CharField(max_length=24, unique=True, editable=False, null=True, blank=True)
+
+    # --- frozen snapshot data (JSON — the whole disclosure, as generated) ---
+    # Held as JSON so the exact disclosed values are preserved verbatim even if
+    # every source model changes later. The template renders from this.
+    snapshot = models.JSONField(default=dict)
+
+    # a few promoted fields for querying/display without parsing the JSON
+    approved_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    total_payable = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    product_code = models.CharField(max_length=40, blank=True)
+
+    # --- acknowledgement lifecycle ---
+    STATUS_CHOICES = [
+        ("generated", "Generated — awaiting borrower acknowledgement"),
+        ("borrower_ack", "Borrower acknowledged — awaiting lender"),
+        ("acknowledged", "Fully acknowledged (locked)"),
+        ("void", "Void / superseded"),
+    ]
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="generated")
+
+    generated_at = models.DateTimeField(default=timezone.now)
+    kfs_version = models.CharField(max_length=20, default="KFS v1.0")
+
+    class Meta:
+        ordering = ["-generated_at"]
+
+    def __str__(self):
+        return f"KFS {self.reference} — Loan {self.loan_id} ({self.status})"
+
+    def save(self, *args, **kwargs):
+        if not self.reference:
+            self.reference = generate_reference(KeyFactsStatement, "reference", prefix="FGK")
+        super().save(*args, **kwargs)
+
+    @property
+    def is_locked(self) -> bool:
+        """Once fully acknowledged, the KFS is immutable."""
+        return self.status == "acknowledged"
+
+    @property
+    def borrower_has_acknowledged(self) -> bool:
+        return self.status in ("borrower_ack", "acknowledged")
 	
 
 

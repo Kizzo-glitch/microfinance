@@ -155,6 +155,21 @@
     {% include '_payment_compatibility.html' %}
 
     <br>
+    {% if loan_application.linked_loan.kfs %}
+        <div class="card shadow mt-3">
+            <div class="card-header bg-primary text-white"><h4>Key Facts Statement</h4></div>
+            <div class="card-body">
+                <p>KFS <strong>{{ loan_application.linked_loan.kfs.reference }}</strong> —
+                {{ loan_application.linked_loan.kfs.get_status_display }}</p>
+                <a href="{% url 'loans:view_kfs' loan_application.linked_loan.kfs.id %}" class="btn btn-outline-primary">
+                View / acknowledge statement
+                </a>
+                <div class="small text-muted mt-2">
+                Disbursement: {{ loan_application.linked_loan.get_disbursement_status_display }}
+                </div>
+            </div>
+        </div>
+    {% endif %}
 
     <!-- ===================== Status Update ===================== -->
     <center>
