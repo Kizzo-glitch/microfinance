@@ -213,8 +213,102 @@
             </div>
         </div>
 
-        {# CBL Licence Status (read-only display, authoritative in ComplianceProfile) #}
+        
+        <!-- CBL Licence Status -->
+        {% with cp=lender.compliance %}
         <div class="border p-4 mb-4 shadow-sm bg-light">
+            <h4 class="text-center mb-3">CBL Licence Status</h4>
+        
+            {# ── Declaring field: which journey is this lender on? ───────────── #}
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <label class="form-label fw-bold">Do you already hold a CBL licence?</label>
+                    <div class="form-text text-muted mb-2">
+                        This tells us which steps to guide you through. It does not mark
+                        you as licensed on its own — a licence you submit is verified by
+                        our team against the CBL register before it appears on your
+                        public profile. You'll find the submit / verify action on your
+                        dashboard.
+                    </div>
+                    {{ form.cbl_license_status }}
+                    {{ form.cbl_license_status.errors }}
+        
+                    {% if form.cbl_license_status.field.disabled %}
+                        <div class="form-text text-success mt-1">
+                            <i class="fas fa-check-circle me-1"></i>
+                            Your CBL licence is verified, so this is locked to
+                            &ldquo;already licensed&rdquo;.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        
+            {# ── Read-only authoritative display (from ComplianceProfile) ────── #}
+            <div class="alert alert-secondary small">
+                <i class="fas fa-lock me-1"></i>
+                The details below are set by our verification team and shown for
+                reference only. Submit or check your licence from your
+                {% if profile and profile.pk %}
+                    <a href="{% url 'compliance:compliance_detail' profile.pk %}">Compliance Dashboard</a>.
+                {% else %}
+                    <span class="text-muted">dashboard (available after saving your profile)</span>.
+                {% endif %}
+            </div>
+        
+            <div class="row">
+                <div class="col-md-4">
+                    <label class="form-label text-muted small">CBL Licence Number</label>
+                    <div class="form-control-plaintext fw-bold">
+                        {% if cp and cp.license_verification_state == 'verified' %}
+                            {{ cp.cbl_license_number|default:"Not yet issued" }}
+                        {% else %}
+                            Not yet verified
+                        {% endif %}
+                    </div>
+                </div>
+        
+                <div class="col-md-4">
+                    <label class="form-label text-muted small">Licence Expiry Date</label>
+                    <div class="form-control-plaintext">
+                        {% if cp and cp.license_verification_state == 'verified' and cp.cbl_license_expiry %}
+                            {{ cp.cbl_license_expiry|date:"d M Y" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+                </div>
+        
+                <div class="col-md-4">
+                    <label class="form-label text-muted small">Verification Status</label>
+                    <div>
+                        {% with state=cp.license_verification_state|default:"none" %}
+                        <span class="badge
+                            {% if state == 'verified' %}bg-success
+                            {% elif state == 'pending' %}bg-warning text-dark
+                            {% elif state == 'rejected' %}bg-danger
+                            {% else %}bg-secondary{% endif %}">
+                            {% if state == 'verified' %}Verified
+                            {% elif state == 'pending' %}Awaiting verification
+                            {% elif state == 'rejected' %}Rejected
+                            {% else %}Not submitted{% endif %}
+                        </span>
+                        {% endwith %}
+                    </div>
+                </div>
+            </div>
+        
+            {# If a submission was rejected, show the reviewer's reason here so the  #}
+            {# lender knows what to fix (action to re-submit is on the dashboard).   #}
+            {% if cp and cp.license_verification_state == 'rejected' and cp.license_review_note %}
+                <div class="mt-3 small text-muted">
+                    <strong>Reviewer note:</strong> {{ cp.license_review_note }}
+                </div>
+            {% endif %}
+        </div>
+        {% endwith %}
+
+        
+        <!--<div class="border p-4 mb-4 shadow-sm bg-light">
             <h4 class="text-center mb-3">CBL Licence Status</h4>
             <div class="alert alert-secondary small">
                 <i class="fas fa-lock me-1"></i>
@@ -263,65 +357,10 @@
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!--<div class="border p-4 mb-4 shadow-sm bg-light">
-            <h4 class="text-center mb-3">Legal & Financial Status</h4>
-            <div class="row">
-                <div class="col-md-3"><label>Registration Number</label>{{ form.registration_number }}</div>
-                <div class="col-md-3"><label>Tax Number (TIN)</label>{{ form.tax_identification_number }}</div>
-                <div class="col-md-3">
-                    <label class="form-label fw-bold">
-                        Stated Capital 
-                        <i class="fas fa-info-circle text-primary" 
-                        data-bs-toggle="tooltip" 
-                        data-bs-placement="top" 
-                        title="The total money invested by shareholders/owners. This acts as your financial 'cushion'. CBL requires a minimum amount depending on your Tier (e.g., 2 million  for Tier 1). For Tier 2, move over to Total Assets"></i>
-                    </label>
-                    {{ form.stated_capital }}
-                    <small class="text-muted">Min for Tier 3: M500 000</small>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-bold">
-                        Total Assets 
-                        <i class="fas fa-info-circle text-primary" 
-                        data-bs-toggle="tooltip" 
-                        data-bs-placement="top" 
-                        title="Includes your gross loan portfolio and cash; that is, your loan book (outstanding loans), cash on hand, and company property. If this exceeds M10 Million, you are classified as Tier 2."></i>
-                    </label>
-                    {{ form.total_assets }}
-                    <small class="text-muted">Min for Tier 2: M10 000 000</small>
-                </div>
-            </div>
-        </div>
-
-        <div class="border p-4 mb-4 shadow-sm bg-light">
-            <h4 class="text-center mb-3">CBL Compliance & Licensing</h4>
-            <div class="row mb-3">
-                <div class="col-md-4">
-                    <label>CBL Tier</label>
-                    {{ form.cbl_tier }}
-                    <div id="tier_msg" class="small mt-1"></div>
-                </div>
-                <div class="col-md-4"><label>License Number</label>{{ form.cbl_license_number }}</div>
-                <div class="col-md-4">
-                    <label>License Expiry Date</label>
-                    {{ form.cbl_license_expiry }}
-                    {{ form.cbl_license_expiry.errors }}
-                </div>
-            </div>
-            <div class="form-check">
-                {{ form.operating_under_platform }}
-                <label class="form-check-label">{{ form.operating_under_platform.label }}</label>
-            </div>
         </div>-->
 
         <div class="border p-4 mb-4 shadow-sm">
             <h4 class="text-center mb-3">Regulatory & Association Membership</h4>
-            <div class="row mb-3">
-                <div class="col-md-6"><label>Regulatory Body</label>{{ form.regulatory_body_name }}</div>
-                <div class="col-md-6"><label>Regulatory Membership No</label>{{ form.regulatory_body_membership_number }}</div>
-            </div>
             <div class="row mb-3">
                 <div class="col-md-6"><label>Association Name</label>{{ form.association_name }}</div>
                 <div class="col-md-6"><label>Association Membership No</label>{{ form.association_membership_number }}</div>

@@ -1,0 +1,61 @@
+{% comment %}
+  CBL licence verification tile — for the compliance dashboard.
+  Include where you want it to sit, e.g.:
+    {% include "compliance/_license_tile.html" with lic=dashboard_data.license_verification %}
+
+  Reads only `lic` (the license_verification dict from ComplianceDashboardService).
+  This is the ALREADY-LICENSED path — shown alongside, not inside, the stage flow.
+{% endcomment %}
+
+<div class="card shadow mb-4">
+  <div class="card-header py-3 d-flex justify-content-between align-items-center">
+    <h6 class="m-0 font-weight-bold text-primary">CBL License</h6>
+    {% if lic.state == 'verified' %}
+      <span class="badge badge-success">{{ lic.state_label }}</span>
+    {% elif lic.state == 'pending' %}
+      <span class="badge badge-warning">{{ lic.state_label }}</span>
+    {% elif lic.state == 'rejected' %}
+      <span class="badge badge-danger">{{ lic.state_label }}</span>
+    {% else %}
+      <span class="badge badge-secondary">{{ lic.state_label }}</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+
+    {% if lic.state == 'verified' %}
+      <p class="mb-1">
+        Licence <strong>{{ lic.number }}</strong> is verified and shown on your
+        public profile.
+      </p>
+      {% if lic.expiry %}
+        <p class="small text-muted mb-0">Expires {{ lic.expiry }}.</p>
+      {% endif %}
+
+    {% elif lic.state == 'pending' %}
+      <p class="mb-0">
+        You submitted licence <strong>{{ lic.submitted_number }}</strong>. Our
+        team is verifying it against the CBL register. Borrowers won't see a
+        licensed badge until that's confirmed.
+      </p>
+
+    {% elif lic.state == 'rejected' %}
+      <p class="mb-2">Your last license submission wasn't verified.</p>
+      {% if lic.review_note %}
+        <p class="small text-muted mb-2"><em>Reviewer note: {{ lic.review_note }}</em></p>
+      {% endif %}
+      <a href="{{ lic.action_url }}" class="btn btn-sm btn-primary">
+        {{ lic.action_label }}
+      </a>
+
+    {% else %}
+      <p class="mb-2">
+        If you already hold a CBL license, submit it so we can verify it and
+        display your licensed status to borrowers.
+      </p>
+      <a href="{{ lic.action_url }}" class="btn btn-sm btn-success text-white">
+        {{ lic.action_label }}
+      </a>
+    {% endif %}
+
+  </div>
+</div>

@@ -49,6 +49,13 @@ class ComplianceProfile(models.Model):
         ('revoked',                  'Licence Revoked'),
     ]
 
+    LICENSE_VERIFICATION_STATES = [
+        ('none',     'No submission'),
+        ('pending',  'Submitted — awaiting verification'),
+        ('verified', 'Verified against CBL register'),
+        ('rejected', 'Rejected'),
+    ]
+
     DOCUMENT_LABELS = {
         'schedule_i':                    'Schedule I — Application Form',
         'schedule_ii':                   'Schedule II — Information Sheet',
@@ -76,9 +83,31 @@ class ComplianceProfile(models.Model):
     cbl_application_reference = models.CharField(max_length=100, blank=True, help_text="CBL-assigned application reference")
     application_submitted_at = models.DateTimeField(null=True, blank=True)
     license_issued_at = models.DateTimeField(null=True, blank=True)
+    
+    # --- the lender's claim (lender-editable) ---
+    submitted_license_number = models.CharField(max_length=100, blank=True,
+        help_text="Licence number as the lender holds it from CBL. A CLAIM "
+                  "until a reviewer verifies it.")
+    submitted_license_expiry = models.DateField(
+        null=True, blank=True,
+        help_text="Expiry date on the lender's CBL licence, as submitted.")
+    license_certificate = models.FileField(upload_to='license_certificates/%Y/%m/', null=True, blank=True,
+        help_text="Scan/photo of the CBL licence certificate — evidence for "
+                  "the reviewer. Not shown to borrowers.")
+ 
+    # --- verification state + review trail (reviewer-set only) ---
+    license_verification_state = models.CharField(max_length=12, choices=LICENSE_VERIFICATION_STATES, default='none')
+    license_reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='license_reviews',
+        help_text="Fedha-Grow staff member who verified/rejected the claim.")
+    license_reviewed_at = models.DateTimeField(null=True, blank=True)
+    license_review_note = models.TextField(blank=True,
+        help_text="Reviewer note — reason for rejection, or verification "
+                  "remark (e.g. 'confirmed on CBL register 2026-10-12').")
+
     cbl_license_number = models.CharField(max_length=100, blank=True)
     cbl_license_expiry = models.DateField(null=True, blank=True)
-
+    
     current_stage = models.CharField(max_length=30, choices=STAGE_CHOICES, default='not_started')
 
     # Required Institutional Documents (Per Checklist)
@@ -140,10 +169,8 @@ class ComplianceProfile(models.Model):
     submission_date = models.DateTimeField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def update_stage(self):
-        """
-        Evaluates current data and moves the application stage forward automatically.
-        """
+    
+    """def update_stage(self):
         # 1. Base check: Are institutional docs started?
         has_docs = any([self.aml_cft_manual, self.complaints_procedure, self.tax_clearance_institution])
         personnel_count = self.lender.personnel.count()
@@ -158,7 +185,7 @@ class ComplianceProfile(models.Model):
         # 3. Transition to 'Submitted' only happens via the POST button on the dashboard
         # so we don't automate that here.
 
-        self.save(update_fields=['current_stage'])
+        self.save(update_fields=['current_stage']) """
 
     def __str__(self):
         return f"Compliance: {self.lender.company_name}"
@@ -172,6 +199,7 @@ class ComplianceProfile(models.Model):
         if not self.cbl_license_expiry:
             return False
         return (self.cbl_license_expiry - timezone.now().date()).days <= 60
+
 
 
 # ================================

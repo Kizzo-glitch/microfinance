@@ -106,23 +106,76 @@ class ComplianceProfileForm(forms.ModelForm):
 
 
 
+# ---------------------------------------------------------------------------
+# 2 — the Registered Lender's license submission form (the CLAIM)
+# ---------------------------------------------------------------------------
+ 
+class LicenseSubmissionForm(forms.ModelForm):
+    """
+    What a licensed lender fills in to submit their EXISTING CBL licence for
+    platform verification. Only the claim + evidence fields — never the
+    authoritative fields, never the verification state.
+    """
+ 
+    class Meta:
+        model = ComplianceProfile   
+        fields = [
+            'submitted_license_number',
+            'submitted_license_expiry',
+            'license_certificate',
+        ]
+        widgets = {
+            'submitted_license_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g. MFI/2024/0137',
+            }),
+            'submitted_license_expiry': forms.DateInput(attrs={
+                'class': 'form-control',
+                'type': 'date',
+            }),
+            'license_certificate': forms.ClearableFileInput(attrs={
+                'class': 'form-control-file',
+                'accept': 'image/*,application/pdf',
+            }),
+        }
+        labels = {
+            'submitted_license_number': 'Your CBL licence number',
+            'submitted_license_expiry': 'Licence expiry date',
+            'license_certificate': 'Upload your licence certificate',
+        }
+        help_texts = {
+            'submitted_license_number':
+                'Enter the licence number exactly as it appears on your '
+                'certificate from the Central Bank of Lesotho.',
+            'license_certificate':
+                'A clear scan or photo of your CBL licence. This is seen only '
+                'by our verification team, never by borrowers.',
+        }
+ 
+    def clean(self):
+        cleaned = super().clean()
+        number = cleaned.get('submitted_license_number')
+        # On a fresh submission we need the certificate as evidence. On a
+        # re-submission the instance may already carry one, so only insist
+        # when there is a number but no certificate anywhere.
+        has_cert = cleaned.get('license_certificate') or getattr(
+            self.instance, 'license_certificate', None)
+        if number and not has_cert:
+            self.add_error(
+                'license_certificate',
+                'Please upload your licence certificate so our team can '
+                'verify the number against the CBL register.')
+        if not number:
+            self.add_error(
+                'submitted_license_number',
+                'Enter your CBL licence number.')
+        return cleaned
+
+
+    
 # ================================
-# 2. UPDATE PROFILE FORM
+# 3. UPDATE PROFILE FORM
 # ================================
-
-class ComplianceUpdateForm2(forms.ModelForm):
-    def __init__(self, *args, lender=None, **kwargs):
-        super().__init__(*args, **kwargs)
-        if lender:
-            # Determine which fields to show for this tier
-            service = ComplianceDashboardService(lender)
-            required_fields = service._get_required_docs()
-
-            # Remove fields not required for this tier
-            for field_name in list(self.fields.keys()):
-                if field_name not in required_fields:
-                    self.fields.pop(field_name)
-
 
 class ComplianceUpdateForm(forms.ModelForm):
     class Meta:
@@ -153,7 +206,7 @@ class ComplianceUpdateForm(forms.ModelForm):
 
 
 # ================================
-# 2. PERSONNEL PROFILE FORM
+# 4. PERSONNEL PROFILE FORM
 # (Maps 1:1 to Fit & Proper Questionnaire + Schedule III)
 # ================================
 
@@ -188,96 +241,9 @@ class PersonnelProfileForm(forms.ModelForm):
 
 
 
-"""
-class PersonnelProfileForm(forms.ModelForm):
-    class Meta:
-        model = PersonnelProfile
-        fields = [
-            # Identification
-            'role',
-            'full_name',
-            'nationality',
-            'country_of_residence',
-            'date_of_birth',
-            'place_of_birth',
-            'id_or_passport_number',
-
-            # Addresses
-            'business_address',
-            'residential_address',
-
-            # Professional
-            'professional_qualifications',
-            'employment_history_10_years',
-
-            # Affiliations
-            'other_affiliations',
-            'family_business_affiliations',
-
-            # Declarations (booleans)
-            'ever_disqualified',
-            'legal_proceedings',
-            'criminal_conviction',
-            'bankruptcy',
-            'dismissed_or_resigned',
-
-            # Details (only shown if declaration is True — handled in UI)
-            'disqualification_details',
-            'legal_proceedings_details',
-            'criminal_conviction_details',
-            'bankruptcy_details',
-            'dismissal_details',
-
-            # Documents
-            'police_clearance',
-            'tax_clearance',
-            'assets_liabilities_statement',
-            'character_references',
-            'bank_references',
-            'id_copy',
-        ]
-        widgets = {
-            'date_of_birth': forms.DateInput(attrs={'type': 'date'}),
-            'employment_history_10_years': forms.Textarea(attrs={'rows': 4}),
-            'other_affiliations': forms.Textarea(attrs={'rows': 3}),
-            'family_business_affiliations': forms.Textarea(attrs={'rows': 3}),
-        }
-
-    def clean(self):
-        cleaned_data = super().clean()
-
-        # Validate that if a declaration is True, details must be provided
-        declarations = [
-            ('ever_disqualified', 'disqualification_details'),
-            ('legal_proceedings', 'legal_proceedings_details'),
-            ('criminal_conviction', 'criminal_conviction_details'),
-            ('bankruptcy', 'bankruptcy_details'),
-            ('dismissed_or_resigned', 'dismissal_details'),
-        ]
-
-        for decl_field, detail_field in declarations:
-            if cleaned_data.get(decl_field) and not cleaned_data.get(detail_field):
-                self.add_error(detail_field, 'Details are required when declaration is "Yes".')
-
-        # Required documents (per Schedule III, Section 10)
-        required_docs = {
-            'police_clearance': 'Police Clearance',
-            'tax_clearance': 'Tax Clearance',
-            'assets_liabilities_statement': 'Certified Statement of Assets and Liabilities',
-            'character_references': 'Two Notarized Character References',
-            'bank_references': 'Two Bank Reference Letters',
-            'id_copy': 'Certified ID/Passport Copy',
-        }
-
-        for field, label in required_docs.items():
-            if not cleaned_data.get(field):
-                self.add_error(field, f'{label} is mandatory per Schedule III.')
-
-        return cleaned_data
-"""
 
 # ================================
-# 3. PERSONNEL REGISTRATION FORM (Simplified for onboarding)
+#  PERSONNEL REGISTRATION FORM (Simplified for onboarding)
 # (e.g., for lender to add their CEO, directors, etc.)
 # ================================
 

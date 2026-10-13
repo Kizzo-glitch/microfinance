@@ -1,0 +1,135 @@
+{% extends "lender_base.html" %}
+{% comment %}
+  Lender-facing: submit an EXISTING CBL licence for platform verification.
+  Honest framing throughout — we record and verify a claim; we are not CBL.
+{% endcomment %}
+
+{% block content %}
+<div class="container-fluid">
+
+  <h1 class="h3 mb-2 text-gray-800">CBL Licence Verification</h1>
+  <p class="mb-4 text-muted">
+    If you already hold a licence from the Central Bank of Lesotho, submit it
+    here so we can verify it and display your licensed status to borrowers.
+  </p>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="row">
+    <div class="col-lg-8">
+
+      {# Current status banner — honest about where the claim stands #}
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Current status</h6>
+        </div>
+        <div class="card-body">
+          {% if profile.license_verification_state == 'verified' %}
+            <span class="badge badge-success">Verified</span>
+            <p class="mt-2 mb-0">
+              Licence <strong>{{ profile.cbl_license_number }}</strong> is
+              verified and shown on your public profile.
+            </p>
+          {% elif profile.license_verification_state == 'pending' %}
+            <span class="badge badge-warning">Awaiting verification</span>
+            <p class="mt-2 mb-0">
+              You submitted licence
+              <strong>{{ profile.submitted_license_number }}</strong>. Our team
+              is checking it against the CBL register. Nothing is shown to
+              borrowers as "licensed" until that check is complete.
+            </p>
+          {% elif profile.license_verification_state == 'rejected' %}
+            <span class="badge badge-danger">Rejected</span>
+            <p class="mt-2 mb-0">
+              Your last submission was not verified.
+              {% if profile.license_review_note %}
+                <br><em>Reviewer note: {{ profile.license_review_note }}</em>
+              {% endif %}
+              <br>You can correct the details below and re-submit.
+            </p>
+          {% else %}
+            <span class="badge badge-secondary">Not submitted</span>
+            <p class="mt-2 mb-0">
+              You haven't submitted a CBL licence yet. Borrowers will not see a
+              licensed badge until you do and it's verified.
+            </p>
+          {% endif %}
+        </div>
+      </div>
+
+      {# The claim form #}
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">
+            Submit your licence
+          </h6>
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="form-group">
+              <label>{{ form.submitted_license_number.label }}</label>
+              {{ form.submitted_license_number }}
+              {% if form.submitted_license_number.help_text %}
+                <small class="form-text text-muted">
+                  {{ form.submitted_license_number.help_text }}
+                </small>
+              {% endif %}
+              {% for e in form.submitted_license_number.errors %}
+                <div class="text-danger small">{{ e }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="form-group">
+              <label>{{ form.submitted_license_expiry.label }}</label>
+              {{ form.submitted_license_expiry }}
+              {% for e in form.submitted_license_expiry.errors %}
+                <div class="text-danger small">{{ e }}</div>
+              {% endfor %}
+            </div>
+
+            <div class="form-group">
+              <label>{{ form.license_certificate.label }}</label>
+              {% if profile.license_certificate %}
+                <p class="small mb-1">
+                  Current file on record:
+                  <a href="{{ profile.license_certificate.url }}" target="_blank">
+                    view
+                  </a> — upload a new one to replace it.
+                </p>
+              {% endif %}
+              {{ form.license_certificate }}
+              {% if form.license_certificate.help_text %}
+                <small class="form-text text-muted">
+                  {{ form.license_certificate.help_text }}
+                </small>
+              {% endif %}
+              {% for e in form.license_certificate.errors %}
+                <div class="text-danger small">{{ e }}</div>
+              {% endfor %}
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+              Submit for verification
+            </button>
+            <a href="{% url 'lenders:lender_index' %}" class="btn btn-link">Cancel</a>
+          </form>
+        </div>
+      </div>
+
+      <p class="small text-muted">
+        Fedha-Grow is a digital access and facilitation platform, not a
+        regulator. We verify your licence against the Central Bank of Lesotho's
+        register; we do not issue or confer licences.
+      </p>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}

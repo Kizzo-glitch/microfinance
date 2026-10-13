@@ -10,11 +10,11 @@
                    
                     <!-- Page Heading -->
                     <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                        <h1 class="h3 mb-0 text-gray-800">My Dashboard</h1>
+                        <!--<h1 class="h3 mb-0 text-gray-800">My Dashboard</h1>-->
 
-                        
+                        {% include "_dashboard_cbl_card.html" with cbl=cbl_card %}
 
-                        <div class="card shadow-sm h-100 
+                        <!--<div class="card shadow-sm h-100 
                             {% if compliance.stage_key == 'licensed' %}border-left-success
                             {% elif compliance.stage_key == 'rejected' %}border-left-danger
                             {% elif compliance.stage_key == 'under_review' %}border-left-primary
@@ -45,7 +45,7 @@
                                     </div>
                                 {% endif %}
                             </div>
-                        </div>
+                        </div>-->
 
                         <a href="#" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm"><i
                             class="fas fa-download fa-sm text-white-50"></i> Generate Report</a>

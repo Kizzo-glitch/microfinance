@@ -1,0 +1,134 @@
+{% extends "micro_base.html" %}
+{% comment %}
+  Staff-facing: verify or reject a lender's CBL licence claim.
+  The reviewer sees the CLAIM + the evidence side by side, checks the CBL
+  register, then verifies (promotes claim -> authoritative) or rejects.
+{% endcomment %}
+
+{% block content %}
+<div class="container-fluid">
+
+  <h1 class="h3 mb-2 text-gray-800">Review CBL Licence</h1>
+  <p class="mb-4 text-muted">
+    Check the submitted number and certificate against the Central Bank of
+    Lesotho register before verifying. Verifying promotes this claim to the
+    lender's authoritative, borrower-visible record.
+  </p>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="row">
+    <div class="col-lg-8">
+
+      <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+          <h6 class="m-0 font-weight-bold text-primary">
+            {{ profile.lender }}
+          </h6>
+          {% if profile.license_verification_state == 'verified' %}
+            <span class="badge badge-success">Verified</span>
+          {% elif profile.license_verification_state == 'pending' %}
+            <span class="badge badge-warning">Awaiting verification</span>
+          {% elif profile.license_verification_state == 'rejected' %}
+            <span class="badge badge-danger">Rejected</span>
+          {% else %}
+            <span class="badge badge-secondary">No submission</span>
+          {% endif %}
+        </div>
+        <div class="card-body">
+
+          <h6 class="font-weight-bold">Submitted claim</h6>
+          <table class="table table-sm">
+            <tr>
+              <th style="width:40%">Licence number (claimed)</th>
+              <td>{{ profile.submitted_license_number|default:"—" }}</td>
+            </tr>
+            <tr>
+              <th>Expiry (claimed)</th>
+              <td>{{ profile.submitted_license_expiry|default:"—" }}</td>
+            </tr>
+            <tr>
+              <th>Certificate</th>
+              <td>
+                {% if profile.license_certificate %}
+                  <a href="{{ profile.license_certificate.url }}" target="_blank"
+                     class="btn btn-sm btn-outline-primary">
+                    Open certificate
+                  </a>
+                {% else %}
+                  <span class="text-danger">No certificate uploaded</span>
+                {% endif %}
+              </td>
+            </tr>
+          </table>
+
+          <h6 class="font-weight-bold mt-4">Authoritative record (current)</h6>
+          <table class="table table-sm">
+            <tr>
+              <th style="width:40%">CBL licence number</th>
+              <td>{{ profile.cbl_license_number|default:"— not set —" }}</td>
+            </tr>
+            <tr>
+              <th>CBL licence expiry</th>
+              <td>{{ profile.cbl_license_expiry|default:"— not set —" }}</td>
+            </tr>
+          </table>
+
+          {% if profile.license_reviewed_by %}
+            <p class="small text-muted mt-3">
+              Last reviewed by {{ profile.license_reviewed_by }} on
+              {{ profile.license_reviewed_at }}.
+              {% if profile.license_review_note %}
+                <br>Note: {{ profile.license_review_note }}
+              {% endif %}
+            </p>
+          {% endif %}
+        </div>
+      </div>
+
+      {# Decision form — one form, two named submit buttons #}
+      <div class="card shadow mb-4">
+        <div class="card-header py-3">
+          <h6 class="m-0 font-weight-bold text-primary">Decision</h6>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+              <label>Reviewer note</label>
+              <textarea name="review_note" class="form-control" rows="3"
+                        placeholder="e.g. Confirmed on CBL register 2026-10-12. / Reason for rejection."></textarea>
+              <small class="form-text text-muted">
+                Required for rejection. Optional (but encouraged) for
+                verification — it becomes part of the audit trail.
+              </small>
+            </div>
+
+            <button type="submit" name="action" value="verify"
+                    class="btn btn-success">
+              Verify — promote to authoritative record
+            </button>
+            <button type="submit" name="action" value="reject"
+                    class="btn btn-danger ml-2">
+              Reject
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <p class="small text-muted">
+        Verifying writes the claimed number into the lender's authoritative,
+        borrower-visible licence field and marks them CBL-licensed. Do this only
+        after confirming the number on the CBL register. Rejecting never touches
+        the authoritative record.
+      </p>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

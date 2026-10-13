@@ -36,7 +36,7 @@ from compliance.models import ComplianceProfile, PersonnelProfile
 from micro.forms import MobileMoneyAccountForm, get_mobile_money_formset, make_payment_details_form, save_mobile_money_formset
 
 from .forms import (LenderInfoForm, LenderProductForm, LoanApplicationStatusForm, 
-					LoanStatusForm, LenderDocumentsForm, ProductFeeFormSet)
+					LoanStatusForm, LenderDocumentsForm, ProductFeeFormSet, _compliance_of)
 from .models import LenderProfile, LenderDocs, LenderProduct, ProductFee
 
 from loans.models import Notification, LoanApplication, Loan, LoanPayment
@@ -99,10 +99,10 @@ def lender_index(request):
 			.annotate(total=Sum('amount'))
 			.order_by('month')
 		)
-
+		
 		compliance_service = ComplianceDashboardService(lender)
 		compliance_data = compliance_service.get_dashboard_data()
-		
+		cbl_card = get_dashboard_cbl_card(lender, compliance_data=compliance_data)  
 		
 		context = {
 			'total_loans_disbursed': total_loans_disbursed,
@@ -124,6 +124,7 @@ def lender_index(request):
 			'overdue_percent': overdue_percent,
 
 			'compliance': compliance_data,
+			'cbl_card': cbl_card,
 
 			#'compliance_progress': compliance_progress,
 			#'compliance_url': compliance_url,
@@ -222,6 +223,99 @@ def risk_customer_list(request, category):
 	}
 	return render(request, "risk_customer_list.html", context)
 
+
+
+
+def get_dashboard_cbl_card(lender, compliance_data=None):
+    """
+    Decides the CBL card's content on the MAIN lender dashboard (the card in the
+    screenshot — 'COMPLIANCE STATUS … Upload: Schedule II').
+ 
+    Returns a dict the dashboard template renders. This is the ONE place that
+    decides which journey's prompt a lender sees. It consults the routing field
+    for direction, and the real compliance service only for the 'seeking' path.
+ 
+    Nothing here is borrower-facing, so nothing here confers 'licensed'.
+ 
+    compliance_data: pass the dict your view already got from
+        ComplianceDashboardService(lender).get_dashboard_data() so the service
+        isn't computed a second time. It's only read on the 'seeking' path; for
+        'already_licensed' and 'unknown' it's never touched, so None is fine
+        there. If None is passed AND the seeking path is hit, the service is
+        built lazily as a fallback.
+    """
+ 
+    status = getattr(lender, 'cbl_license_status', 'unknown')
+    cp = _compliance_of(lender)
+    verif = getattr(cp, 'license_verification_state', 'none') if cp else 'none'
+ 
+    # --- Already-licensed journey (routed by the self-declared field) ---
+    if status == 'already_licensed':
+        if verif == 'verified':
+            return {
+                'journey': 'licensed',
+                'heading': 'CBL Licence',
+                'status_label': 'Verified',
+                'status_tone': 'success',
+                'next_action': None,
+                'url': None,
+                'message': f'Licence {cp.cbl_license_number} is verified and '
+                           f'shown on your public profile.',
+            }
+        if verif == 'pending':
+            return {
+                'journey': 'licensed',
+                'heading': 'CBL Licence',
+                'status_label': 'Awaiting verification',
+                'status_tone': 'warning',
+                'next_action': None,
+                'url': None,
+                'message': "We're verifying your licence against the CBL "
+                           "register. Borrowers won't see a licensed badge "
+                           "until it's confirmed.",
+            }
+        # none or rejected -> prompt to submit / re-submit
+        is_reject = verif == 'rejected'
+        return {
+            'journey': 'licensed',
+            'heading': 'CBL Licence',
+            'status_label': 'Rejected' if is_reject else 'Not submitted',
+            'status_tone': 'danger' if is_reject else 'secondary',
+            'next_action': ('Re-submit your CBL licence' if is_reject
+                            else 'Submit your CBL licence for verification'),
+            'url': reverse('compliance:submit_license'),
+            'message': (cp.license_review_note if is_reject and cp else
+                        'Submit the CBL licence you already hold so we can '
+                        'verify it and show your licensed status to borrowers.'),
+        }
+ 
+    # --- Seeking journey -> hand off to the existing stage machine ---
+    if status == 'seeking':
+        data = compliance_data
+        if data is None:
+            # Fallback only — the view normally passes compliance_data in.
+            data = ComplianceDashboardService(lender).get_dashboard_data()
+        return {
+            'journey': 'seeking',
+            'heading': 'Compliance Status',
+            'status_label': data.get('current_stage'),
+            'status_tone': 'info',
+            'next_action': data.get('next_action'),
+            'url': data.get('url'),
+            'message': data.get('status_message'),
+        }
+ 
+    # --- Unknown -> make them choose a journey first ---
+    return {
+        'journey': 'unknown',
+        'heading': 'CBL Licence Status',
+        'status_label': 'Not specified',
+        'status_tone': 'secondary',
+        'next_action': 'Tell us your CBL licence status',
+        'url': reverse('lenders:lender_profile'),
+        'message': 'Let us know whether you already hold a CBL licence so we '
+                   'can guide you to the right next step.',
+    }
 
 # ======================================
 # Lender Profile and Product Listings
@@ -673,7 +767,6 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 					# Use the SAME relationship name as the guard above.
 					loan_application.linked_loan = loan
 					# --- KFS auto-generation + choreography ---
-					
 					on_loan_approved(self.request, loan_application, loan)
 
 				Notification.objects.create(

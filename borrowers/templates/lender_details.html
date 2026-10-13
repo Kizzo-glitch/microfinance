@@ -8,10 +8,10 @@
 <div class="container mt-5">
                     <div class="card shadow">
                         <div class="card-header bg-secondary text-white">
-                            <h2 class="card-title mb-0">{{ lender.company_name }}</h2>
+                            <h2 class="card-title mb-0 text-white">{{ lender.company_name }}</h2>
                         </div>
                         <div class="card-body">
-                            <p class="card-text">
+                            <!--<p class="card-text">
                                 <strong>Address:</strong> {{ lender.physical_address }}
                             </p>
                             <p class="card-text">
@@ -34,7 +34,7 @@
                             </p>
                             <p class="card-text">
                                 <strong>Platform Verification Status:</strong> {{ lender.verification_status }}
-                            </p>
+                            </p>-->
 
                              <p><strong>Average Rating:</strong> 
                                 <span>
@@ -46,6 +46,17 @@
                                     {% endif %}
                                 </span>
                             </p>
+                            <!--{% if lender.average_rating %}
+                      <div class="mb-1">
+                        <span class="fw-bold">{{ lender.average_rating|floatformat:1 }}</span>
+                        <i class="bi bi-star-fill text-warning"></i>
+                        <span class="small text-muted">
+                          · {{ lender.review_count }} review{{ lender.review_count|pluralize }}
+                        </span>
+                      </div>
+                    {% else %}
+                      <div class="small text-muted mb-1">Not yet rated</div>
+                    {% endif %}-->
 
                         
                             <br>
@@ -118,7 +129,7 @@
   <!-- Lender identity (fuller — CBL wanted more borrower-facing info) -->
   <div class="card shadow-sm border-0 mb-4">
     <div class="card-header bg-dark text-white">
-      <h3 class="mb-0">{{ lender.company_name }}</h3>
+      <h3 class="card-title mb-0 text-white">Business Information</h3>
     </div>
     <div class="card-body">
       <div class="row">
@@ -130,8 +141,8 @@
         <div class="col-md-6">
           <p class="mb-1">
             <strong>CBL Licence No.:</strong>
-            {% if lender.cbl_licence_number %}
-              {{ lender.cbl_licence_number }}
+            {% if lender.is_cbl_licensed %}
+              {{ lender.compliance.cbl_licence_number }}
               <span class="badge bg-success ms-1"><i class="bi bi-patch-check"></i> Licensed</span>
             {% else %}
               <span class="text-muted">Not provided</span>
@@ -139,7 +150,7 @@
           </p>
           <p class="mb-1">
             <strong>Verification:</strong>
-            {% if lender.is_verified %}
+            {% if lender.is_cbl_licensed %}
               <span class="badge bg-success">Verified</span>
             {% else %}
               <span class="badge bg-secondary">Unverified</span>
@@ -147,6 +158,8 @@
           </p>
           {% if lender.complaints_phone or lender.complaints_email %}
           <p class="mb-1"><strong>Complaints:</strong> {{ lender.complaints_phone }} {{ lender.complaints_email }}</p>
+          {% else %}
+          <p class="mb-1"><strong>Complaints:</strong> Not provided</p>
           {% endif %}
         </div>
       </div>
@@ -161,7 +174,9 @@
       receive a full Key Facts Statement before any loan is disbursed.</p>
  
     {% for p in products %}
-    <div class="card shadow-sm border-0 mb-3">
+      {% include "_product_detail_row.html" with p=p %}
+
+    <!--<div class="card shadow-sm border-0 mb-3">
       <div class="card-header bg-light d-flex justify-content-between align-items-center">
         <div>
           <strong>{{ p.name }}</strong>
@@ -204,7 +219,7 @@
           </button>
         </form>
       </div>
-    </div>
+    </div>-->
     {% endfor %}
  
   {% else %}

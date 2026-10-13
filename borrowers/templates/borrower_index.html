@@ -32,7 +32,18 @@
                 <li class="breadcrumb-item active">Click on any of the Lenders below to see who best suit your needs</li>
             </ol>
             <div class="row">
-                {% for lender in lenders %}                       
+                {% for lender in lenders %}
+                <div class="col-xl-6 col-md-6 mb-4">                                             
+                    {% include "_lender_card.html" with lender=lender %}
+                </div>
+                {% empty %}
+                <center>
+                    <h1>No lenders available at this time.</h1>
+                    <br>
+                </center>  
+                         
+                {% endfor %} 
+                <!--{% for lender in lenders %}                       
                 <div class="col-xl-6 col-md-6 mb-4">
                     <div class="card border-left-primary shadow h-100 py-2">
                         <div class="card-body">
@@ -46,7 +57,7 @@
                                     <div class="h8 font-weight-bold mb-1">
                                         <strong>{{ lender.physical_address }}</strong>
                                     </div>
-                                    <!--<p style="font-weight: bold; font-style: italic;">Average Rating: -->
+                                 
                                         {% if lender.average_rating %} 
                                             <div class="h5 mb-0 font-weight-bold text-gray-800">
                                                 {{ lender.average_rating|floatformat:1 }}
@@ -80,10 +91,10 @@
                                 </div>
 
                                 <div class="badge-overlay text-white"> 
-                                    {% if lender.verification_status == 'licensed' %}
+                                    {% if lender.is_cbl_licensed  %}
                                         <span class="badge bg-success"><i class="fas fa-check-circle"></i> Licensed</span>
-                                    {% elif lender.verification_status == 'verified' %}
-                                        <span class="badge bg-info"><i class="fas fa-check-circle"></i> Verified</span>
+                                    {% elif lender.license_verification_state == 'pending' %}
+                                        <span class="badge bg-info"><i class="fas fa-check-circle"></i> Pending</span>
                                     {% else %}
                                         <span class="badge bg-secondary"><i class="fas fa-user-clock"></i> Unverified</span>
                                     {% endif %}
@@ -103,7 +114,7 @@
                     <h1>No lenders available at this time.</h1>
                     <br>
                 </center>
-                {% endfor %}
+                {% endfor %}-->
             </div>
 
             <h1 class="mt-4">Groups</h1>

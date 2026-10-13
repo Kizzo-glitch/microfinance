@@ -16,9 +16,9 @@ from dataclasses import dataclass, field
 from decimal import Decimal, ROUND_HALF_UP
 
 
+
 def _money(x) -> Decimal:
     return Decimal(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
 
 @dataclass
 class Instalment:
@@ -46,6 +46,53 @@ def _total_interest_flat(principal: Decimal, annual_rate: Decimal, term_months: 
     return _money(principal * (annual_rate / Decimal("100")) * (Decimal(term_months) / Decimal("12")))
 
 
+ 
+def build_month_end_schedule(principal, product, disbursement_date):
+    """
+    Returns a schedule dict shaped like build_schedule()'s output, but with a
+    SINGLE instalment. Keep the keys aligned with your instalment builder so the
+    KFS template renders either kind without special-casing.
+ 
+    principal           : Decimal, the loan amount
+    product             : LenderProduct (repayment_structure == 'single_month_end')
+    disbursement_date   : date the loan is disbursed (drives the due date)
+    """
+    principal = _money(principal)
+ 
+    # Flat fee for the month: annual_interest_rate reused as the flat monthly %.
+    fee_rate = product.flat_monthly_fee_rate            # e.g. Decimal('15.00')
+    fee = _money(principal * fee_rate / Decimal("100"))
+ 
+    total_payable = _money(principal + fee)
+    due_date = product.month_end_due_date(disbursement_date)
+ 
+    instalments = [{
+        "number": 1,
+        "due_date": due_date,
+        "principal": principal,
+        "interest": fee,                 # the flat monthly fee
+        "amount": total_payable,         # single repayment == total
+        "balance_after": _money(0),
+    }]
+ 
+    return {
+        "structure": "single_month_end",
+        "principal": principal,
+        "total_interest": fee,
+        "total_payable": total_payable,
+        "instalment_count": 1,
+        "instalments": instalments,
+        # Plain-language note for the KFS so the borrower understands the charge.
+        "interest_note": (
+            f"Flat fee of {fee_rate}% of the loan amount for the month, "
+            f"regardless of the day you borrow. One repayment of "
+            f"M{total_payable} is due on {due_date:%d %B %Y} (month-end)."
+        ),
+        # Reconciliation is exact by construction: the single instalment equals
+        # the total payable.
+        "reconciles": True,
+    }
+ 
 def build_schedule(*, principal, annual_rate, term_months, fees,
                    interest_type="flat"):
     """

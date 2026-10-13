@@ -3,6 +3,7 @@
 
 {% block content %}
 
+
 <!-- ============================= HERO ============================= -->
 <header class="fedha-hero">
     <div class="container px-lg-5">
@@ -12,6 +13,10 @@
 
         <div class="fedha-hero-actions">
             {% if user.is_authenticated %}
+                {% if user.is_staff %}
+                    <a class="btn btn-fedha-primary btn-fedha-lg" href="{% url 'compliance:license_review_queue' %}">Admin License Review</a>
+                {% endif %}
+            
                 {% if user.role == 'borrower' %}
                     {% url 'borrowers:borrower_index' as fedha_dashboard_url %}
                 {% else %}

@@ -4,10 +4,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 
 from compliance.models import ComplianceProfile
-from .forms import RegulatorProfileForm # You'll need to create this form
+from .forms import RegulatorProfileForm 
 
 from django.contrib.auth.decorators import login_required
-from lenders.models import LenderProfile # Adjust based on your actual model name
+from lenders.models import LenderProfile 
 
 
 

@@ -115,6 +115,7 @@ class ComplianceDashboardService:
             'progress': progress,
             'current_stage': self._stage_display(derived_stage),
             'stage_key': derived_stage,
+            'license_verification': self._get_license_verification(),
 
             # Documents
             'total_docs_required': len(required_docs),
@@ -158,9 +159,53 @@ class ComplianceDashboardService:
             self.profile.current_stage = new_stage
             self.profile.save(update_fields=['current_stage'])
 
-    # ------------------------------------------------------------------ #
-    #  Private helpers                                                     #
-    # ------------------------------------------------------------------ #
+    # ------------------------------------------------------------------ 
+    #  Private helpers                                                     
+    # ------------------------------------------------------------------
+    def _get_license_verification(self):
+        """
+        Read-only view of the lender's CBL licence verification.
+    
+        Returns display-ready data for the licence tile. `action_url` is set only
+        when there's something for the lender to do (submit / re-submit); it's
+        None while pending or once verified.
+        """
+        state = getattr(self.profile, 'license_verification_state', 'none')
+    
+        STATE_LABELS = {
+            'none':     'Not submitted',
+            'pending':  'Awaiting verification',
+            'verified': 'Verified',
+            'rejected': 'Rejected',
+        }
+    
+        # Lender can act when nothing is in flight — i.e. they haven't submitted,
+        # or a prior submission was rejected and they want to correct it.
+        can_submit = state in ('none', 'rejected')
+    
+        return {
+            'state': state,
+            'state_label': STATE_LABELS.get(state, state),
+            # Authoritative number only when verified — never show a claim as if trusted.
+            'number': self.profile.cbl_license_number if state == 'verified' else None,
+            'expiry': self.profile.cbl_license_expiry if state == 'verified' else None,
+            # The claimed number, shown only while pending so the lender sees what's under review.
+            'submitted_number': (
+                self.profile.submitted_license_number if state == 'pending' else None
+            ),
+            'review_note': (
+                self.profile.license_review_note if state == 'rejected' else None
+            ),
+            'can_submit': can_submit,
+            'action_url': (
+                reverse('compliance:submit_license') if can_submit else None
+            ),
+            'action_label': (
+                'Submit your CBL licence for verification' if state == 'none'
+                else 'Re-submit your CBL licence' if state == 'rejected'
+                else None
+            ),
+        } 
 
     def _get_required_docs(self):
         """
@@ -215,32 +260,6 @@ class ComplianceDashboardService:
             'license': self.profile.license_fee_paid,
             'renewal': self.profile.renewal_fee_paid,
         }
-
-    def _calculate_progress2(self, completed_docs, required_docs, personnel_data, fee_data):
-        """
-        Fix 4: Progress now includes all task categories:
-          - Documents (weighted by count)
-          - Personnel verification
-          - Investigation fee
-        Post-submission fees (registration, license) are not in the
-        pre-submission progress bar — they belong to a separate post-approval flow.
-        """
-        doc_total = len(required_docs)
-        doc_done = len(completed_docs)
-
-        person_total = personnel_data['required']
-        person_done  = min(personnel_data['verified_count'], person_total)
-
-        fee_total = 1  # Just the investigation fee pre-submission
-        fee_done = 1 if fee_data['investigation'] else 0
-
-        total_tasks = doc_total + person_total + fee_total
-        done_tasks = doc_done + person_done + fee_done
-
-        if total_tasks == 0:
-            return 0
-
-        return min(int((done_tasks / total_tasks) * 100), 100)
 
     def _calculate_progress(self, completed_docs, required_docs, personnel_data, fee_data):
         doc_total    = len(required_docs)
@@ -379,6 +398,9 @@ class ComplianceDashboardService:
             'progress': 0,
             'current_stage': 'Tier Not Set',
             'stage_key': 'not_started',
+
+            'license_verification': self._get_license_verification(),
+
             'next_action': 'Select Your CBL Tier',
             'url': reverse('lenders:lender_profile', kwargs={'pk': self.lender.pk}),
             'status_message': 'Please complete your profile and select a CBL tier to begin.',
@@ -396,9 +418,13 @@ class ComplianceDashboardService:
 
 
 
+# ---------------------------------------------------------------------------
+# Private helper method to the class.
+# ---------------------------------------------------------------------------
 
 
 
+"""
 class ComplianceDashboardService2:
     def __init__(self, lender):
         self.lender = lender
@@ -652,5 +678,5 @@ class ComplianceDashboardService3:
             'url': action_url,
             'status_message': status_message,
         }
-
+"""
 

@@ -1,0 +1,23 @@
+
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <span class="font-weight-bold">{{ cbl.heading }}</span>
+      {% if cbl.status_label %}
+        <span class="badge badge-{{ cbl.status_tone }}">{{ cbl.status_label }}</span>
+      {% endif %}
+    </div>
+
+    {% if cbl.message %}
+      <p class="small text-muted mb-3">{{ cbl.message }}</p>
+    {% endif %}
+
+    {% if cbl.next_action and cbl.url %}
+      <a href="{{ cbl.url }}" class="btn btn-outline-primary btn-block">
+        {{ cbl.next_action }}
+      </a>
+    {% endif %}
+
+  </div>
+</div>

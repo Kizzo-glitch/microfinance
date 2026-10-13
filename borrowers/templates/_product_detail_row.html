@@ -1,0 +1,119 @@
+{# ──────────────────────────────────────────────────────────────────── #}
+{# One product's detail block for the borrower lender-detail page.         #}
+{# Renders BOTH structures correctly:                                      #}
+{#   - installment       -> term in months + repayment frequency           #}
+{#   - single_month_end  -> "Due month-end", flat monthly fee, one payment #}
+{#                                                                         #}
+{# Loop:                                                                   #}
+{#   {% for p in products %}                                               #}
+{#     {% include "borrowers/_product_detail_row.html" with p=p %}         #}
+{#   {% empty %}                                                           #}
+{#     ... your "no products yet" fallback ...                             #}
+{#   {% endfor %}                                                          #}
+{#                                                                         #}
+{# BS5 classes. `p.fees.all` are the ProductFee rows (prefetched).         #}
+{# ──────────────────────────────────────────────────────────────────── #}
+
+<div class="card border mb-3">
+  <div class="card-body">
+
+    <div class="d-flex justify-content-between align-items-start mb-2">
+      <div>
+        <h6 class="fw-bold mb-0">{{ p.name }}</h6>
+        <span class="small text-muted">{{ p.product_code }}</span>
+      </div>
+      {# Structure chip so the borrower instantly knows the loan shape #}
+      {% if p.repayment_structure == 'single_month_end' %}
+        <span class="badge bg-info text-dark">Single payment · month-end</span>
+      {% else %}
+        <span class="badge bg-light text-dark border">Instalment loan</span>
+      {% endif %}
+    </div>
+
+    <div class="row small">
+      {# ── Amount (both structures) ─────────────────────────────────── #}
+      <div class="col-sm-6 mb-2">
+        <span class="text-muted">Loan amount:</span><br>
+        <strong>
+          {% if p.min_amount and p.max_amount %}
+            M{{ p.min_amount|floatformat:0 }} – M{{ p.max_amount|floatformat:0 }}
+          {% else %}
+            On request
+          {% endif %}
+        </strong>
+      </div>
+
+      {# ── Charge: differs by structure ─────────────────────────────── #}
+      <div class="col-sm-6 mb-2">
+        {% if p.repayment_structure == 'single_month_end' %}
+          <span class="text-muted">Flat monthly fee:</span><br>
+          <strong>{{ p.annual_interest_rate|floatformat:2 }}% of the amount</strong>
+        {% else %}
+          <span class="text-muted">Interest rate:</span><br>
+          <strong>{{ p.annual_interest_rate|floatformat:2 }}% p.a.</strong>
+          <span class="text-muted">({{ p.get_interest_type_display }})</span>
+        {% endif %}
+      </div>
+
+      {# ── Repayment: term vs month-end ─────────────────────────────── #}
+      <div class="col-sm-6 mb-2">
+        <span class="text-muted">Repayment:</span><br>
+        {% if p.repayment_structure == 'single_month_end' %}
+          <strong>One payment, due month-end</strong>
+          <div class="text-muted">
+            Taken mid-month, repaid on the last day of the same month.
+          </div>
+        {% else %}
+          <strong>
+            {% if p.min_term == p.max_term %}
+              {{ p.min_term }} month{{ p.min_term|pluralize }}
+            {% else %}
+              {{ p.min_term }}–{{ p.max_term }} months
+            {% endif %}
+          </strong>
+          <span class="text-muted">· {{ p.get_repayment_frequency_display }}</span>
+        {% endif %}
+      </div>
+
+      {# ── Interest calculation note (both, if set) ─────────────────── #}
+      {% if p.interest_calculation_note %}
+      <div class="col-sm-6 mb-2">
+        <span class="text-muted">How interest is calculated:</span><br>
+        <span>{{ p.interest_calculation_note }}</span>
+      </div>
+      {% endif %}
+    </div>
+
+    {# ── Fees (both structures) ───────────────────────────────────────── #}
+    {% with fees=p.fees.all %}
+      {% if fees %}
+      <div class="mt-2">
+        <div class="small text-muted mb-1">Fees:</div>
+        <ul class="small mb-0">
+          {% for fee in fees %}
+            <li>
+              {{ fee.get_fee_type_display }}:
+              {% if fee.basis == 'percent' %}
+                {{ fee.amount|floatformat:2 }}% of amount
+              {% else %}
+                M{{ fee.amount|floatformat:2 }}
+              {% endif %}
+              {% if not fee.applicable %}
+                <span class="text-muted">(not applicable to this loan)</span>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    {% endwith %}
+    <center>
+    <form method="post" action="{% url 'borrowers:choose_product' lender.id p.id %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-success">
+        <i class="bi bi-check-circle"></i> Apply with this product
+      </button>
+    </form> 
+    </center>
+  </div>
+</div>

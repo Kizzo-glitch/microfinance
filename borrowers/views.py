@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 
 
-from django.db.models import Avg, Count, Sum, Q
+from django.db.models import Avg, Count, Sum, Q, Min, Max, Case, When, Value, IntegerField
 
 from django.http import JsonResponse, HttpResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
@@ -187,12 +187,67 @@ def save_borrower_payment_details(request):
 	})
  
 
+def annotated_lenders_for_cards(queryset):
+    """
+    Takes a LenderProfile queryset and returns it annotated for the cards:
+      - product_count            : number of ACTIVE products
+      - rate_min / rate_max      : annual interest rate range
+      - amount_min / amount_max  : loan amount range
+      - term_min / term_max      : loan term range
+      - has_products flag (via product_count) drives "sorted to bottom"
+ 
+    Only ACTIVE products feed the ranges. Change the filter prefix
+    `products__is_active=True` to match your product's related_name and
+    active flag (FIELD).
+    """
+    # Related lookups assume LenderProduct.lender has related_name='products'.
+    # If it's the default, use 'lenderproduct__' instead of 'products__'. (FIELD)
+    active = {'products__is_active': True}   # (FIELD) active flag + related_name
+ 
+    qs = queryset.annotate(
+        product_count=Count('products', filter=_q(active), distinct=True),
+ 
+        rate_min=Min('products__annual_interest_rate', filter=_q(active)),
+        rate_max=Max('products__annual_interest_rate', filter=_q(active)),
+ 
+        amount_min=Min('products__min_amount', filter=_q(active)),
+        amount_max=Max('products__max_amount', filter=_q(active)),
+ 
+        term_min=Min('products__min_term', filter=_q(active)),
+        term_max=Max('products__max_term', filter=_q(active)),
+    ).annotate(
+        # Sort key: lenders WITH products first (0), empties last (1).
+        _has_products=Case(
+            When(product_count__gt=0, then=Value(0)),
+            default=Value(1),
+            output_field=IntegerField(),
+        )
+    ).order_by('_has_products', '-product_count', 'company_name')
+ 
+    return qs
+ 
+ 
+def _q(kwargs):
+    """Small helper so the Count/Min/Max filters stay readable above."""
+    return Q(**kwargs)
+
+
 
 @login_required
 def borrower_index(request):
 	borrower = request.user.borrower
-	lenders = (LenderProfile.objects.filter(user__is_superuser=False, user__role='lender')
-		.annotate(average_rating=Avg('ratings__rating')))
+	#lenders = annotated_lenders_for_cards(LenderProfile.objects.all())
+	
+	#lenders = (LenderProfile.objects.filter(user__is_superuser=False, user__role='lender')
+	#	.annotate(average_rating=Avg('ratings__rating')))
+
+	lenders = annotated_lenders_for_cards(LenderProfile.objects
+			.filter(user__is_superuser=False, user__role='lender')
+			.annotate(
+				average_rating=Avg('ratings__rating'),
+				review_count=Count('ratings'),
+			)
+	)
 
 	draft_app = LoanApplication.objects.filter(borrower=request.user.borrower, status="draft").last()
 
@@ -612,7 +667,7 @@ def lender_details(request, lender_id):
 		'lender': lender,
 		'form': form,
 		'existing_rating': existing_rating,
-		'ratings': ratings,  # List of all ratings for this lender
+		'ratings': ratings,  
 		'average_rating': average_rating,  # Calculated average rating
 		'rating_range': range(int(average_rating)),  # For displaying stars
 		"products": products,

@@ -1,0 +1,98 @@
+
+
+<div class="card shadow-sm mb-4 h-100">
+  <div class="card-body">
+ 
+    {# ── Top row: trust badge ─────────────────────────────────────── #}
+    <div class="d-flex justify-content-end mb-2">
+      {% if lender.is_cbl_licensed %}
+        <span class="badge bg-success">
+          <i class="bi bi-patch-check-fill"></i> Licensed
+        </span>
+      {% else %}
+        <span class="badge bg-secondary">
+          <i class="bi bi-person-x"></i> Unverified
+        </span>
+      {% endif %}
+    </div>
+ 
+    <div class="row">
+      {# ── Left: identity + trust ─────────────────────────────────── #}
+      <div class="col-md-5">
+        <h5 class="fw-bold text-success mb-1">{{ lender.company_name }}</h5>
+        {% if lender.physical_address %}
+          <div class="small text-muted mb-2">{{ lender.physical_address }}</div>
+        {% endif %}
+ 
+        {# Rating + count: shows how much weight the rating carries #}
+        {% if lender.average_rating %}
+          <div class="mb-1">
+            <span class="fw-bold">{{ lender.average_rating|floatformat:1 }}</span>
+            <i class="bi bi-star-fill text-warning"></i>
+            <span class="small text-muted">
+              · {{ lender.review_count }} review{{ lender.review_count|pluralize }}
+            </span>
+          </div>
+        {% else %}
+          <div class="small text-muted mb-1">Not yet rated</div>
+        {% endif %}
+      </div>
+ 
+      {# ── Right: product-derived offer summary ───────────────────── #}
+      <div class="col-md-7">
+        {% if lender.product_count %}
+          <div class="small">
+            <div class="mb-1">
+              <span class="text-muted">Interest rate:</span>
+              <strong>
+                {% if lender.rate_min == lender.rate_max %}
+                  {{ lender.rate_min|floatformat:2 }}%
+                {% else %}
+                  {{ lender.rate_min|floatformat:2 }}% – {{ lender.rate_max|floatformat:2 }}%
+                {% endif %}
+                <span class="text-muted">p.a.</span>
+              </strong>
+            </div>
+            <div class="mb-1">
+              <span class="text-muted">Loan amount:</span>
+              <strong>
+                M{{ lender.amount_min|floatformat:0 }} – M{{ lender.amount_max|floatformat:0 }}
+              </strong>
+            </div>
+            <div class="mb-1">
+              <span class="text-muted">Terms:</span>
+              <strong>
+                {% if lender.term_min == lender.term_max %}
+                  {{ lender.term_min }} month{{ lender.term_min|pluralize }}
+                {% else %}
+                  {{ lender.term_min }}–{{ lender.term_max }} months
+                {% endif %}
+              </strong>
+            </div>
+            <div class="mt-2">
+              <span class="badge bg-light text-dark border">
+                {{ lender.product_count }} loan product{{ lender.product_count|pluralize }}
+              </span>
+            </div>
+          </div>
+        {% else %}
+          {# Honest empty state — no fabricated figures. #}
+          <div class="small text-muted d-flex align-items-center h-100">
+            <span>
+              <i class="bi bi-info-circle"></i>
+              No loan products listed yet. This lender hasn't published any
+              offerings for you to compare.
+            </span>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+ 
+  <div class="card-footer bg-white border-top">
+    <a href="{% url 'borrowers:lender_details' lender.pk %}"
+       class="stretched-link text-decoration-none small fw-semibold">
+      View More Details <i class="bi bi-chevron-right"></i>
+    </a>
+  </div>
+</div>

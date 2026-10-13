@@ -5,9 +5,9 @@ from django.dispatch import receiver
 
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, MaxValueValidator
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, date
 from decimal import Decimal
 from django.db.models import Avg, Count, Q, F
 import uuid
@@ -15,6 +15,9 @@ from django.db.models import Case, When, IntegerField, Value
 from django.db.models.functions import Coalesce
 from django.db.models import ExpressionWrapper, FloatField
 from django.db.models.functions import Cast
+
+import calendar
+
 
 from micro.models import PaymentDetailsMixin
 
@@ -29,30 +32,30 @@ User = get_user_model()
 # LAYER 1 — Credit-provider fields on LenderProfile (KFS Section 1)
 # =====================================================================
 class LenderCreditProviderFieldsMixin(models.Model):
-    """Credit-provider identity + contact fields required on a Key Facts Statement."""
+	"""Credit-provider identity + contact fields required on a Key Facts Statement."""
 
-    # --- regulatory identity (KFS-critical) ---
-    cbl_licence_number = models.CharField(
-        max_length=60, blank=True,
-        help_text="CBL licence / registration number, e.g. CBL/MFI/XXXX/2026.")
-    registered_name = models.CharField(
-        max_length=200, blank=True,
-        help_text="Registered legal name, if different from the display/company name.")
-    registered_address = models.CharField(max_length=300, blank=True)
+	# --- regulatory identity (KFS-critical) ---
+	cbl_licence_number = models.CharField(
+		max_length=60, blank=True,
+		help_text="CBL licence / registration number, e.g. CBL/MFI/XXXX/2026.")
+	registered_name = models.CharField(
+		max_length=200, blank=True,
+		help_text="Registered legal name, if different from the display/company name.")
+	registered_address = models.CharField(max_length=300, blank=True)
 
-    # --- contacts shown to the borrower ---
-    service_phone = models.CharField(max_length=30, blank=True)
-    service_email = models.EmailField(blank=True)
-    complaints_phone = models.CharField(max_length=30, blank=True)
-    complaints_email = models.EmailField(blank=True)
+	# --- contacts shown to the borrower ---
+	service_phone = models.CharField(max_length=30, blank=True)
+	service_email = models.EmailField(blank=True)
+	complaints_phone = models.CharField(max_length=30, blank=True)
+	complaints_email = models.EmailField(blank=True)
 
-    class Meta:
-        abstract = True
+	class Meta:
+		abstract = True
 
-    @property
-    def kfs_ready(self) -> bool:
-        """Minimum credit-provider info present to generate a compliant KFS."""
-        return bool(self.cbl_licence_number and (self.service_phone or self.service_email))
+	@property
+	def kfs_ready(self) -> bool:
+		"""Minimum credit-provider info present to generate a compliant KFS."""
+		return bool(self.cbl_licence_number and (self.service_phone or self.service_email))
 
 
 # =====================================================================
@@ -113,31 +116,12 @@ class LenderProfileManager(models.Manager):
 				output_field=FloatField()
 			)
 		)
-	
-	"""
-	def with_compliance_score(self):
-		# Annotate with compliance score
-
-		return self.annotate(
-			policy_count=models.Sum(
-				Case(
-					When(has_kyc_policy=True, then=Value(1)),
-					When(has_aml_policy=True, then=Value(1)),
-					When(has_data_protection_policy=True, then=Value(1)),
-					When(has_code_of_ethics=True, then=Value(1)),
-					When(has_complaints_procedure=True, then=Value(1)),
-					When(has_risk_management_policy=True, then=Value(1)),
-					default=Value(0),
-					output_field=IntegerField()
-				)
-			)
-		)
-		"""
 
 
 def get_upload_path(instance, filename):
 	ext = filename.split('.')[-1]
 	return f"Lender-photos/{instance.user.username}.{ext}"
+
 
 
 # =====================================================================
@@ -189,6 +173,12 @@ class LenderProfile(PaymentDetailsMixin, LenderCreditProviderFieldsMixin, models
 		('recalculate', 'Recalculate Interest on Skipped Payment'),
 		('standard', 'Standard Double Payment'),
 		('penalty', 'Apply Late Payment Penalty'),
+	]
+	
+	CBL_LICENSE_STATUS_CHOICES = [
+		('unknown',          'Not specified yet'),
+		('already_licensed', 'I already hold a CBL licence'),
+		('seeking',          'Not yet licensed — going through the CBL process'),
 	]
 	
 	LOAN_TERM_CHOICES = [
@@ -283,6 +273,11 @@ class LenderProfile(PaymentDetailsMixin, LenderCreditProviderFieldsMixin, models
 	loan_terms = models.JSONField(default=list, blank=True,
 		help_text="Available loan term options in months")
 	missed_payment_policy = models.CharField(null=True, max_length=20, choices=MISSED_PAYMENT_POLICY_CHOICES, default='standard')
+
+	cbl_license_status = models.CharField(
+		max_length=20, choices=CBL_LICENSE_STATUS_CHOICES, default='unknown',
+		help_text="Which CBL journey this lender is on. A routing declaration, "
+				  "NOT proof of licensing — only a verified licence counts.")
 	
 	# ============ COMPLIANCE POLICIES (Boolean flags) ============
 	has_kyc_policy = models.BooleanField(default=False, help_text="Has implemented KYC policy")
@@ -336,6 +331,25 @@ class LenderProfile(PaymentDetailsMixin, LenderCreditProviderFieldsMixin, models
 	@property
 	def ceo_full_name(self):
 		return f"{self.ceo_first_name} {self.ceo_last_name}"
+
+	
+	@property
+	def is_cbl_licensed(self):
+		'''
+		The single source of truth for 'is this lender CBL-licensed?'.
+		True ONLY on reviewer verification OR completion of the CBL process.
+		The self-declared cbl_license_status is deliberately NOT consulted.
+		'''
+		# A reverse one-to-one with no row RAISES RelatedObjectDoesNotExist;
+		# getattr's default does NOT catch it. Catch explicitly.
+		try:
+			cp = self.compliance
+		except ObjectDoesNotExist:
+			return False
+		return (
+			cp.license_verification_state == 'verified'
+			or cp.current_stage == 'licensed'
+		)
 	
 	@property
 	def is_licensed(self):
@@ -375,37 +389,6 @@ class LenderProfile(PaymentDetailsMixin, LenderCreditProviderFieldsMixin, models
 		return requirements.get(self.cbl_tier, 0)
 	
 
-	"""
-	@property
-	def requires_cbl_license(self):
-		# Now includes individuals and P2P under the regulated umbrella
-		regulated_tiers = ['tier1', 'tier2', 'tier3', 'individual', 'p2p']
-		return self.cbl_tier in regulated_tiers
-	
-	@property
-	def minimum_capital_requirement(self):
-		# Return minimum capital requirement based on tier
-		requirements = {
-			'tier1': Decimal('10000000'),  # M10M+ (highest)
-			'tier2': Decimal('10000000'),  # M10M in assets
-			'tier3': Decimal('500000'),    # Below M10M assets
-			'individual': Decimal('50000'),
-			'p2p': Decimal('10000'),
-		}
-		return requirements.get(self.cbl_tier, Decimal('0'))
-	
-	@property
-	def minimum_board_size(self):
-		# Return minimum board members required
-		requirements = {
-			'tier1': 5,
-			'tier2': 5,
-			'tier3': 3,
-			'individual': 0,
-			'p2p': 0,
-		}
-		return requirements.get(self.cbl_tier, 0)
-	"""
 	@property
 	def license_expiry_warning(self):
 		"""Check if license is expiring within 60 days"""
@@ -427,64 +410,12 @@ class LenderProfile(PaymentDetailsMixin, LenderCreditProviderFieldsMixin, models
 		result = self.ratings.aggregate(avg=Avg('rating'))['avg']
 		return round(result, 1) if result is not None else 0
 	
-	"""
-	def average_rating(self):
-		Calculate average rating from related ratings
-		#ratings = self.ratings.all()
-		#if not ratings.exists():
-		#	return 0
-		#return sum(r.rating for r in ratings) / ratings.count()
-		return self.ratings.aggregate(Avg('rating'))['rating__avg'] or 0
-	"""
 	
 	# On the model:
 	def get_compliance_score(self):
 		completed = sum(1 for field in COMPLIANCE_POLICY_FIELDS if getattr(self, field))
 		return int((completed / len(COMPLIANCE_POLICY_FIELDS)) * 100)
 	
-	"""
-	def get_compliance_score(self):
-		# Calculate compliance score based on policies
-		policies = [
-			self.has_kyc_policy,
-			self.has_aml_policy,
-			self.has_data_protection_policy,
-			self.has_code_of_ethics,
-			self.has_complaints_procedure,
-			self.has_risk_management_policy,
-		]
-		completed = sum(1 for p in policies if p)
-		return int((completed / len(policies)) * 100)
-	
-
-	def with_compliance_score(self):
-		
-		Annotates each LenderProfile with a compliance_score (0–100).
-		Mirrors the logic in get_compliance_score() so results are consistent.
-		
-		policy_fields = [
-			'has_kyc_policy',
-			'has_aml_policy',
-			'has_data_protection_policy',
-			'has_code_of_ethics',
-			'has_complaints_procedure',
-			'has_risk_management_policy',
-		]
-		total = len(policy_fields)
-
-		# Sum the boolean fields (True=1, False=0) then express as percentage
-		score_expr = sum(
-			Cast(models.F(field), output_field=IntegerField())
-			for field in policy_fields
-		)
-
-		return self.annotate(
-			compliance_score=ExpressionWrapper(
-				score_expr * Value(100) / Value(total),
-				output_field=FloatField()
-			)
-		)
-		"""
 	
 	def determine_cbl_tier(self):
 		"""
@@ -513,22 +444,7 @@ class LenderProfile(PaymentDetailsMixin, LenderCreditProviderFieldsMixin, models
 		return ''
 	
 
-	"""
-	def determine_cbl_tier(self):
-		if self.total_assets and self.total_assets >= Decimal('10000000'):
-			return 'tier2'
-		elif self.stated_capital and self.stated_capital >= Decimal('2000000'):
-			return 'tier1'		
-		elif self.stated_capital and self.stated_capital >= Decimal('500000'):
-			return 'tier3'
-		elif self.stated_capital and self.stated_capital >= Decimal('50000'):
-			return 'individual'
-		elif self.stated_capital and self.stated_capital >= Decimal('10000'):
-			return 'p2p'
-		return ''
 
-	"""
-	
 
 	def can_accept_deposits(self):
 		"""Only Tier 1 can accept deposits"""
@@ -594,7 +510,6 @@ class LenderProfile(PaymentDetailsMixin, LenderCreditProviderFieldsMixin, models
 
 		return False
 	
-	
 	def save(self, *args, **kwargs):
 		# Auto-determine tier if not set
 		if self.cbl_tier not in ('tier1', 'tier2', 'tier3') and self.total_assets is not None:
@@ -626,115 +541,140 @@ def create_lender_profile(sender, instance, created, **kwargs):
 # =====================================================================
 
 
-"""
-Fedha-Grow — LAYER 2: lender products & fees (KFS Section 4)
-============================================================
-A lender offers one or more named PRODUCTS (e.g. "Standard Loan LP-STD-03"),
-each with an interest rate and a set of configurable FEES. A loan is an instance
-of a product, so its KFS can disclose exactly the product's fees.
-
-Why a product model (not fees on the lender profile):
-  * The KFS template carries a "Product Version" (LP-STD-03) — it assumes named,
-    versioned products.
-  * Real MFIs offer several products (standard, business, emergency) with
-    different rates and fees.
-  * A loan freezes a reference to the product version it was issued under, so a
-    later fee change never rewrites a historical loan's disclosure.
-
-Fedha-Grow standardises the DISCLOSURE STRUCTURE; the lender plugs in the actual
-amounts. This is the "we provide the infrastructure, the lender sets the terms"
-boundary, in the data model.
-"""
+# =====================================================================
+# LAYER 2 — Product fields on LenderProduct (KFS Section 2)
+# =====================================================================
 class LenderProduct(models.Model):
-    lender = models.ForeignKey(
-        "lenders.LenderProfile", on_delete=models.CASCADE, related_name="products")
+	REPAYMENT_STRUCTURE_CHOICES = [
+			("installment", "Instalments over a term (monthly/weekly)"),
+			("single_month_end", "Single repayment at month-end"),
+			# room to grow without another migration:
+			# ("single_fixed_term", "Single repayment after a fixed number of days"),
+		]
+	INTEREST_TYPE_CHOICES = [
+			("flat", "Flat"),
+			("reducing", "Reducing balance"),
+		]
+	REPAYMENT_FREQUENCY_CHOICES = [
+			("monthly", "Monthly"),
+			("weekly", "Weekly"),
+			("fortnightly", "Fortnightly"),
+		]
+	
+	lender = models.ForeignKey(
+		"lenders.LenderProfile", on_delete=models.CASCADE, related_name="products")
 
-    name = models.CharField(max_length=120, help_text="e.g. Standard Personal Loan")
-    product_code = models.CharField(max_length=40, help_text="e.g. LP-STD-03")
-    version = models.CharField(max_length=20, blank=True, help_text="e.g. 03")
-    effective_from = models.DateField(null=True, blank=True)
+	name = models.CharField(max_length=120, help_text="e.g. Standard Personal Loan")
+	product_code = models.CharField(max_length=40, help_text="e.g. LP-STD-03")
+	version = models.CharField(max_length=20, blank=True, help_text="e.g. 03")
+	effective_from = models.DateField(null=True, blank=True)
 
-    # core terms
-    annual_interest_rate = models.DecimalField(
-        max_digits=6, decimal_places=2,
-        help_text="Nominal annual interest rate, %.")
-    INTEREST_TYPE_CHOICES = [
-        ("flat", "Flat"),
-        ("reducing", "Reducing balance"),
-    ]
-    interest_type = models.CharField(max_length=12, choices=INTEREST_TYPE_CHOICES, default="flat")
-    interest_calculation_note = models.CharField(
-        max_length=200, blank=True,
-        help_text="Free-text description of how interest is calculated (shown on KFS).")
+	# core terms
+	annual_interest_rate = models.DecimalField(
+		max_digits=6, decimal_places=2,
+		help_text="Nominal annual interest rate, %.")
+	
+	interest_type = models.CharField(max_length=12, choices=INTEREST_TYPE_CHOICES, default="flat")
+	
+	interest_calculation_note = models.CharField(
+		max_length=200, blank=True,
+		help_text="Free-text description of how interest is calculated (shown on KFS).")
 
-    REPAYMENT_FREQUENCY_CHOICES = [
-        ("monthly", "Monthly"),
-        ("weekly", "Weekly"),
-        ("fortnightly", "Fortnightly"),
-    ]
-    repayment_frequency = models.CharField(
-        max_length=12, choices=REPAYMENT_FREQUENCY_CHOICES, default="monthly")
+	
+	repayment_frequency = models.CharField(
+		max_length=12, choices=REPAYMENT_FREQUENCY_CHOICES, default="monthly")
 
-    # bounds
-    min_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    max_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    min_term = models.PositiveIntegerField(null=True, blank=True, help_text="months")
-    max_term = models.PositiveIntegerField(null=True, blank=True, help_text="months")
+	repayment_structure = models.CharField(
+		max_length=20, choices=REPAYMENT_STRUCTURE_CHOICES, default="installment",
+		help_text="How the loan is repaid. 'Single repayment at month-end' is a "
+				"short loan taken mid-month and repaid once, on the last day of "
+				"that same month, for a flat monthly fee.")
 
-    is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+	# bounds
+	min_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+	max_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+	min_term = models.PositiveIntegerField(null=True, blank=True, help_text="months")
+	max_term = models.PositiveIntegerField(null=True, blank=True, help_text="months")
 
-    class Meta:
-        ordering = ["lender", "name"]
+	is_active = models.BooleanField(default=True)
+	created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return f"{self.name} ({self.product_code}) — {self.lender.company_name}"
+	class Meta:
+		ordering = ["lender", "name"]
 
-    @property
-    def monthly_interest_rate(self) -> Decimal:
-        return (self.annual_interest_rate / Decimal("12")).quantize(Decimal("0.01"))
+	def __str__(self):
+		return f"{self.name} ({self.product_code}) — {self.lender.company_name}"
+
+	@property
+	def monthly_interest_rate(self) -> Decimal:
+		return (self.annual_interest_rate / Decimal("12")).quantize(Decimal("0.01"))
+
+	@property
+	def is_single_repayment(self) -> bool:
+		"""True for structures with ONE repayment (no instalment stream)."""
+		return self.repayment_structure in ("single_month_end",)  # extend later
+	
+	
+	@property
+	def flat_monthly_fee_rate(self) -> Decimal:
+		"""
+		For a month-end product, the flat monthly fee as a percentage of principal.
+		We reuse annual_interest_rate as that flat monthly %, so lenders set one
+		number and the KFS states plainly it's a flat monthly charge.
+		"""
+		return self.annual_interest_rate
+	
+	
+	def month_end_due_date(self, disbursement_date: date) -> date:
+		"""
+		The last calendar day of the month the loan is disbursed in.
+		Taken on 2026-10-13 -> due 2026-10-31. This is the single repayment date.
+		"""
+		last_day = calendar.monthrange(disbursement_date.year,
+									disbursement_date.month)[1]
+		return date(disbursement_date.year, disbursement_date.month, last_day)
 
 
 class ProductFee(models.Model):
-    """A single configurable fee on a product — mirrors a KFS Section 4 row."""
+	"""A single configurable fee on a product — mirrors a KFS Section 4 row."""
 
-    product = models.ForeignKey(LenderProduct, on_delete=models.CASCADE, related_name="fees")
+	product = models.ForeignKey(LenderProduct, on_delete=models.CASCADE, related_name="fees")
 
-    # named fee types match the KFS rows, but 'other' allows extensibility
-    FEE_TYPE_CHOICES = [
-        ("initiation",   "Initiation Fee"),
-        ("service",      "Service / Administration Fee"),
-        ("credit_bureau","Credit Bureau Fee"),
-        ("insurance",    "Insurance Premium"),
-        ("late_payment", "Late Payment Charge"),
-        ("early_settlement", "Early Settlement Charge"),
-        ("restructuring","Restructuring Fee"),
-        ("legal_recovery","Legal / Recovery Costs"),
-        ("other",        "Other Charge"),
-    ]
-    fee_type = models.CharField(max_length=20, choices=FEE_TYPE_CHOICES)
+	# named fee types match the KFS rows, but 'other' allows extensibility
+	FEE_TYPE_CHOICES = [
+		("initiation",   "Initiation Fee"),
+		("service",      "Service / Administration Fee"),
+		("credit_bureau","Credit Bureau Fee"),
+		("insurance",    "Insurance Premium"),
+		("late_payment", "Late Payment Charge"),
+		("early_settlement", "Early Settlement Charge"),
+		("restructuring","Restructuring Fee"),
+		("legal_recovery","Legal / Recovery Costs"),
+		("other",        "Other Charge"),
+	]
+	fee_type = models.CharField(max_length=20, choices=FEE_TYPE_CHOICES)
 
-    amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+	amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
 
-    # how/when it applies — drives the KFS "Basis / When Payable" column
-    BASIS_CHOICES = [
-        ("once_origination", "Once — at origination"),
-        ("once_predisbursement", "Once — before disbursement"),
-        ("per_instalment", "Per instalment"),
-        ("per_occurrence", "Per applicable occurrence"),
-        ("as_incurred", "As incurred"),
-        ("conditional", "If / when applicable"),
-        ("na", "Not applicable"),
-    ]
-    basis = models.CharField(max_length=24, choices=BASIS_CHOICES, default="conditional")
-    applicable = models.BooleanField(default=True, help_text="Does this fee apply to this product?")
-    note = models.CharField(max_length=200, blank=True)
+	# how/when it applies — drives the KFS "Basis / When Payable" column
+	BASIS_CHOICES = [
+		("once_origination", "Once — at origination"),
+		("once_predisbursement", "Once — before disbursement"),
+		("per_instalment", "Per instalment"),
+		("per_occurrence", "Per applicable occurrence"),
+		("as_incurred", "As incurred"),
+		("conditional", "If / when applicable"),
+		("na", "Not applicable"),
+	]
+	basis = models.CharField(max_length=24, choices=BASIS_CHOICES, default="conditional")
+	applicable = models.BooleanField(default=True, help_text="Does this fee apply to this product?")
+	note = models.CharField(max_length=200, blank=True)
 
-    class Meta:
-        ordering = ["product", "fee_type"]
+	class Meta:
+		ordering = ["product", "fee_type"]
 
-    def __str__(self):
-        return f"{self.get_fee_type_display()}: M{self.amount} ({self.product.product_code})"
+	def __str__(self):
+		return f"{self.get_fee_type_display()}: M{self.amount} ({self.product.product_code})"
 
 
 

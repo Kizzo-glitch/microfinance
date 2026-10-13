@@ -1,0 +1,122 @@
+{% extends "micro_base.html" %}
+{% comment %}
+  Staff licence review queue. Pending submissions are the work; each row links
+  to review_license(compliance_id). cp.pk IS the compliance_id the view wants.
+{% endcomment %}
+
+{% block content %}
+<div class="container-fluid">
+
+  <h1 class="h3 mb-2 text-gray-800">CBL Licence Review Queue</h1>
+  <p class="mb-4 text-muted">
+    Lenders who already hold a CBL licence and have submitted it for
+    verification. Check each against the CBL register before verifying.
+  </p>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  {# ── Pending (the work) ───────────────────────────────────────────── #}
+  <div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+      <h6 class="m-0 font-weight-bold text-primary">
+        Awaiting verification
+      </h6>
+      <span class="badge badge-warning">{{ pending_count }}</span>
+    </div>
+    <div class="card-body">
+      {% if pending %}
+        <div class="table-responsive">
+          <table class="table table-sm table-hover">
+            <thead>
+              <tr>
+                <th>Lender</th>
+                <th>Claimed licence no.</th>
+                <th>Claimed expiry</th>
+                <th>Certificate</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cp in pending %}
+                <tr>
+                  <td>{{ cp.lender }}</td>
+                  <td>{{ cp.submitted_license_number|default:"—" }}</td>
+                  <td>{{ cp.submitted_license_expiry|default:"—" }}</td>
+                  <td>
+                    {% if cp.license_certificate %}
+                      <span class="text-success">
+                        <i class="fas fa-paperclip"></i> yes
+                      </span>
+                    {% else %}
+                      <span class="text-danger">missing</span>
+                    {% endif %}
+                  </td>
+                  <td class="text-right">
+                    <a href="{% url 'compliance:review_license' compliance_id=cp.pk %}"
+                       class="btn btn-sm btn-primary">
+                      Review
+                    </a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-muted mb-0">Nothing waiting. All caught up.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ── Recently reviewed (reference / audit) ────────────────────────── #}
+  {% if recently_reviewed %}
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">Recently reviewed</h6>
+    </div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Lender</th>
+              <th>Outcome</th>
+              <th>Reviewed by</th>
+              <th>When</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for cp in recently_reviewed %}
+              <tr>
+                <td>{{ cp.lender }}</td>
+                <td>
+                  {% if cp.license_verification_state == 'verified' %}
+                    <span class="badge badge-success">Verified</span>
+                  {% else %}
+                    <span class="badge badge-danger">Rejected</span>
+                  {% endif %}
+                </td>
+                <td>{{ cp.license_reviewed_by|default:"—" }}</td>
+                <td>{{ cp.license_reviewed_at|date:"d M Y H:i" }}</td>
+                <td class="text-right">
+                  <a href="{% url 'compliance:review_license' compliance_id=cp.pk %}"
+                     class="btn btn-sm btn-outline-secondary">
+                    Open
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

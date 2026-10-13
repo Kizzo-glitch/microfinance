@@ -26,7 +26,7 @@ from compliance.compliace_services import ComplianceDashboardService
 from compliance.document_generation_service import DocumentGenerationService
 from lenders.models import LenderProfile
 from .models import ComplianceProfile, PersonnelProfile
-from .forms import ComplianceProfileForm, ComplianceUpdateForm, PersonnelProfileForm, AddPersonnelForm
+from .forms import ComplianceProfileForm, ComplianceUpdateForm, LicenseSubmissionForm, PersonnelProfileForm, AddPersonnelForm
 
 
 
@@ -34,8 +34,6 @@ from .forms import ComplianceProfileForm, ComplianceUpdateForm, PersonnelProfile
 # ================================
 # MIXIN: Lender Ownership Check
 # ================================
-
-
 class LenderOwnerMixin:
 
     def get_lender(self):
@@ -71,8 +69,6 @@ class LenderOwnerMixin:
 # ================================
 # 1. INSTITUTIONAL COMPLIANCE VIEWS
 # ================================
-
-
 class ComplianceProfileDetailView(LoginRequiredMixin, LenderOwnerMixin, DetailView):
     model = ComplianceProfile
     template_name = 'compliance_detail.html'
@@ -122,37 +118,179 @@ class ComplianceProfileDetailView(LoginRequiredMixin, LenderOwnerMixin, DetailVi
         return docs_with_flags
 
       
+# ---------------------------------------------------------------------------
+# Lender view: submit / re-submit the licence claim
+# ---------------------------------------------------------------------------
+@login_required
+def submit_license(request):
+    """
+    Lender submits (or re-submits) their EXISTING CBL licence for platform
+    verification.
+ 
+    - Resolves the lender from request.user.lender (same pattern as the
+      review view).
+    - get_or_create ComplianceProfile so a first-time lender isn't blocked.
+    - If the licence is ALREADY verified, we don't let them quietly overwrite
+      the authoritative record — they're told to contact support for a change.
+    - On a valid save we flip state to 'pending'. The reviewer takes it
+      from there.
+    """
+ 
+    lender = getattr(request.user, 'lender', None)
+    if lender is None:
+        messages.error(request, "Only lender accounts can submit a licence.")
+        return redirect('home')
+ 
+    profile, _ = ComplianceProfile.objects.get_or_create(lender=lender)
+ 
+    # Already verified: the authoritative record stands. A change to a
+    # verified licence should go through support, not a silent overwrite.
+    if profile.license_verification_state == 'verified':
+        messages.info(
+            request,
+            "Your CBL licence is already verified on your profile. To update "
+            "a verified licence (renewal, correction), please contact support "
+            "so we can re-verify it.")
+        return redirect('lenders:lender_index')
+ 
+    if request.method == 'POST':
+        form = LicenseSubmissionForm(request.POST, request.FILES,
+                                     instance=profile)
+        if form.is_valid():
+            profile = form.save(commit=False)
+            profile.license_verification_state = 'pending'
+            # A re-submission after a rejection clears the stale review trail
+            # so the reviewer sees a fresh claim.
+            profile.license_reviewed_by = None
+            profile.license_reviewed_at = None
+            profile.license_review_note = ''
+            profile.save()
+            messages.success(
+                request,
+                "Thank you. Your licence has been submitted for verification. "
+                "We'll check it against the CBL register and update your "
+                "profile once it's confirmed.")
+            return redirect('lenders:lender_index')
+    else:
+        form = LicenseSubmissionForm(instance=profile)
+ 
+    return render(request, 'submit_license.html', {
+        'form': form,
+        'profile': profile,
+    })
 
-class ComplianceProfileDetailView2(LoginRequiredMixin, LenderOwnerMixin, DetailView):
-    model = ComplianceProfile
-    template_name = 'compliance_detail.html'
-    context_object_name = 'compliance'
 
-    def get_object(self):
-        lender = self.get_lender()
-        compliance, _ = ComplianceProfile.objects.get_or_create(lender=lender)
-        return compliance
-   
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        lender = self.object.lender
-        context['lender'] = lender
-        context['compliance'] = self.object
-        context['personnel_list'] = lender.personnel.all()
+# ---------------------------------------------------------------------------
+# Staff reviewer view: verify or reject the claim
+# ---------------------------------------------------------------------------
+ 
+@login_required
+def license_review_queue(request):
+ 
+    if not request.user.is_staff:
+        messages.error(request, "You don't have permission to review licences.")
+        return redirect('landing')
+ 
+    # Pending first (the work), then recently-reviewed for reference/audit.
+    pending = (ComplianceProfile.objects
+               .filter(license_verification_state='pending')
+               .select_related('lender')
+               .order_by('license_reviewed_at', 'pk'))
+ 
+    recently_reviewed = (ComplianceProfile.objects
+                         .filter(license_verification_state__in=['verified', 'rejected'])
+                         .exclude(license_reviewed_at__isnull=True)
+                         .select_related('lender', 'license_reviewed_by')
+                         .order_by('-license_reviewed_at')[:15])
+ 
+    return render(request, 'license_review_queue.html', {
+        'pending': pending,
+        'pending_count': pending.count(),
+        'recently_reviewed': recently_reviewed,
+    })
 
-        service = ComplianceDashboardService(lender)
-        context['stats'] = service.get_dashboard_data()
 
-        # Build the doc dict for only this tier's required fields
-        required_fields = service._get_required_docs()
-        context['compliance_docs'] = {
-            field: ComplianceProfile.DOCUMENT_LABELS[field]
-            for field in required_fields
-            if field in ComplianceProfile.DOCUMENT_LABELS
-        }
-        return context
-    
+@login_required
+def review_license(request, compliance_id):
+    """
+    Fedha-Grow reviewer verifies the lender's claim against the CBL register.
+ 
+    VERIFY  -> promote submitted_* into the authoritative cbl_license_* fields,
+               set state='verified', advance compliance stage to 'licensed',
+               record who/when. This is the ONLY place the authoritative
+               licence fields are written.
+ 
+    REJECT  -> state='rejected', record who/when + reason. Authoritative fields
+               are left untouched (never populated from an unverified claim).
+ 
+    Guard: staff only. Replace the is_staff check with your actual reviewer-
+    permission test if you have a dedicated compliance-reviewer role.
+    """
+ 
+    if not request.user.is_staff:
+        messages.error(request, "You don't have permission to review licences.")
+        return redirect('landing')
+ 
+    profile = get_object_or_404(ComplianceProfile, pk=compliance_id)
+ 
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        note = (request.POST.get('review_note') or '').strip()
+ 
+        if action == 'verify':
+            if not profile.submitted_license_number:
+                messages.error(
+                    request, "There is no submitted licence number to verify.")
+                return redirect('review_license', compliance_id=compliance_id)
+ 
+            # Promote the CLAIM to the AUTHORITATIVE record — the single
+            # moment an unverified number becomes trusted.
+            profile.cbl_license_number = profile.submitted_license_number
+            profile.cbl_license_expiry = profile.submitted_license_expiry
+            profile.license_verification_state = 'verified'
+            profile.license_reviewed_by = request.user
+            profile.license_reviewed_at = timezone.now()
+            profile.license_review_note = note or 'Verified against CBL register.'
+ 
+            # NOTE: we deliberately do NOT touch profile.current_stage here.
+            # current_stage models the CBL *licensing process* (for lenders
+            # being taken through it). This flow is for lenders who ALREADY
+            # hold a CBL licence and only need the platform to verify it —
+            # a separate axis (license_verification_state). Writing
+            # 'licensed' into current_stage would falsely claim they went
+            # through the process. The two states stay independent.
+ 
+            profile.save()
+            messages.success(
+                request,
+                f"Licence verified. {profile.lender} is now shown as "
+                f"CBL-licensed (number {profile.cbl_license_number}).")
+            return redirect('compliance:review_license', compliance_id=compliance_id)
+ 
+        elif action == 'reject':
+            if not note:
+                messages.error(
+                    request,
+                    "Please give a reason for rejection so the lender knows "
+                    "what to fix.")
+                return redirect('compliance:review_license', compliance_id=compliance_id)
+ 
+            # Authoritative fields are NEVER touched on reject.
+            profile.license_verification_state = 'rejected'
+            profile.license_reviewed_by = request.user
+            profile.license_reviewed_at = timezone.now()
+            profile.license_review_note = note
+            profile.save()
+            messages.info(
+                request,
+                "Licence submission rejected. The lender can re-submit with a "
+                "corrected number or a clearer certificate.")
+            return redirect('compliance:review_license', compliance_id=compliance_id)
+ 
+    return render(request, 'review_license.html', {
+        'profile': profile,
+    })
 
 
 class ComplianceUpdateView(LoginRequiredMixin, LenderOwnerMixin, UpdateView):

@@ -10,7 +10,10 @@ urlpatterns = [
     path('<int:lender_id>/compliance-dashboard/', views.ComplianceProfileDetailView.as_view(), name='compliance_detail'),
     #path('<int:lender_id>/compliance-update/', views.ComplianceUpdateView.as_view(), name='compliance_update'),
     path('<int:lender_id>/compliance-update/', views.ComplianceUpdateView.as_view(), name='compliance_update'),
-    #path('<int:pk>/personnel-update/', views.personnel_update, name='personnel_update'),
+    
+    path('submit-license/', views.submit_license, name='submit_license'),
+    path('license-review-queue/', views.license_review_queue, name='license_review_queue'),
+    path('review_license/<int:compliance_id>/', views.review_license, name='review_license'),
 
     # Personnel
     path('<int:lender_id>/personnel/', views.PersonnelListView.as_view(), name='personnel_list'), 
@@ -21,7 +24,7 @@ urlpatterns = [
 
     path('<int:lender_id>/receit/', views.submission_receipt, name='submission_receipt'),
 
-    #path('<int:lender_id>/pay-fee/', views.PayInvestigationFeeView.as_view(), name='pay_investigation_fee'),
+    
 
     
 
