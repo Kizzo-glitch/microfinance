@@ -1,0 +1,125 @@
+{% extends "lender_base.html" %}
+{% comment %}
+  Lender document-check screen. Shows the latest frozen run (band + flags with
+  reasons), a "Run checks" button, and recent run history.
+
+  Honest framing throughout: this is an assessment with flags, never a
+  "genuine/fake" verdict. The lender decides.
+{% endcomment %}
+
+{% block content %}
+<div class="container-fluid">
+
+  <h1 class="h3 mb-2 text-gray-800">Document Checks</h1>
+  <p class="mb-4 text-muted">
+    Automated consistency checks on this document. These flag possible issues
+    for your review — they do not confirm a document is genuine. Use them
+    alongside your own judgement.
+  </p>
+
+  {% if messages %}
+    {% for m in messages %}<div class="alert alert-{{ m.tags }}">{{ m }}</div>{% endfor %}
+  {% endif %}
+
+  {# ── Run button ──────────────────────────────────────────────────── #}
+  <form method="post" class="mb-4">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-primary">
+      {% if latest %}Re-run checks{% else %}Run checks{% endif %}
+    </button>
+    {% if latest %}
+      <span class="small text-muted ms-2">
+        Last run {{ latest.run_at|date:"d M Y H:i" }}
+        {% if latest.run_by %}by {{ latest.run_by }}{% endif %}
+      </span>
+    {% endif %}
+  </form>
+
+  {% if latest %}
+    {# ── Band summary ─────────────────────────────────────────────── #}
+    <div class="card shadow mb-4">
+      <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h6 class="m-0 font-weight-bold text-primary">Assessment</h6>
+        <span class="badge badge-{{ latest.band_tone }}">
+          {{ latest.get_band_display }}
+        </span>
+      </div>
+      <div class="card-body">
+
+        {% if latest.flags %}
+          <h6 class="font-weight-bold text-danger">
+            Flags to review ({{ latest.flags|length }})
+          </h6>
+          <ul class="mb-3">
+            {% for f in latest.flags %}
+              <li class="mb-1">
+                <strong>{{ f.label }}</strong>
+                <span class="badge badge-light border ms-1">{{ f.strength }}</span><br>
+                <span class="small text-muted">{{ f.detail }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-success mb-3">
+            <i class="fas fa-check-circle"></i> No flags raised.
+          </p>
+        {% endif %}
+
+        {% if latest.inconclusive %}
+          <h6 class="font-weight-bold text-muted">
+            Couldn't be checked ({{ latest.inconclusive|length }})
+          </h6>
+          <ul class="small text-muted mb-3">
+            {% for c in latest.inconclusive %}
+              <li>{{ c.label }} — {{ c.detail }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if latest.passed %}
+          <details>
+            <summary class="small text-muted">
+              Checks that passed ({{ latest.passed|length }})
+            </summary>
+            <ul class="small text-muted mt-2">
+              {% for p in latest.passed %}
+                <li>{{ p.label }}</li>
+              {% endfor %}
+            </ul>
+          </details>
+        {% endif %}
+
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-secondary">
+      No checks have been run on this document yet. Click “Run checks”.
+    </div>
+  {% endif %}
+
+  {# ── History ─────────────────────────────────────────────────────── #}
+  {% if history|length > 1 %}
+  <div class="card shadow mb-4">
+    <div class="card-header py-3">
+      <h6 class="m-0 font-weight-bold text-primary">Previous runs</h6>
+    </div>
+    <div class="card-body">
+      <table class="table table-sm mb-0">
+        <thead><tr><th>When</th><th>By</th><th>Result</th><th>Flags</th></tr></thead>
+        <tbody>
+          {% for r in history %}
+            <tr>
+              <td>{{ r.run_at|date:"d M Y H:i" }}</td>
+              <td>{{ r.run_by|default:"—" }}</td>
+              <td><span class="badge badge-{{ r.band_tone }}">{{ r.get_band_display }}</span></td>
+              <td>{{ r.flag_count }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

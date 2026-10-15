@@ -8,6 +8,7 @@ from .views import (
     OverdueLoansView, FullyPaidLoansView, LenderVerificationListView, 
     LenderVerificationDetailView, LenderNotificationListView,
     )
+from integrations.verification.doccheck_ajax import run_doc_check_ajax
 
 app_name = 'lenders'
 
@@ -19,6 +20,9 @@ urlpatterns = [
     path("products/new/", views.product_edit, name="product_create"),
     path('product-edit/<int:product_id>/', views.product_edit, name='product_edit'),
     path('product-toggle-active/<int:product_id>/', views.product_toggle_active, name='product_toggle_active'),
+
+    path('documents/<int:doc_id>/checks/', views.run_checks_view, name='run_checks'),
+    path('applications/<int:application_id>/documents/<int:doc_id>/check/', run_doc_check_ajax, name='run_doc_check'),
     
 
     # Lender Documents

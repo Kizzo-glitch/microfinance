@@ -39,12 +39,18 @@ from .forms import (LenderInfoForm, LenderProductForm, LoanApplicationStatusForm
 					LoanStatusForm, LenderDocumentsForm, ProductFeeFormSet, _compliance_of)
 from .models import LenderProfile, LenderDocs, LenderProduct, ProductFee
 
+from integrations.verification.doccheck_ajax import unacknowledged_flags
+from integrations.verification.affordability_overlay import build_affordability_overlay 
+
 from loans.models import Notification, LoanApplication, Loan, LoanPayment
 from loans.views import on_loan_approved
 from loans.utils import get_loans_by_risk_category, send_sms_smsportal, calculate_affordability
 from borrowers.models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
 from comms.sms.service import send_sms
-
+			  
+from integrations.services import run_document_checks
+from groups.group_credit_profile import build_group_credit_profile
+ 
 
 
 # ==================
@@ -227,95 +233,95 @@ def risk_customer_list(request, category):
 
 
 def get_dashboard_cbl_card(lender, compliance_data=None):
-    """
-    Decides the CBL card's content on the MAIN lender dashboard (the card in the
-    screenshot — 'COMPLIANCE STATUS … Upload: Schedule II').
+	"""
+	Decides the CBL card's content on the MAIN lender dashboard (the card in the
+	screenshot — 'COMPLIANCE STATUS … Upload: Schedule II').
  
-    Returns a dict the dashboard template renders. This is the ONE place that
-    decides which journey's prompt a lender sees. It consults the routing field
-    for direction, and the real compliance service only for the 'seeking' path.
+	Returns a dict the dashboard template renders. This is the ONE place that
+	decides which journey's prompt a lender sees. It consults the routing field
+	for direction, and the real compliance service only for the 'seeking' path.
  
-    Nothing here is borrower-facing, so nothing here confers 'licensed'.
+	Nothing here is borrower-facing, so nothing here confers 'licensed'.
  
-    compliance_data: pass the dict your view already got from
-        ComplianceDashboardService(lender).get_dashboard_data() so the service
-        isn't computed a second time. It's only read on the 'seeking' path; for
-        'already_licensed' and 'unknown' it's never touched, so None is fine
-        there. If None is passed AND the seeking path is hit, the service is
-        built lazily as a fallback.
-    """
+	compliance_data: pass the dict your view already got from
+		ComplianceDashboardService(lender).get_dashboard_data() so the service
+		isn't computed a second time. It's only read on the 'seeking' path; for
+		'already_licensed' and 'unknown' it's never touched, so None is fine
+		there. If None is passed AND the seeking path is hit, the service is
+		built lazily as a fallback.
+	"""
  
-    status = getattr(lender, 'cbl_license_status', 'unknown')
-    cp = _compliance_of(lender)
-    verif = getattr(cp, 'license_verification_state', 'none') if cp else 'none'
+	status = getattr(lender, 'cbl_license_status', 'unknown')
+	cp = _compliance_of(lender)
+	verif = getattr(cp, 'license_verification_state', 'none') if cp else 'none'
  
-    # --- Already-licensed journey (routed by the self-declared field) ---
-    if status == 'already_licensed':
-        if verif == 'verified':
-            return {
-                'journey': 'licensed',
-                'heading': 'CBL Licence',
-                'status_label': 'Verified',
-                'status_tone': 'success',
-                'next_action': None,
-                'url': None,
-                'message': f'Licence {cp.cbl_license_number} is verified and '
-                           f'shown on your public profile.',
-            }
-        if verif == 'pending':
-            return {
-                'journey': 'licensed',
-                'heading': 'CBL Licence',
-                'status_label': 'Awaiting verification',
-                'status_tone': 'warning',
-                'next_action': None,
-                'url': None,
-                'message': "We're verifying your licence against the CBL "
-                           "register. Borrowers won't see a licensed badge "
-                           "until it's confirmed.",
-            }
-        # none or rejected -> prompt to submit / re-submit
-        is_reject = verif == 'rejected'
-        return {
-            'journey': 'licensed',
-            'heading': 'CBL Licence',
-            'status_label': 'Rejected' if is_reject else 'Not submitted',
-            'status_tone': 'danger' if is_reject else 'secondary',
-            'next_action': ('Re-submit your CBL licence' if is_reject
-                            else 'Submit your CBL licence for verification'),
-            'url': reverse('compliance:submit_license'),
-            'message': (cp.license_review_note if is_reject and cp else
-                        'Submit the CBL licence you already hold so we can '
-                        'verify it and show your licensed status to borrowers.'),
-        }
+	# --- Already-licensed journey (routed by the self-declared field) ---
+	if status == 'already_licensed':
+		if verif == 'verified':
+			return {
+				'journey': 'licensed',
+				'heading': 'CBL Licence',
+				'status_label': 'Verified',
+				'status_tone': 'success',
+				'next_action': None,
+				'url': None,
+				'message': f'Licence {cp.cbl_license_number} is verified and '
+						   f'shown on your public profile.',
+			}
+		if verif == 'pending':
+			return {
+				'journey': 'licensed',
+				'heading': 'CBL Licence',
+				'status_label': 'Awaiting verification',
+				'status_tone': 'warning',
+				'next_action': None,
+				'url': None,
+				'message': "We're verifying your licence against the CBL "
+						   "register. Borrowers won't see a licensed badge "
+						   "until it's confirmed.",
+			}
+		# none or rejected -> prompt to submit / re-submit
+		is_reject = verif == 'rejected'
+		return {
+			'journey': 'licensed',
+			'heading': 'CBL Licence',
+			'status_label': 'Rejected' if is_reject else 'Not submitted',
+			'status_tone': 'danger' if is_reject else 'secondary',
+			'next_action': ('Re-submit your CBL licence' if is_reject
+							else 'Submit your CBL licence for verification'),
+			'url': reverse('compliance:submit_license'),
+			'message': (cp.license_review_note if is_reject and cp else
+						'Submit the CBL licence you already hold so we can '
+						'verify it and show your licensed status to borrowers.'),
+		}
  
-    # --- Seeking journey -> hand off to the existing stage machine ---
-    if status == 'seeking':
-        data = compliance_data
-        if data is None:
-            # Fallback only — the view normally passes compliance_data in.
-            data = ComplianceDashboardService(lender).get_dashboard_data()
-        return {
-            'journey': 'seeking',
-            'heading': 'Compliance Status',
-            'status_label': data.get('current_stage'),
-            'status_tone': 'info',
-            'next_action': data.get('next_action'),
-            'url': data.get('url'),
-            'message': data.get('status_message'),
-        }
+	# --- Seeking journey -> hand off to the existing stage machine ---
+	if status == 'seeking':
+		data = compliance_data
+		if data is None:
+			# Fallback only — the view normally passes compliance_data in.
+			data = ComplianceDashboardService(lender).get_dashboard_data()
+		return {
+			'journey': 'seeking',
+			'heading': 'Compliance Status',
+			'status_label': data.get('current_stage'),
+			'status_tone': 'info',
+			'next_action': data.get('next_action'),
+			'url': data.get('url'),
+			'message': data.get('status_message'),
+		}
  
-    # --- Unknown -> make them choose a journey first ---
-    return {
-        'journey': 'unknown',
-        'heading': 'CBL Licence Status',
-        'status_label': 'Not specified',
-        'status_tone': 'secondary',
-        'next_action': 'Tell us your CBL licence status',
-        'url': reverse('lenders:lender_profile'),
-        'message': 'Let us know whether you already hold a CBL licence so we '
-                   'can guide you to the right next step.',
-    }
+	# --- Unknown -> make them choose a journey first ---
+	return {
+		'journey': 'unknown',
+		'heading': 'CBL Licence Status',
+		'status_label': 'Not specified',
+		'status_tone': 'secondary',
+		'next_action': 'Tell us your CBL licence status',
+		'url': reverse('lenders:lender_profile'),
+		'message': 'Let us know whether you already hold a CBL licence so we '
+				   'can guide you to the right next step.',
+	}
 
 # ======================================
 # Lender Profile and Product Listings
@@ -705,7 +711,6 @@ def my_loan_list(request):
 # ==================
 # Loan Processing / Sidebar
 # ==================
-
 # List all pending loan applications for a specific lender
 class LoanApplicationListView(ListView):
 	model = LoanApplication
@@ -718,7 +723,6 @@ class LoanApplicationListView(ListView):
 			lender=self.request.user.lender,
 			status='pending'
 		).order_by('-date_applied')
-
 
 
 
@@ -735,16 +739,30 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 		"""
 		return LoanApplication.objects.filter(lender=self.request.user.lender)
  
+
 	# ---- status update workflow (approve / reject / pending) -----------
 	def form_valid(self, form):
 		loan_application = form.save(commit=False)
 		old_status = LoanApplication.objects.get(pk=loan_application.pk).status
+
+		# ── Document-flag acknowledgement guard ──────────────────────────
+		# Only relevant when APPROVING. If any of this application's documents
+		# has a latest check run banded 'flagged' and the lender hasn't ticked
+		# the acknowledgement, block and send them back to review the flags.
+		# (Use loan_application, which IS self.object, for consistency.)
+		if (form.cleaned_data.get("status") == "approved"
+				and unacknowledged_flags(loan_application, self.request)):
+			form.add_error(None,
+				"This applicant has flagged documents. Please review and "
+				"acknowledge them before approving.")
+			return self.form_invalid(form)
+
 		loan_amount = loan_application.loan_amount
 		borrower_user = loan_application.borrower
 		phone_number = borrower_user.phone_number
 		interest = Decimal(loan_application.lender.interest_rate or 0)
 		total_repayable = loan_amount * (Decimal("1") + interest / Decimal("100"))
- 
+
 		if loan_application.status != old_status:
 			if loan_application.status == "approved":
 				# Guard against creating a second Loan for the same application.
@@ -764,9 +782,7 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 						group=loan_application.group,
 						product=loan_application.product,
 					)
-					# Use the SAME relationship name as the guard above.
 					loan_application.linked_loan = loan
-					# --- KFS auto-generation + choreography ---
 					on_loan_approved(self.request, loan_application, loan)
 
 				Notification.objects.create(
@@ -793,8 +809,7 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 					"name": borrower_user.full_name, "amount": loan_amount,
 					"lender": loan_application.lender.company_name,
 					"reasons": reasons, "ref": loan_application.reference_number})
-	
- 
+
 			elif loan_application.status == "pending":
 				reasons = loan_application.get_pending_reasons_display()
 				Notification.objects.create(
@@ -807,16 +822,16 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 					"name": borrower_user.full_name, "amount": loan_amount,
 					"lender": loan_application.lender.company_name,
 					"reasons": reasons, "ref": loan_application.reference_number})
- 
+
 		loan_application.save()
 		form.save_m2m()
- 
+
 		reasons = []
 		if loan_application.status == "rejected":
 			reasons = loan_application.rejection_reasons
 		elif loan_application.status == "pending":
 			reasons = loan_application.pending_reasons
- 
+
 		subject = f"Loan Application {loan_application.status.capitalize()}"
 		body = render_to_string("loan_notification_letter.html", {
 			"loan_application": loan_application,
@@ -827,20 +842,21 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 									   [borrower_user.email_address])
 		email.attach_alternative(body, "text/html")
 		email.send()
- 
+
 		return super().form_valid(form)
- 
+
+
 	# ---- context: read the snapshot, don't recompute -------------------
 	def get_context_data(self, **kwargs):
-		context = super().get_context_data(**kwargs)
+		context = super().get_context_data(**kwargs)        # ONE super() call
 		loan_application = self.object
 		borrower = loan_application.borrower
- 
+
 		documents = BorrowerDocs.objects.filter(
 			borrower=borrower, loan_application=loan_application
 		)
- 
-		# Borrower loan-history signals (these are lender-review facts, fine to compute).
+
+		# Borrower loan-history signals (lender-review facts, fine to compute).
 		outstanding_loans = Loan.objects.filter(
 			borrower=borrower, outstanding_balance__gt=0
 		).count()
@@ -850,35 +866,120 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 		total_debt = Loan.objects.filter(borrower=borrower).aggregate(
 			total=models.Sum("outstanding_balance")
 		)["total"] or 0
- 
-		# The affordability verdict comes from the IMMUTABLE snapshot captured at
-		# submission — not recomputed here. Guard for older apps without one.
+
+		# Affordability verdict from the IMMUTABLE snapshot, not recomputed.
 		assessment = getattr(loan_application, "affordability_assessment", None)
 
 		compat = compatibility(borrower, self.request.user.lender)
 		
- 
+		# Document-check panel rows (statement / payslip / ID, with latest run).
 		context.update({
+			"application": loan_application,          # the panel/AJAX use this
+			"doc_rows": build_doc_rows(loan_application),
+
 			"borrower": borrower,
 			"loan_amount": loan_application.loan_amount,
 			"loan_term": loan_application.loan_term,
 			"total_repayable": loan_application.total_repayable,
 			"first_payment": loan_application.first_payment,
 			"monthly_installment": loan_application.monthly_installment,
- 
+
 			"outstanding_loans": outstanding_loans,
 			"overdue_loans": overdue_loans,
 			"total_debt": total_debt,
- 
+
 			"documents": documents,
 			"assessment": assessment,
 			"compat": compat,
-			"group_profile": _build_group_standing(loan_application)
+			"group_profile": _build_group_standing(loan_application),
+
+			"affordability_overlay": build_affordability_overlay(loan_application),
 		})
 		return context
+
  
 	def get_success_url(self):
 		return reverse("lenders:loan-application-list")
+
+
+"""
+Layer 6 — the lender-facing view: "Run checks" button + results.
+
+On-demand (per your choice): the lender clicks a button on the document review
+screen, the checks run synchronously, a frozen DocumentCheckRun is created, and
+the page shows the band + flags with reasons.
+
+Guard: the lender must own the loan/borrower this document belongs to. Adjust
+the ownership check to your relationships.
+"""
+
+@login_required
+def run_checks_view(request, doc_id):
+	"""POST: run checks on a document. GET: show the latest run."""
+	document = get_object_or_404(BorrowerDocs, pk=doc_id)
+
+	# --- ownership guard ---------------------------------------------------
+	# Only a lender with a relationship to this borrower may run/view checks.
+	# Adjust to your model graph (e.g. via an approved LoanApplication).
+	if not _lender_may_view(request.user, document):
+		messages.error(request, "You don't have access to this document.")
+		return redirect("home")
+
+	if request.method == "POST":
+		# Pull the declared expenses + names the engine cross-checks against.
+		# Adjust these lookups to where you store them on the borrower profile.
+		borrower = _borrower_of(document)
+		run = run_document_checks(
+			document,
+			run_by=request.user,
+			declared_expenses=getattr(borrower, "declared_monthly_expenses", 0),
+			profile_name=getattr(borrower, "full_name", "") or "",
+			id_name=getattr(borrower, "id_name", "") or "",
+		)
+		messages.success(
+			request,
+			f"Checks complete — {run.get_band_display()}. "
+			f"{run.flag_count} flag(s) to review.")
+		return redirect("lenders:run_checks", doc_id=doc_id)
+
+	latest = document.check_runs.first()   # newest, via Meta.ordering
+	history = document.check_runs.all()[:10]
+	return render(request, "verification/document_checks.html", {
+		"document": document,
+		"latest": latest,
+		"history": history,
+	})
+
+
+def _lender_may_view(user, document):
+	"""Replace with your real relationship check."""
+	return getattr(user, "is_lender", False) or user.is_staff
+
+
+def _borrower_of(document):
+	"""Resolve the borrower that owns this document. Adjust to your FK name."""
+	return getattr(document, "borrower", None) or getattr(document, "user", None)
+
+# Document types this engine can meaningfully assess.
+CHECKABLE_DOC_TYPES = {"bank_statement", "payslip", "id_proof"}
+ 
+ 
+def build_doc_rows(application):
+	"""
+	Returns [{'doc': BorrowerDocs, 'latest': DocumentCheckRun|None}, ...]
+	for the checkable documents on this application, newest run first.
+	"""
+	rows = []
+	docs = (application.loan_documents
+			.filter(document_type__in=CHECKABLE_DOC_TYPES)
+			.order_by("document_type"))
+	for d in docs:
+		rows.append({
+			"doc": d,
+			"latest": d.check_runs.first(),   # newest via Meta.ordering, or None
+		})
+	return rows
+
 
 # in the seam file — simplify to return the profile directly:
 def _build_group_standing(loan_application):
@@ -887,10 +988,13 @@ def _build_group_standing(loan_application):
 	consent = getattr(loan_application, "group_data_consent", False)
 	if not group or not consent:
 		return None
-	from groups.group_credit_profile import build_group_credit_profile
+	
 	borrower = loan_application.borrower
 	membership = group.memberships.filter(borrower=borrower, status="active").first()
 	return build_group_credit_profile(group, for_membership=membership)
+
+
+
 
 # To be removed
 def view_borrower_documents(request, loan_id):
@@ -919,8 +1023,6 @@ Design:
 	mismatch; the lender and borrower decide what to do (approve anyway, use
 	cash, or the borrower adds a method).
 """
-
-
 def available_methods(profile) -> set:
 	"""
 	The set of payment methods this profile can transact by.

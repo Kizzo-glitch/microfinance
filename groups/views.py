@@ -432,66 +432,7 @@ def roles_and_succession(request, group_id):
         "can_claim_acting": can_claim_acting_admin(request.user, group),
     })
 
-'''
-@login_required
-@group_staff_required
-def manage_members2(request, group_id):
-    """Staff (admin + sub_admin) can view/manage; role CHANGES are admin-only."""
-    group = get_object_or_404(BorrowerGroup, id=group_id)
-    members = group.memberships.select_related('borrower__user')
 
-    if request.method == "POST":
-        action = request.POST.get('action')
-        target = get_object_or_404(GroupMembership, id=request.POST.get('member_id'), group=group)
-
-        # Promote / demote / remove are ADMIN-ONLY (reserved), even though
-        # sub_admins can reach this page to view members.
-        if action in {"promote", "demote", "remove"} and not is_group_admin(request.user, group):
-            messages.error(request, "Only the group administrator can change roles or remove members.")
-            return redirect('groups:manage_members', group_id=group.id)
-
-        if action == "promote" and target.role == "member":
-            promote(target, "sub_admin", actor=request.user.borrower)
-            messages.success(request, f"{target.borrower.full_name} promoted to Sub-Admin.")
-        elif action == "demote" and target.role == "sub_admin":
-            promote(target, "member", actor=request.user.borrower)
-            messages.info(request, f"{target.borrower.full_name} demoted to Member.")
-        elif action == "remove":
-            ActivityLog.objects.create(group=group, actor=request.user, action="member_removed",
-                                       details=f"{target.borrower.full_name} removed.")
-            target.delete()
-            messages.warning(request, f"{target.borrower.full_name} removed from the group.")
-        else:
-            messages.error(request, "Invalid action or role change not allowed.")
-        return redirect('groups:manage_members', group_id=group.id)
-
-    return render(request, 'manage_members.html', {
-        'group': group, 'members': members,
-        'is_admin': is_group_admin(request.user, group),
-    })
-
-
-@login_required
-@group_admin_only
-def manage_sub_admins(request, group_id):
-    """Kept for compatibility. Sub-admin status is now the membership role;
-    this simply promotes/demotes via role, not the old M2M."""
-    group = get_object_or_404(BorrowerGroup, id=group_id)
-    members = group.memberships.select_related('borrower').all()
-    if request.method == 'POST':
-        selected = set(request.POST.getlist('sub_admins'))
-        for m in members:
-            if str(m.id) in selected and m.role == 'member':
-                promote(m, 'sub_admin', actor=request.user.borrower)
-            elif str(m.id) not in selected and m.role == 'sub_admin':
-                promote(m, 'member', actor=request.user.borrower)
-        messages.success(request, "Sub-admins updated.")
-        return redirect('groups:group_detail', group.id)
-    return render(request, 'manage_sub_admins.html', {
-        'group': group, 'members': members,
-        'current_sub_admins': members.filter(role='sub_admin'),
-    })
-'''
 
 @login_required
 def claim_acting_admin_view(request, group_id):

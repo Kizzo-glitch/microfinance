@@ -110,6 +110,13 @@
     {% endif %}
     <br>
 
+    
+    <!-- ===================== Documents Verification ===================== -->
+    <div class="card-header bg-primary text-white">
+        <h2>Documents Verification</h2>
+    </div>
+    {% include '_documents_panel.html' %}
+
     <!-- ===================== Past / Pending Loan Issues ===================== -->
     <div class="card shadow">
         <div class="card-header bg-primary text-white">
@@ -136,6 +143,8 @@
         </div>
     {% endif %}
     <br>
+
+    {% include "_affordability_overlay.html" %}
 
     {% if group_profile %}
         {% include '_group_standing_review.html' with profile=group_profile %}

@@ -74,6 +74,7 @@ class GroupCreditProfile:
                 f"confirmed pool M{self.confirmed_pool_total:,.2f}.")
 
 
+
 # =====================================================================
 # Live computation from the ledger
 # =====================================================================

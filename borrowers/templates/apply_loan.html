@@ -257,8 +257,84 @@
             </div>
         </div>
 
-        <!-- ===================== Submission ===================== -->
         <div class="alert alert-light border">
+    <i class="fas fa-info-circle text-primary"></i>
+    This affordability check uses a combination of information including your
+    profile and financial details to help you borrow responsibly.
+    The final lending decision rests with {{ loan_app.lender.company_name }}.
+</div>
+ 
+{% if assessment.outcome == "unaffordable" %}
+    <div class="d-flex gap-2">
+        <a href="{% url 'borrowers:loan-calculator' %}" class="btn btn-primary">Adjust my loan</a>
+        &nbsp;&nbsp;
+        <a href="{% url 'borrowers:borrower_index' %}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+    <p class="text-muted small mt-2">Submission is disabled until this loan fits your budget.</p>
+{% else %}
+    <form method="POST">
+        {% csrf_token %}
+ 
+        {# ── Group standing — NOW INSIDE the form, so it actually posts ── #}
+        {% if my_groups %}
+        <div class="mb-3">
+            <label class="form-label fw-semibold">Applying with group standing? (optional)</label>
+            <select name="apply_group_id" id="apply_group_id" class="form-select">
+                <option value="">No — apply as an individual</option>
+                {% for g in my_groups %}
+                    <option value="{{ g.id }}">{{ g.name }}</option>
+                {% endfor %}
+            </select>
+            <div class="form-text">
+                Choosing a group shares your contribution record in that group with the lender
+                to support your application. Leave as "individual" to share nothing.
+            </div>
+        </div>
+        <div class="form-check mb-3" id="consent_row" style="display:none;">
+            <input type="checkbox" name="group_data_consent" id="group_data_consent" class="form-check-input">
+            <label class="form-check-label" for="group_data_consent">
+                I consent to sharing my group contribution record with {{ lender.company_name }}.
+            </label>
+        </div>
+        {% endif %}
+ 
+        <button type="submit" class="btn btn-success">
+            {% if assessment.outcome == "tight" %}Submit anyway{% else %}Submit application{% endif %}
+        </button>
+        &nbsp;&nbsp;
+        <a href="{% url 'borrowers:loan-calculator' %}" class="btn btn-outline-primary">Adjust first</a>
+        &nbsp;&nbsp;
+        <a href="{% url 'borrowers:borrower_index' %}" class="btn btn-secondary">Cancel</a>
+    </form>
+{% endif %}
+ 
+{# NOTE: delete the OLD standalone group/consent block that sat AFTER </form>.
+   It's moved inside the form above. Leaving it there would post nothing and
+   duplicate the field ids (breaking the reveal JS, which targets #consent_row). #}
+ 
+<script>
+// Reveal the consent checkbox only when a real group is chosen.
+(function () {
+    var sel = document.getElementById('apply_group_id');
+    var row = document.getElementById('consent_row');
+    var box = document.getElementById('group_data_consent');
+    if (!sel || !row) return;
+ 
+    function sync() {
+        if (sel.value) {
+            row.style.display = '';          // show
+        } else {
+            row.style.display = 'none';      // hide
+            if (box) box.checked = false;    // and clear consent if group cleared
+        }
+    }
+    sel.addEventListener('change', sync);
+    sync();  // run on load (handles back-button / re-render)
+})();
+</script>
+
+        <!-- ===================== Submission ===================== -->
+        <!--<div class="alert alert-light border">
             <i class="fas fa-info-circle text-primary"></i>
             This affordability check uses a combination of information including your profile and financial details to help you borrow responsibly.
             The final lending decision rests with {{ loan_app.lender.company_name }}.
@@ -308,6 +384,8 @@
             I consent to sharing my group contribution record with {{ lender.company_name }}.
         </label>
     </div>
+
+    
     <script>
         // show the consent checkbox only once a group is chosen
         (function () {
@@ -333,5 +411,5 @@
     </div>
     {% endif %}
 
-</div>
+</div>-->
 {% endblock %}

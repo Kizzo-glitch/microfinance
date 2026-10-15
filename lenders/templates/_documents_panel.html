@@ -1,0 +1,170 @@
+{% comment %}
+  Documents panel for the loan application review screen. Lists each of the
+  applicant's documents with an inline "Run checks" button (AJAX) and the
+  latest band/flags shown in place — no page reload, approve form untouched.
+
+  Context expected (build in the review view, see notes at bottom):
+    application  — the LoanApplication
+    doc_rows     — [{doc, latest}, ...] one per document (latest = newest run or None)
+
+  BS4 classes to match your lender theme. Adjust if your review screen is BS5.
+{% endcomment %}
+
+<div class="card shadow mb-4">
+  <div class="card-header py-3">
+    <h6 class="m-0 font-weight-bold text-primary">Document checks</h6>
+  </div>
+  <div class="card-body">
+    <p class="small text-muted">
+      Automated consistency checks. These flag possible issues for your review —
+      they do not confirm a document is genuine.
+    </p>
+
+    {% for row in doc_rows %}
+      <div class="border rounded p-2 mb-2" id="doccheck-{{ row.doc.pk }}"
+           data-doc-id="{{ row.doc.pk }}">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <strong>{{ row.doc.get_document_type_display|default:row.doc.document_type }}</strong>
+            <span class="doccheck-band">
+              {% if row.latest %}
+                <span class="badge badge-{{ row.latest.band_tone }}">
+                  {{ row.latest.get_band_display }}</span>
+                <span class="small text-muted">
+                  · {{ row.latest.flag_count }} flag(s)
+                  · {{ row.latest.run_at|date:"d M H:i" }}
+                </span>
+              {% else %}
+                <span class="small text-muted">Not checked yet</span>
+              {% endif %}
+            </span>
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-primary doccheck-run"
+                  data-url="{% url 'lenders:run_doc_check' application.pk row.doc.pk %}">
+            {% if row.latest %}Re-run{% else %}Run checks{% endif %}
+          </button>
+        </div>
+
+        {# flags render here (server-side for existing run, JS for new runs) #}
+        <div class="doccheck-flags mt-2">
+          {% if row.latest %}
+            {% if row.latest.is_unverifiable %}
+              <span class="small text-muted">
+                <i class="fas fa-question-circle"></i>
+                Couldn't read this as a {{ row.doc.get_document_type_display|lower }}.
+                Nothing could be checked — ask for a clearer or correct file.
+              </span>
+            {% elif row.latest.flags %}
+              <ul class="small mb-0">
+                {% for f in row.latest.flags %}
+                  <li><strong>{{ f.label }}</strong> — {{ f.detail }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    {% empty %}
+      <p class="text-muted mb-0">No documents uploaded for this application.</p>
+    {% endfor %}
+  </div>
+</div>
+
+{# ── Approve-time warning (shown by JS when approving with flagged docs) ── #}
+<div id="flag-warning-modal" class="d-none">
+  <div class="alert alert-warning">
+    <strong>This applicant has flagged documents.</strong>
+    Please review the flags above before approving. Ticking below records that
+    you've seen them and are approving anyway.
+    <div class="form-check mt-2">
+      <input type="checkbox" class="form-check-input" id="ack_doc_flags_box">
+      <label class="form-check-label" for="ack_doc_flags_box">
+        I've reviewed the document flags and approve on my own judgement.
+      </label>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ── AJAX: run checks on one document, swap result inline ──────────────
+  function getCookie(name) {
+    const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return m ? m.pop() : '';
+  }
+  document.querySelectorAll('.doccheck-run').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const box = btn.closest('[data-doc-id]');
+      const url = btn.getAttribute('data-url');
+      btn.disabled = true;
+      btn.textContent = 'Running…';
+      fetch(url, {
+        method: 'POST',
+        headers: {'X-CSRFToken': getCookie('csrftoken')},
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (!data.ok) throw new Error('check failed');
+        // band
+        const bandEl = box.querySelector('.doccheck-band');
+        bandEl.innerHTML =
+          '<span class="badge badge-' + data.band_tone + '">' +
+          data.band_display + '</span> <span class="small text-muted">· ' +
+          data.flag_count + ' flag(s) · ' + data.run_at + '</span>';
+        // flags
+        const flagsEl = box.querySelector('.doccheck-flags');
+        if (data.band === 'unverifiable') {
+          flagsEl.innerHTML = '<span class="small text-muted">' +
+            'Couldn’t read this document as expected. Nothing could be ' +
+            'checked — ask for a clearer or correct file.</span>';
+        } else if (data.flags && data.flags.length) {
+          flagsEl.innerHTML = '<ul class="small mb-0">' +
+            data.flags.map(f => '<li><strong>' + f.label + '</strong> — ' +
+              (f.detail || '') + '</li>').join('') + '</ul>';
+        } else {
+          flagsEl.innerHTML = '<span class="small text-success">No flags.</span>';
+        }
+        box.setAttribute('data-band', data.band);   // used by approve guard
+        btn.textContent = 'Re-run';
+      })
+      .catch(() => { btn.textContent = 'Error — retry'; })
+      .finally(() => { btn.disabled = false; });
+    });
+  });
+
+  // ── Approve guard: if any doc is flagged, require acknowledgement ──────
+  // Hook your approve button/form. Adjust the selector to your approve submit.
+  const approveForm = document.querySelector('#loan-review-form'); // (ADJUST id)
+  if (approveForm) {
+    approveForm.addEventListener('submit', function (e) {
+      // Is the lender approving? (adjust to how your form signals approval)
+      const statusEl = approveForm.querySelector('[name="status"]');
+      const approving = statusEl && statusEl.value === 'approved';
+      if (!approving) return;
+
+      const flagged = Array.from(document.querySelectorAll('[data-doc-id]'))
+        .some(el => el.getAttribute('data-band') === 'flagged'
+                 || el.querySelector('.badge-danger'));
+      if (!flagged) return;
+
+      const ackBox = document.getElementById('ack_doc_flags_box');
+      if (!ackBox || !ackBox.checked) {
+        e.preventDefault();
+        const warn = document.getElementById('flag-warning-modal');
+        warn.classList.remove('d-none');
+        warn.scrollIntoView({behavior: 'smooth'});
+        return;
+      }
+      // Acknowledged — pass the flag to the server.
+      let hidden = approveForm.querySelector('[name="ack_doc_flags"]');
+      if (!hidden) {
+        hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'ack_doc_flags';
+        approveForm.appendChild(hidden);
+      }
+      hidden.value = '1';
+    });
+  }
+})();
+</script>

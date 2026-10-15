@@ -20,9 +20,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from decimal import Decimal
 import os
+import pytesseract
+from pdf2image import convert_from_path
+
+from PIL import Image
 
 from .parser import parse_statement, ParsedStatement
 from .reconciliation import reconcile, ReconciliationResult
+
 
 
 @dataclass
@@ -92,12 +97,10 @@ class TesseractDocumentAdapter:
         return self._ocr_image(file_path)
 
     def _ocr_image(self, file_path: str) -> str:
-        import pytesseract
-        from PIL import Image
+        
         return pytesseract.image_to_string(Image.open(file_path), lang=self.lang)
 
     def _ocr_pdf(self, file_path: str) -> str:
-        import pytesseract
-        from pdf2image import convert_from_path
+        
         pages = convert_from_path(file_path, dpi=self.dpi)
         return "\n".join(pytesseract.image_to_string(p, lang=self.lang) for p in pages)

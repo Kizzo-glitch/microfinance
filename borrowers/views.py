@@ -1428,7 +1428,7 @@ def apply_loan(request):
 		return redirect("borrowers:borrower_index")
  
 	# ---------------- GET: advise ----------------
-	assessment = advisor.build()  # advisory only, not persisted
+	assessment = advisor.build()  
 
 	# load the borrower's active groups for selection in the template
 	my_groups = BorrowerGroup.objects.filter(          
@@ -1496,30 +1496,6 @@ def _run_document_verification(borrower, loan_app, result):
 
 
 
-"""
-@login_required
-def save_payment_details2(request):
-	profile, _ = BorrowerProfile.objects.get_or_create(user=request.user)
-	PaymentForm = make_payment_details_form(BorrowerProfile)
- 
-	# where to return: the page they came from (apply-loan or profile)
-	next_url = request.POST.get("next") or request.GET.get("next")
- 
-	if request.method == "POST":
-		form = PaymentForm(request.POST, instance=profile)
-		if form.is_valid():
-			form.save()
-			messages.success(request, "Payment details saved.")
-		else:
-			# surface the error to the user (not just console)
-			messages.error(request, "Please check your payment details and try again.")
-			# fall through to redirect; the target page re-renders the form bound
-			# to the saved profile. For inline error display you could stash the
-			# form in the session, but a clear message + valid data is usually enough.
- 
-	return redirect(next_url or "borrowers:borrower_profile")
-
-"""
  
 @login_required
 def abandon_draft(request, application_id):

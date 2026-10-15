@@ -10,6 +10,8 @@ import uuid
 from django.contrib.auth import get_user_model
 from django.conf import settings
 
+from django.utils import timezone
+
 from micro.models import PaymentDetailsMixin
 
 
@@ -18,8 +20,8 @@ class BorrowerProfileManager(models.Manager):
 		return super().get_queryset().filter(user__role='borrower', user__is_superuser=False)
 
 def get_upload_path(instance, filename):
-    ext = filename.split('.')[-1]
-    return f"Borrower-photos/{instance.user.username}.{ext}"
+	ext = filename.split('.')[-1]
+	return f"Borrower-photos/{instance.user.username}.{ext}"
 
 User = get_user_model()
 
@@ -112,11 +114,11 @@ class BorrowerProfile(PaymentDetailsMixin, models.Model):
 		null=True, blank=True
 	)
 	passport_photo = models.ImageField(
-        upload_to=get_upload_path, 
-        null=True, 
-        blank=True,
-        help_text="Standard KYC passport-sized photo required for identification."
-    )
+		upload_to=get_upload_path, 
+		null=True, 
+		blank=True,
+		help_text="Standard KYC passport-sized photo required for identification."
+	)
 	#monthly_expenses = models.CharField(max_length=100, choices=MONTHLY_EXPENSES_CHOICES, null=True, blank=True)
 	existing_debts = models.CharField(max_length=100, choices=EXISTING_DEBTS_CHOICES, null=True, blank=True)
 	
@@ -139,8 +141,6 @@ class BorrowerProfile(PaymentDetailsMixin, models.Model):
 
 def upload_to(instance, filename):
 	return f'documents/{instance.borrower.user.username}/{instance.document_type}/{filename}'
-
-
 
 
 
@@ -181,50 +181,104 @@ class ExpenseAnalysis(models.Model):
 		return f"{self.borrower.user.username} - {self.expense_type}: {self.amount}"
 
 
-
-'''
-class BorrowerGroup(models.Model):
-	name = models.CharField(max_length=255)
-	description = models.TextField(blank=True, null=True)
-	created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name="created_groups")
-	created_at = models.DateTimeField(auto_now_add=True)
-
-	def __str__(self):
-		return self.name
-
-'''
 """
-class GroupMembership(models.Model):
-	ROLE_CHOICES = [
-		('admin', 'Admin'),
-		('sub_admin', 'Sub-Admin'),
-		('member', 'Member'),
+Layer 6 — DocumentCheckRun model.
+
+Stores a FROZEN snapshot of one verification run: the band, every flag with its
+reason, who ran it, and when. Immutable by convention — a new run is a new row,
+never an edit of an old one — so a result the lender saw can't be silently
+rewritten by a later re-upload or a parser change. Same discipline as KFS.
+
+It NEVER stores "verified/genuine". It stores "assessed on <date>, band=<band>,
+these flags". A human reads it and decides.
+"""
+class DocumentCheckRun(models.Model):
+	# --- what was checked ---
+	# FK to your borrower document model. Adjust the target + related_name.
+	document = models.ForeignKey(
+		BorrowerDocs,            
+		on_delete=models.CASCADE,
+		related_name="check_runs",
+	)
+
+	DOC_TYPE_CHOICES = [
+		("bank_statement", "Bank statement"),
+		("payslip", "Payslip"),
+		("national_id", "National ID"),
+		("other", "Other"),
 	]
-	user = models.ForeignKey(User, on_delete=models.CASCADE)
-	group = models.ForeignKey(BorrowerGroup, on_delete=models.CASCADE)
-	role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='member')
-	joined_at = models.DateTimeField(auto_now_add=True)
+	doc_type = models.CharField(max_length=20, choices=DOC_TYPE_CHOICES,
+								default="bank_statement")
+
+	# --- the frozen result ---
+	BAND_CHOICES = [
+		("high", "High confidence"),
+		("medium", "Medium confidence"),
+		("low", "Low confidence"),
+		("flagged", "Flagged"),
+		("unverifiable", "Could not verify"),
+	]
+	band = models.CharField(max_length=20, choices=BAND_CHOICES)
+
+	# Every CheckResult, as data: [{code,label,outcome,strength,detail}, ...]
+	# This is the snapshot — the exact flags the lender saw, kept verbatim.
+	results = models.JSONField(default=list)
+
+	# Convenience counts (denormalised from results, for list views/filtering).
+	flag_count = models.PositiveIntegerField(default=0)
+	inconclusive_count = models.PositiveIntegerField(default=0)
+
+	# --- audit trail ---
+	run_by = models.ForeignKey(
+		settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+		null=True, blank=True, related_name="document_check_runs",
+		help_text="The lender/staff user who ran these checks.",
+	)
+	run_at = models.DateTimeField(default=timezone.now)
+
+	# What the engine ran against, for reproducibility/debugging (not shown to
+	# borrowers): parse confidence, which check set, whether PDF signals ran.
+	meta = models.JSONField(default=dict, blank=True)
 
 	class Meta:
-		unique_together = ('user', 'group')
+		ordering = ["-run_at"]
+		indexes = [
+			models.Index(fields=["document", "-run_at"]),
+			models.Index(fields=["band"]),
+		]
 
 	def __str__(self):
-		return f"{self.user.username} - {self.group.name} ({self.role})"
+		return f"Check {self.pk} · {self.get_doc_type_display()} · {self.band}"
 
+	# --- read helpers for templates ---
 
-class GroupInvite(models.Model):
-	token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-	group = models.ForeignKey(BorrowerGroup, on_delete=models.CASCADE)
-	email = models.EmailField()
-	invited_by = models.ForeignKey(User, on_delete=models.CASCADE)
-	is_used = models.BooleanField(default=False)
-	created_at = models.DateTimeField(auto_now_add=True)
+	@property
+	def flags(self):
+		"""Only the FAIL results — what the lender must look at."""
+		return [r for r in self.results if r.get("outcome") == "fail"]
 
-	def __str__(self):
-		return f"Invite to {self.group.name} for {self.email}"
+	@property
+	def passed(self):
+		return [r for r in self.results if r.get("outcome") == "pass"]
 
-"""
+	@property
+	def inconclusive(self):
+		return [r for r in self.results if r.get("outcome") == "inconclusive"]
 
+	@property
+	def band_tone(self):
+		"""Bootstrap contextual colour for the band badge."""
+		return {
+			"high": "success",
+			"medium": "info",
+			"low": "warning",
+			"flagged": "danger",
+			"unverifiable": "dark",
+		}.get(self.band, "secondary")
+
+	@property
+	def is_unverifiable(self):
+		return self.band == "unverifiable"
 
 
 

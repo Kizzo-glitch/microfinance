@@ -1,0 +1,49 @@
+{% comment %}
+  Verification overlay — renders NEXT TO the frozen affordability snapshot on
+  the review screen. Shows whether the documents behind the affordability
+  figures held up to checking. Never restates or rewrites the snapshot's numbers.
+
+  Context: affordability_overlay (from build_affordability_overlay(application)).
+  Include it right after your existing affordability card.
+{% endcomment %}
+
+{% with ov=affordability_overlay %}
+<div class="card shadow mb-4 {% if ov.concern %}border-warning{% endif %}">
+  <div class="card-header py-3">
+    <h6 class="m-0 font-weight-bold text-primary">
+      Are these figures backed up?
+    </h6>
+  </div>
+  <div class="card-body">
+    <p class="small text-muted mb-2">{{ ov.note }}</p>
+
+    {% if ov.has_checks %}
+      {% if ov.income_support %}
+        <div class="mb-2">
+          <span class="small text-muted">Income evidence:</span>
+          {% for e in ov.income_support %}
+            <span class="badge badge-{{ e.tone }} ms-1">
+              {{ e.doc_type }}: {{ e.get_band_label|default:e.band_label }}
+            </span>
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if ov.expense_support %}
+        <div class="mb-0">
+          <span class="small text-muted">Expense evidence:</span>
+          {% for e in ov.expense_support %}
+            <span class="badge badge-{{ e.tone }} ms-1">
+              {{ e.doc_type }}: {{ e.band_label }}
+            </span>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% else %}
+      <p class="small mb-0">
+        Run document checks above to see whether these figures are supported.
+      </p>
+    {% endif %}
+  </div>
+</div>
+{% endwith %}
