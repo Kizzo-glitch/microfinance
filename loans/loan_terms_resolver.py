@@ -15,7 +15,7 @@ Put this in loans/ (or wherever shared loan helpers live) and import it widely.
 
 from decimal import Decimal
 from .models import LoanApplication
-
+from lenders.models import LenderProduct
 
 def resolve_product(request, lender):
     """
@@ -23,7 +23,6 @@ def resolve_product(request, lender):
     belongs to this lender and is active — a stale/invalid session id resolves
     to None (falls back to profile) rather than trusting it blindly.
     """
-    from lenders.models import LenderProduct
     pid = request.session.get("product_id")
     if not pid:
         return None
@@ -106,3 +105,28 @@ def approval_rate_block(loan_application, loan_amount):
         total_repayable = Decimal(loan_amount) * (Decimal("1") + interest / Decimal("100"))
  
     return interest, total_repayable
+
+
+
+# Common terms people actually think in, in order.
+COMMON_TERMS = [1, 2, 3, 6, 9, 12, 18, 24, 36, 48, 60]
+
+def curated_terms_for(product, lender):
+    """
+    Common terms that fall within the allowed range. Always includes the
+    range's own min and max so the extremes are one click away, even if they
+    aren't "round".
+    """
+    allowed = effective_terms(product, lender)               # every month in range
+    if not allowed:
+        return []                                            # e.g. month-end product
+    allowed_set = set(allowed)
+    lo, hi = min(allowed), max(allowed)
+ 
+    picks = [t for t in COMMON_TERMS if t in allowed_set]
+    # Guarantee the min and max are offered.
+    for edge in (lo, hi):
+        if edge not in picks:
+            picks.append(edge)
+    return sorted(set(picks))
+ 

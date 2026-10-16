@@ -49,7 +49,7 @@ from django.utils.timezone import now
 
 from lenders.views import available_methods
 
-from loans.loan_terms_resolver import effective_rate, effective_terms, get_or_create_draft, resolve_product
+from loans.loan_terms_resolver import curated_terms_for, effective_amount_bounds, effective_rate, effective_terms, get_or_create_draft, resolve_product
 from loans.models import LenderProfile, LoanApplication, Loan, LoanPayment, Notification, Rating, ResponsibleLendingAssessment
 
 from loans.views import generate_kfs
@@ -190,48 +190,48 @@ def save_borrower_payment_details(request):
  
 
 def annotated_lenders_for_cards(queryset):
-    """
-    Takes a LenderProfile queryset and returns it annotated for the cards:
-      - product_count            : number of ACTIVE products
-      - rate_min / rate_max      : annual interest rate range
-      - amount_min / amount_max  : loan amount range
-      - term_min / term_max      : loan term range
-      - has_products flag (via product_count) drives "sorted to bottom"
+	"""
+	Takes a LenderProfile queryset and returns it annotated for the cards:
+	  - product_count            : number of ACTIVE products
+	  - rate_min / rate_max      : annual interest rate range
+	  - amount_min / amount_max  : loan amount range
+	  - term_min / term_max      : loan term range
+	  - has_products flag (via product_count) drives "sorted to bottom"
  
-    Only ACTIVE products feed the ranges. Change the filter prefix
-    `products__is_active=True` to match your product's related_name and
-    active flag (FIELD).
-    """
-    # Related lookups assume LenderProduct.lender has related_name='products'.
-    # If it's the default, use 'lenderproduct__' instead of 'products__'. (FIELD)
-    active = {'products__is_active': True}   # (FIELD) active flag + related_name
+	Only ACTIVE products feed the ranges. Change the filter prefix
+	`products__is_active=True` to match your product's related_name and
+	active flag (FIELD).
+	"""
+	# Related lookups assume LenderProduct.lender has related_name='products'.
+	# If it's the default, use 'lenderproduct__' instead of 'products__'. (FIELD)
+	active = {'products__is_active': True}   # (FIELD) active flag + related_name
  
-    qs = queryset.annotate(
-        product_count=Count('products', filter=_q(active), distinct=True),
+	qs = queryset.annotate(
+		product_count=Count('products', filter=_q(active), distinct=True),
  
-        rate_min=Min('products__annual_interest_rate', filter=_q(active)),
-        rate_max=Max('products__annual_interest_rate', filter=_q(active)),
+		rate_min=Min('products__annual_interest_rate', filter=_q(active)),
+		rate_max=Max('products__annual_interest_rate', filter=_q(active)),
  
-        amount_min=Min('products__min_amount', filter=_q(active)),
-        amount_max=Max('products__max_amount', filter=_q(active)),
+		amount_min=Min('products__min_amount', filter=_q(active)),
+		amount_max=Max('products__max_amount', filter=_q(active)),
  
-        term_min=Min('products__min_term', filter=_q(active)),
-        term_max=Max('products__max_term', filter=_q(active)),
-    ).annotate(
-        # Sort key: lenders WITH products first (0), empties last (1).
-        _has_products=Case(
-            When(product_count__gt=0, then=Value(0)),
-            default=Value(1),
-            output_field=IntegerField(),
-        )
-    ).order_by('_has_products', '-product_count', 'company_name')
+		term_min=Min('products__min_term', filter=_q(active)),
+		term_max=Max('products__max_term', filter=_q(active)),
+	).annotate(
+		# Sort key: lenders WITH products first (0), empties last (1).
+		_has_products=Case(
+			When(product_count__gt=0, then=Value(0)),
+			default=Value(1),
+			output_field=IntegerField(),
+		)
+	).order_by('_has_products', '-product_count', 'company_name')
  
-    return qs
+	return qs
  
  
 def _q(kwargs):
-    """Small helper so the Count/Min/Max filters stay readable above."""
-    return Q(**kwargs)
+	"""Small helper so the Count/Min/Max filters stay readable above."""
+	return Q(**kwargs)
 
 
 
@@ -673,7 +673,7 @@ def lender_details(request, lender_id):
 		'average_rating': average_rating,  # Calculated average rating
 		'rating_range': range(int(average_rating)),  # For displaying stars
 		"products": products,
-        "has_products": has_products,
+		"has_products": has_products,
 	}
 	return render(request, 'lender_details.html', context)
 
@@ -688,52 +688,52 @@ Fedha-Grow — choose_product + D: KFS auto-generation & choreography
 # =====================================================================
 @login_required
 def choose_product(request, lender_id, product_id):
-    """
-    Borrower picks a specific product. We stash BOTH the lender and the product
-    so the draft application records the product, and the flow proceeds as before.
-    """
-    from lenders.models import LenderProfile, LenderProduct
-    lender = get_object_or_404(LenderProfile, id=lender_id)
-    product = get_object_or_404(LenderProduct, id=product_id, lender=lender, is_active=True)
+	"""
+	Borrower picks a specific product. We stash BOTH the lender and the product
+	so the draft application records the product, and the flow proceeds as before.
+	"""
+	from lenders.models import LenderProfile, LenderProduct
+	lender = get_object_or_404(LenderProfile, id=lender_id)
+	product = get_object_or_404(LenderProduct, id=product_id, lender=lender, is_active=True)
 
-    # same session pattern you already use for lender selection, plus the product
-    request.session["lender_id"] = lender.id
-    request.session["product_id"] = product.id
+	# same session pattern you already use for lender selection, plus the product
+	request.session["lender_id"] = lender.id
+	request.session["product_id"] = product.id
 
-    messages.success(request, f"Applying for {product.name} from {lender.company_name}.")
-    return redirect("borrowers:employment_type")   # entry point of your apply flow
+	messages.success(request, f"Applying for {product.name} from {lender.company_name}.")
+	return redirect("borrowers:employment_type")   # entry point of your apply flow
 
 
 
 def on_borrower_acknowledged_kfs(request, kfs):
-    """
-    Call from acknowledge_kfs after the BORROWER acknowledges. Opens the
-    disbursement gate and notifies the lender it's their turn.
-    """
-    loan = kfs.loan
+	"""
+	Call from acknowledge_kfs after the BORROWER acknowledges. Opens the
+	disbursement gate and notifies the lender it's their turn.
+	"""
+	loan = kfs.loan
 
-    # disbursement status -> ready (borrower has seen the terms)
-    if hasattr(loan, "disbursement_status"):
-        loan.disbursement_status = "ready"
-        loan.save(update_fields=["disbursement_status"])
+	# disbursement status -> ready (borrower has seen the terms)
+	if hasattr(loan, "disbursement_status"):
+		loan.disbursement_status = "ready"
+		loan.save(update_fields=["disbursement_status"])
 
-    # notify the lender
-    lender_user = getattr(loan.lender, "user", None)
-    if lender_user:
-        Notification.objects.create(
-            user=lender_user, category="loan_payment",
-            message=(f"{loan.borrower.full_name} has acknowledged the Key Facts "
-                     f"Statement for loan {loan.reference_number}. You can now "
-                     f"acknowledge and disburse."),
-            loan=loan)
-        # send_sms(loan.lender.phone_number, "kfs_borrower_ack", {...})
+	# notify the lender
+	lender_user = getattr(loan.lender, "user", None)
+	if lender_user:
+		Notification.objects.create(
+			user=lender_user, category="loan_payment",
+			message=(f"{loan.borrower.full_name} has acknowledged the Key Facts "
+					 f"Statement for loan {loan.reference_number}. You can now "
+					 f"acknowledge and disburse."),
+			loan=loan)
+		# send_sms(loan.lender.phone_number, "kfs_borrower_ack", {...})
 
 
 def on_loan_disbursed(request, loan):
-    """Call when the lender records disbursement — final status."""
-    if hasattr(loan, "disbursement_status"):
-        loan.disbursement_status = "disbursed"
-        loan.save(update_fields=["disbursement_status"])
+	"""Call when the lender records disbursement — final status."""
+	if hasattr(loan, "disbursement_status"):
+		loan.disbursement_status = "disbursed"
+		loan.save(update_fields=["disbursement_status"])
 
 def rate_lender(request, lender_id):
 	if request.method == 'POST':
@@ -811,6 +811,11 @@ def verify_otp(request):
 
 @login_required
 def select_employment_type(request):
+
+	if not request.session.get("product_id"):
+		messages.error(request, "Please choose a loan product first.")
+		return redirect("borrowers:borrower_index") 
+	
 	profile = request.user.borrower
 	lender_id = request.session.get('lender_id')
 	lender = LenderProfile.objects.get(id=lender_id)
@@ -844,14 +849,15 @@ def select_employment_type(request):
 		],
 	}
 
-
+	'''
 	loan_app, created = LoanApplication.objects.get_or_create(
 		borrower=profile,
 		lender=lender,  
 		status="draft",
 		defaults={"current_stage": "employment"}
 	)
-	loan_app = get_or_create_draft(request, profile, lender, stage="employment_type")
+	'''
+	loan_app = get_or_create_draft(request, profile, lender, stage="employment")
 
 	if request.method == "POST":
 		#form = EmploymentTypeForm(request.POST, instance=loan_app)
@@ -888,13 +894,15 @@ def upload_documents_employed(request):
 	borrower = request.user.borrower
 	lender_id = request.session.get('lender_id')
 	lender = LenderProfile.objects.get(id=lender_id)
-	
+
+	'''
 	loan_app, created = LoanApplication.objects.get_or_create(
 		borrower=borrower,
 		lender=lender,  # ✅ This is correct
 		status="draft",
 		defaults={"current_stage": "documents"}
 	)
+	'''
 	loan_app = get_or_create_draft(request, borrower, lender, stage="documents")
 
 	if request.method == 'POST':
@@ -966,13 +974,15 @@ def upload_documents_self_employed(request):
 	borrower = request.user.borrower
 	lender_id = request.session.get('lender_id')
 	lender = LenderProfile.objects.get(id=lender_id)
-	
+
+	'''
 	loan_app, created = LoanApplication.objects.get_or_create(
 		borrower=borrower,
 		lender=lender,  # ✅ This is correct
 		status="draft",
 		defaults={"current_stage": "documents"}
 	)
+	'''
 	loan_app = get_or_create_draft(request, borrower, lender, stage="documents")
 
 	if request.method == 'POST':
@@ -1043,13 +1053,16 @@ def upload_documents_registered_business(request):
 	borrower = request.user.borrower
 	lender_id = request.session.get('lender_id')
 	lender = LenderProfile.objects.get(id=lender_id)
-	
+
+	'''
 	loan_app, created = LoanApplication.objects.get_or_create(
 		borrower=borrower,
 		lender=lender,  # ✅ This is correct
 		status="draft",
 		defaults={"current_stage": "documents"}
 	)
+	'''
+
 	loan_app = get_or_create_draft(request, borrower, lender, stage="documents")
 
 	if request.method == 'POST':
@@ -1124,13 +1137,16 @@ def update_expenses(request):
 
 	lender_id = request.session.get('lender_id')
 	lender = LenderProfile.objects.get(id=lender_id)
-
+	
+	'''
 	loan_app, created = LoanApplication.objects.get_or_create(
 		borrower=borrower,
 		lender=lender,  # ✅ This is correct
 		status="draft",
 		defaults={"current_stage": "affordability"}
 	)
+	'''
+
 	loan_app = get_or_create_draft(request, borrower, lender, stage="affordability")
 
 	if request.method == 'POST':
@@ -1234,19 +1250,57 @@ def loan_application(request):
 		return redirect('borrowers:borrower_profile')
 
 
-@login_required
 def loan_calculator(request):
+	borrower = request.user.borrower
+	lender_id = request.session.get("lender_id")
+	
+	lender = get_object_or_404(LenderProfile, id=lender_id)
+ 
+	# get_or_create_draft attaches the product to the draft (do NOT also raw
+	# get_or_create here).
+   
+	loan_app = get_or_create_draft(request, borrower, lender,
+								   stage="loan_calculator")
+ 
+	product = resolve_product(request, lender)
+	amount_min, amount_max = effective_amount_bounds(product, lender)
+	available_terms = effective_terms(product, lender)      # [] for month-end
+	calc_rate = effective_rate(product, lender)
+
+	curated = curated_terms_for(product, lender)
+	allowed = effective_terms(product, lender)
+ 
+	context = {
+		"loan_app": loan_app,
+		"lender": lender,
+		"product": product,
+		"calc_rate": calc_rate,
+		"amount_min": amount_min,
+		"amount_max": amount_max,
+		"available_terms": available_terms,
+
+		"curated_terms": curated,
+        "term_min": min(allowed) if allowed else None,
+        "term_max": max(allowed) if allowed else None,
+		# ... any other context you already pass ...
+	}
+	return render(request, "loan_calculator.html", context)
+
+@login_required
+def loan_calculator2(request):
 	borrower = request.user.borrower
 	lender_id = request.session.get('lender_id')
 	lender = get_object_or_404(LenderProfile, id=lender_id)
 
-	# Get or create draft for this borrower/lender
+	'''
 	loan_app, created = LoanApplication.objects.get_or_create(
 		borrower=borrower,
 		lender=lender,
 		status="draft",   # keep as draft until final submission
 		defaults={"current_stage": "loan_calculator"}
 	)
+	'''
+
 	loan_app = get_or_create_draft(request, borrower, lender, stage="loan_calculator")
 
 	BorrowerDocs.objects.filter(
@@ -1306,60 +1360,60 @@ def loan_calculator(request):
 # =====================================================================
 
 def calculate_loan(request):
-    lender_id = request.session.get("lender_id")
-    if not lender_id:
-        return JsonResponse({"error": "No lender selected."}, status=400)
+	lender_id = request.session.get("lender_id")
+	if not lender_id:
+		return JsonResponse({"error": "No lender selected."}, status=400)
  
-    lender = get_object_or_404(LenderProfile, id=lender_id)
-    product = resolve_product(request, lender)   
+	lender = get_object_or_404(LenderProfile, id=lender_id)
+	product = resolve_product(request, lender)   
  
-    try:
-        amount = Decimal(request.GET.get("amount", "0"))
-        term = int(request.GET.get("term", "0"))
-    except (InvalidOperation, ValueError, TypeError):
-        return JsonResponse({"error": "Invalid amount or term."}, status=400)
+	try:
+		amount = Decimal(request.GET.get("amount", "0"))
+		term = int(request.GET.get("term", "0"))
+	except (InvalidOperation, ValueError, TypeError):
+		return JsonResponse({"error": "Invalid amount or term."}, status=400)
  
-    if amount <= 0 or term <= 0:
-        return JsonResponse({"error": "Amount and term must be greater than zero."}, status=400)
+	if amount <= 0 or term <= 0:
+		return JsonResponse({"error": "Amount and term must be greater than zero."}, status=400)
  
-    # --- month-end products don't use a month term: handle separately ---
-    if product is not None and getattr(product, "repayment_structure", "") == "single_month_end":
-        # One repayment, flat monthly fee. No term selection applies.
-        fee_rate = effective_rate(product, lender)   # flat monthly %
-        fee = (amount * fee_rate / Decimal("100")).quantize(Decimal("0.01"))
-        total = (amount + fee).quantize(Decimal("0.01"))
-        return JsonResponse({
-            "currency": "M",
-            "amount": round(amount, 2),
-            "structure": "single_month_end",
-            "flat_fee": round(fee, 2),
-            "total_repayable": round(total, 2),
-            "note": "One repayment, due at month-end. Flat fee of "
-                    f"{fee_rate}% of the amount.",
-        })
+	# --- month-end products don't use a month term: handle separately ---
+	if product is not None and getattr(product, "repayment_structure", "") == "single_month_end":
+		# One repayment, flat monthly fee. No term selection applies.
+		fee_rate = effective_rate(product, lender)   # flat monthly %
+		fee = (amount * fee_rate / Decimal("100")).quantize(Decimal("0.01"))
+		total = (amount + fee).quantize(Decimal("0.01"))
+		return JsonResponse({
+			"currency": "M",
+			"amount": round(amount, 2),
+			"structure": "single_month_end",
+			"flat_fee": round(fee, 2),
+			"total_repayable": round(total, 2),
+			"note": "One repayment, due at month-end. Flat fee of "
+					f"{fee_rate}% of the amount.",
+		})
  
-    # --- instalment products (and legacy profile-rate lenders) ---
-    allowed_terms = [str(t) for t in effective_terms(product, lender)]
-    if allowed_terms and str(term) not in allowed_terms:
-        return JsonResponse(
-            {"error": f"Invalid loan term. Allowed terms: {', '.join(allowed_terms)}."},
-            status=400,
-        )
+	# --- instalment products (and legacy profile-rate lenders) ---
+	allowed_terms = [str(t) for t in effective_terms(product, lender)]
+	if allowed_terms and str(term) not in allowed_terms:
+		return JsonResponse(
+			{"error": f"Invalid loan term. Allowed terms: {', '.join(allowed_terms)}."},
+			status=400,
+		)
  
-    interest_rate = effective_rate(product, lender)   # ← product rate, not profile
-    total_repayable = amount * (Decimal("1") + interest_rate / Decimal("100"))
-    monthly_installment = total_repayable / Decimal(term)
+	interest_rate = effective_rate(product, lender)   # ← product rate, not profile
+	total_repayable = amount * (Decimal("1") + interest_rate / Decimal("100"))
+	monthly_installment = total_repayable / Decimal(term)
  
-    return JsonResponse({
-        "currency": "M",
-        "amount": round(amount, 2),
-        "term": term,
-        "interest_rate": round(interest_rate, 2),
-        "total_repayable": round(total_repayable, 2),
-        "monthly_installment": round(monthly_installment, 2),
-        # So the UI can show WHICH product's rate this is.
-        "product": product.name if product else None,
-    })
+	return JsonResponse({
+		"currency": "M",
+		"amount": round(amount, 2),
+		"term": term,
+		"interest_rate": round(interest_rate, 2),
+		"total_repayable": round(total_repayable, 2),
+		"monthly_installment": round(monthly_installment, 2),
+		# So the UI can show WHICH product's rate this is.
+		"product": product.name if product else None,
+	})
 
 
 def calculate_loan2(request):
