@@ -681,6 +681,8 @@ class ProductFee(models.Model):
 def upload_to_lender_docs(instance, filename):
 	return f'lender_documents/{instance.lender.user.username}/{instance.document_type}/{filename}'
 
+
+
 class LenderDocs(models.Model):
 	lender = models.ForeignKey(LenderProfile, on_delete=models.CASCADE)
 	DOCUMENT_TYPES = [

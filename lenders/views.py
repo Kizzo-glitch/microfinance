@@ -33,6 +33,7 @@ from collections import OrderedDict
 
 from compliance.compliace_services import ComplianceDashboardService
 from compliance.models import ComplianceProfile, PersonnelProfile
+
 from micro.forms import MobileMoneyAccountForm, get_mobile_money_formset, make_payment_details_form, save_mobile_money_formset
 
 from .forms import (LenderInfoForm, LenderProductForm, LoanApplicationStatusForm, 
@@ -40,15 +41,17 @@ from .forms import (LenderInfoForm, LenderProductForm, LoanApplicationStatusForm
 from .models import LenderProfile, LenderDocs, LenderProduct, ProductFee
 
 from integrations.verification.doccheck_ajax import unacknowledged_flags
-from integrations.verification.affordability_overlay import build_affordability_overlay 
+from integrations.verification.affordability_overlay import build_affordability_overlay
+from integrations.services import run_document_checks 
 
 from loans.models import Notification, LoanApplication, Loan, LoanPayment
 from loans.views import on_loan_approved
 from loans.utils import get_loans_by_risk_category, send_sms_smsportal, calculate_affordability
+from loans.loan_terms_resolver import approval_rate_block
+
 from borrowers.models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
 from comms.sms.service import send_sms
 			  
-from integrations.services import run_document_checks
 from groups.group_credit_profile import build_group_credit_profile
  
 
@@ -419,6 +422,7 @@ def product_edit(request, product_id=None):
 		"product": product if product.pk else None,
 	})
  
+
  
 @login_required
 def product_toggle_active(request, product_id):
@@ -746,6 +750,109 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 		old_status = LoanApplication.objects.get(pk=loan_application.pk).status
 
 		# ── Document-flag acknowledgement guard ──────────────────────────
+		if (form.cleaned_data.get("status") == "approved"
+				and unacknowledged_flags(loan_application, self.request)):
+			form.add_error(None,
+				"This applicant has flagged documents. Please review and "
+				"acknowledge them before approving.")
+			return self.form_invalid(form)
+
+		# Define these BEFORE using them.
+		loan_amount = loan_application.loan_amount
+		borrower_user = loan_application.borrower
+		phone_number = borrower_user.phone_number
+
+		if loan_application.status != old_status:
+			if loan_application.status == "approved":
+				# Guard against creating a second Loan for the same application.
+				if not loan_application.linked_loan:
+					# Resolve rate/total from the CHOSEN PRODUCT, right where used.
+					interest, total_repayable = approval_rate_block(
+						loan_application, loan_amount)
+
+					loan = Loan.objects.create(
+						borrower=borrower_user,
+						lender=loan_application.lender,
+						amount=Decimal(loan_amount),
+						loan_term=loan_application.loan_term,
+						interest_rate=interest,
+						first_payment=Decimal(loan_application.first_payment),
+						monthly_installment=Decimal(loan_application.monthly_installment),
+						total_repayable=total_repayable,
+						outstanding_balance=total_repayable,
+						due_date=loan_application.date_applied + timedelta(days=365),
+						status="approved",
+						group=loan_application.group,
+						product=loan_application.product,
+					)
+					loan_application.linked_loan = loan
+					on_loan_approved(self.request, loan_application, loan)
+
+				Notification.objects.create(
+					user=borrower_user.user,
+					message=f"Your loan application from {loan_application.lender.company_name} "
+							f"for M{loan_amount} has been approved.",
+					category="loan_approved",
+				)
+				send_sms(phone_number, "loan_approved", {
+					"name": borrower_user.full_name, "amount": loan_amount,
+					"lender": loan_application.lender.company_name,
+					"ref": loan_application.reference_number})
+
+			elif loan_application.status == "rejected":
+				reasons = loan_application.get_rejection_reasons_display()
+				Notification.objects.create(
+					user=borrower_user.user,
+					message=f"Your loan of M{loan_amount} from "
+							f"{loan_application.lender.company_name} was rejected. "
+							f"Reasons: {reasons}",
+					category="loan_rejected",
+				)
+				send_sms(phone_number, "loan_rejected", {
+					"name": borrower_user.full_name, "amount": loan_amount,
+					"lender": loan_application.lender.company_name,
+					"reasons": reasons, "ref": loan_application.reference_number})
+
+			elif loan_application.status == "pending":
+				reasons = loan_application.get_pending_reasons_display()
+				Notification.objects.create(
+					user=borrower_user.user,
+					message=f"Your loan application from {loan_application.lender.company_name} "
+							f"is pending. Reasons: {reasons}",
+					category="loan_pending",
+				)
+				send_sms(phone_number, "loan_pending", {
+					"name": borrower_user.full_name, "amount": loan_amount,
+					"lender": loan_application.lender.company_name,
+					"reasons": reasons, "ref": loan_application.reference_number})
+
+		loan_application.save()
+		form.save_m2m()
+
+		reasons = []
+		if loan_application.status == "rejected":
+			reasons = loan_application.rejection_reasons
+		elif loan_application.status == "pending":
+			reasons = loan_application.pending_reasons
+
+		subject = f"Loan Application {loan_application.status.capitalize()}"
+		body = render_to_string("loan_notification_letter.html", {
+			"loan_application": loan_application,
+			"status": loan_application.status,
+			"reasons": reasons,
+		})
+		email = EmailMultiAlternatives(subject, "", settings.EMAIL_HOST_USER,
+									   [borrower_user.email_address])
+		email.attach_alternative(body, "text/html")
+		email.send()
+
+		return super().form_valid(form)
+	
+	"""def form_valid(self, form):
+		loan_application = form.save(commit=False)
+		old_status = LoanApplication.objects.get(pk=loan_application.pk).status
+
+		# ── Document-flag acknowledgement guard ──────────────────────────
 		# Only relevant when APPROVING. If any of this application's documents
 		# has a latest check run banded 'flagged' and the lender hasn't ticked
 		# the acknowledgement, block and send them back to review the flags.
@@ -756,12 +863,14 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 				"This applicant has flagged documents. Please review and "
 				"acknowledge them before approving.")
 			return self.form_invalid(form)
-
+		
+		interest, total_repayable = approval_rate_block(loan_application, loan_amount)
+		
 		loan_amount = loan_application.loan_amount
 		borrower_user = loan_application.borrower
 		phone_number = borrower_user.phone_number
-		interest = Decimal(loan_application.lender.interest_rate or 0)
-		total_repayable = loan_amount * (Decimal("1") + interest / Decimal("100"))
+		#interest = Decimal(loan_application.lender.interest_rate or 0)
+		#total_repayable = loan_amount * (Decimal("1") + interest / Decimal("100"))
 
 		if loan_application.status != old_status:
 			if loan_application.status == "approved":
@@ -843,7 +952,7 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 		email.attach_alternative(body, "text/html")
 		email.send()
 
-		return super().form_valid(form)
+		return super().form_valid(form)"""
 
 
 	# ---- context: read the snapshot, don't recompute -------------------

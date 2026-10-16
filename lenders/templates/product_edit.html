@@ -12,7 +12,57 @@
   <form method="post">
     {% csrf_token %}
 
-    <div class="card shadow-sm border-0 mb-4">
+
+    <div class="card-body">
+      <div class="row g-3">
+    
+        {# ── Repayment structure — the mode switch, placed first ──────────── #}
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Repayment structure</label>
+          {{ form.repayment_structure }}
+          {% if form.repayment_structure.errors %}
+            <div class="text-danger small">{{ form.repayment_structure.errors|striptags }}</div>
+          {% endif %}
+          <div class="form-text" id="structure-hint"></div>
+        </div>
+        <div class="col-md-6"></div>
+    
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Name</label>{{ form.name }}
+          {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors|striptags }}</div>{% endif %}
+        </div>
+        <div class="col-md-3"><label class="form-label">Product code</label>{{ form.product_code }}</div>
+        <div class="col-md-3"><label class="form-label">Version</label>{{ form.version }}</div>
+    
+        <div class="col-md-3">
+          {# label text swapped by JS for month-end #}
+          <label class="form-label fw-semibold" id="rate-label">Interest rate (% p.a.)</label>
+          {{ form.annual_interest_rate }}
+        </div>
+        <div class="col-md-3"><label class="form-label">Interest type</label>{{ form.interest_type }}</div>
+    
+        {# ── Fields that only apply to INSTALMENT products ────────────────── #}
+        <div class="col-md-3 structure-installment-only">
+          <label class="form-label">Repayment frequency</label>{{ form.repayment_frequency }}
+        </div>
+        <div class="col-md-3"><label class="form-label">Effective from</label>{{ form.effective_from }}</div>
+    
+        <div class="col-12"><label class="form-label">Interest calculation note (shown on the statement)</label>{{ form.interest_calculation_note }}</div>
+    
+        <div class="col-md-3"><label class="form-label">Min amount (M)</label>{{ form.min_amount }}</div>
+        <div class="col-md-3"><label class="form-label">Max amount (M)</label>{{ form.max_amount }}</div>
+        <div class="col-md-3 structure-installment-only"><label class="form-label">Min term (months)</label>{{ form.min_term }}</div>
+        <div class="col-md-3 structure-installment-only"><label class="form-label">Max term (months)</label>{{ form.max_term }}</div>
+    
+        <div class="col-12">
+          <div class="form-check">{{ form.is_active }}
+            <label class="form-check-label">Active — borrowers can apply for this product</label></div>
+        </div>
+      </div>
+      {% if form.non_field_errors %}<div class="text-danger small mt-2">{{ form.non_field_errors }}</div>{% endif %}
+    </div>
+
+    <!--<div class="card shadow-sm border-0 mb-4">
       <div class="card-header bg-light fw-semibold">Product terms</div>
       <div class="card-body">
         <div class="row g-3">
@@ -42,7 +92,7 @@
         </div>
         {% if form.non_field_errors %}<div class="text-danger small mt-2">{{ form.non_field_errors }}</div>{% endif %}
       </div>
-    </div>
+    </div>-->
 
     <div class="card shadow-sm border-0 mb-4">
       <div class="card-header bg-light fw-semibold">
@@ -76,4 +126,34 @@
     </div>
   </form>
 </div>
+
+
+<script>
+(function () {
+  var sel = document.getElementById('id_repayment_structure');  // Django default id
+  if (!sel) return;
+  var rateLabel = document.getElementById('rate-label');
+  var hint = document.getElementById('structure-hint');
+  var instalmentOnly = document.querySelectorAll('.structure-installment-only');
+ 
+  function sync() {
+    var monthEnd = sel.value === 'single_month_end';
+    instalmentOnly.forEach(function (el) {
+      el.style.display = monthEnd ? 'none' : '';
+    });
+    if (rateLabel) {
+      rateLabel.textContent = monthEnd
+        ? 'Flat monthly interest (% of amount)'
+        : 'Interest rate (% p.a.)';
+    }
+    if (hint) {
+      hint.textContent = monthEnd
+        ? 'One repayment, due the last day of the month the loan is taken. Term and frequency don’t apply.'
+        : 'Repaid in instalments over a term.';
+    }
+  }
+  sel.addEventListener('change', sync);
+  sync();  // run on load (edit form may already be month-end)
+})();
+</script>
 {% endblock %}

@@ -316,6 +316,7 @@ class LenderProductForm(forms.ModelForm):
 					"instalment loan.")
 		return cleaned
  
+
  
 class ProductFeeForm(forms.ModelForm):
 	class Meta:

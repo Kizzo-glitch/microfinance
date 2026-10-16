@@ -48,6 +48,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.timezone import now
 
 from lenders.views import available_methods
+
+from loans.loan_terms_resolver import effective_rate, effective_terms, get_or_create_draft, resolve_product
 from loans.models import LenderProfile, LoanApplication, Loan, LoanPayment, Notification, Rating, ResponsibleLendingAssessment
 
 from loans.views import generate_kfs
@@ -676,6 +678,7 @@ def lender_details(request, lender_id):
 	return render(request, 'lender_details.html', context)
 
 
+
 """
 Fedha-Grow — choose_product + D: KFS auto-generation & choreography
 ==================================================================
@@ -841,11 +844,6 @@ def select_employment_type(request):
 		],
 	}
 
-	'''loan_app, _ = LoanApplication.objects.get_or_create(
-		borrower=request.user.borrower,
-		status="draft",
-		defaults={"current_stage": "employment"}
-	)'''
 
 	loan_app, created = LoanApplication.objects.get_or_create(
 		borrower=profile,
@@ -853,6 +851,7 @@ def select_employment_type(request):
 		status="draft",
 		defaults={"current_stage": "employment"}
 	)
+	loan_app = get_or_create_draft(request, profile, lender, stage="employment_type")
 
 	if request.method == "POST":
 		#form = EmploymentTypeForm(request.POST, instance=loan_app)
@@ -896,6 +895,7 @@ def upload_documents_employed(request):
 		status="draft",
 		defaults={"current_stage": "documents"}
 	)
+	loan_app = get_or_create_draft(request, borrower, lender, stage="documents")
 
 	if request.method == 'POST':
 		action = request.POST.get('action')  # "save_exit" or "save_continue"
@@ -973,6 +973,7 @@ def upload_documents_self_employed(request):
 		status="draft",
 		defaults={"current_stage": "documents"}
 	)
+	loan_app = get_or_create_draft(request, borrower, lender, stage="documents")
 
 	if request.method == 'POST':
 		action = request.POST.get('action')  # "save_exit" or "save_continue"
@@ -1049,6 +1050,7 @@ def upload_documents_registered_business(request):
 		status="draft",
 		defaults={"current_stage": "documents"}
 	)
+	loan_app = get_or_create_draft(request, borrower, lender, stage="documents")
 
 	if request.method == 'POST':
 		action = request.POST.get('action')  # "save_exit" or "save_continue"
@@ -1129,6 +1131,7 @@ def update_expenses(request):
 		status="draft",
 		defaults={"current_stage": "affordability"}
 	)
+	loan_app = get_or_create_draft(request, borrower, lender, stage="affordability")
 
 	if request.method == 'POST':
 		form = DynamicExpenseForm(employment_type, data=request.POST or None)
@@ -1244,6 +1247,7 @@ def loan_calculator(request):
 		status="draft",   # keep as draft until final submission
 		defaults={"current_stage": "loan_calculator"}
 	)
+	loan_app = get_or_create_draft(request, borrower, lender, stage="loan_calculator")
 
 	BorrowerDocs.objects.filter(
 		borrower=borrower, loan_application=None
@@ -1300,7 +1304,65 @@ def loan_calculator(request):
 # =====================================================================
 # Loan calculator (AJAX endpoint)
 # =====================================================================
+
 def calculate_loan(request):
+    lender_id = request.session.get("lender_id")
+    if not lender_id:
+        return JsonResponse({"error": "No lender selected."}, status=400)
+ 
+    lender = get_object_or_404(LenderProfile, id=lender_id)
+    product = resolve_product(request, lender)   
+ 
+    try:
+        amount = Decimal(request.GET.get("amount", "0"))
+        term = int(request.GET.get("term", "0"))
+    except (InvalidOperation, ValueError, TypeError):
+        return JsonResponse({"error": "Invalid amount or term."}, status=400)
+ 
+    if amount <= 0 or term <= 0:
+        return JsonResponse({"error": "Amount and term must be greater than zero."}, status=400)
+ 
+    # --- month-end products don't use a month term: handle separately ---
+    if product is not None and getattr(product, "repayment_structure", "") == "single_month_end":
+        # One repayment, flat monthly fee. No term selection applies.
+        fee_rate = effective_rate(product, lender)   # flat monthly %
+        fee = (amount * fee_rate / Decimal("100")).quantize(Decimal("0.01"))
+        total = (amount + fee).quantize(Decimal("0.01"))
+        return JsonResponse({
+            "currency": "M",
+            "amount": round(amount, 2),
+            "structure": "single_month_end",
+            "flat_fee": round(fee, 2),
+            "total_repayable": round(total, 2),
+            "note": "One repayment, due at month-end. Flat fee of "
+                    f"{fee_rate}% of the amount.",
+        })
+ 
+    # --- instalment products (and legacy profile-rate lenders) ---
+    allowed_terms = [str(t) for t in effective_terms(product, lender)]
+    if allowed_terms and str(term) not in allowed_terms:
+        return JsonResponse(
+            {"error": f"Invalid loan term. Allowed terms: {', '.join(allowed_terms)}."},
+            status=400,
+        )
+ 
+    interest_rate = effective_rate(product, lender)   # ← product rate, not profile
+    total_repayable = amount * (Decimal("1") + interest_rate / Decimal("100"))
+    monthly_installment = total_repayable / Decimal(term)
+ 
+    return JsonResponse({
+        "currency": "M",
+        "amount": round(amount, 2),
+        "term": term,
+        "interest_rate": round(interest_rate, 2),
+        "total_repayable": round(total_repayable, 2),
+        "monthly_installment": round(monthly_installment, 2),
+        # So the UI can show WHICH product's rate this is.
+        "product": product.name if product else None,
+    })
+
+
+def calculate_loan2(request):
 	lender_id = request.session.get("lender_id")
 	if not lender_id:
 		return JsonResponse({"error": "No lender selected."}, status=400)
@@ -1355,6 +1417,7 @@ def apply_loan(request):
 		status="draft",
 		defaults={"current_stage": "affordability"},
 	)
+	loan_app = get_or_create_draft(request, borrower, lender, stage="affordability")
  
 	# Attach any loose docs/expenses captured before the app existed.
 	BorrowerDocs.objects.filter(borrower=borrower, loan_application=None).update(loan_application=loan_app)

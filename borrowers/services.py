@@ -1,5 +1,6 @@
 
 from borrowers.models import ExpenseAnalysis, BorrowerDocs
+from loans.loan_terms_resolver import effective_rate, effective_terms
 from loans.models import Loan
 
 
@@ -55,6 +56,7 @@ class AffordabilityAdvisor:
         self.app = loan_application
         self.borrower = loan_application.borrower
         self.lender = loan_application.lender
+        self.product = getattr(loan_application, "product", None)
         # Set True by _recommend() when no amount/term at THIS lender fits,
         # signalling the borrower should consider a different lender.
         self._needs_other_lender = False
@@ -62,6 +64,10 @@ class AffordabilityAdvisor:
     # ---- public API -------------------------------------------------
     def build(self) -> dict:
         """Compute the full advisory result. Does NOT persist."""
+        # Route month-end products first — they don't use the instalment model.
+        if self.product and getattr(self.product, "repayment_structure", "") == "single_month_end":
+            return self._build_single_repayment()
+
         income   = _money(getattr(self.borrower, "income", 0))
         expenses = self._sum_expenses()
         existing_commitments, active_loans = self._existing_exposure()
@@ -283,34 +289,47 @@ class AffordabilityAdvisor:
         """
         Invert:  installment = amount * (1 + r/100) / term
             =>  amount = installment * term / (1 + r/100)
+        Uses the PRODUCT rate when a product is chosen, else the profile rate.
         """
-        r = Decimal(self.lender.interest_rate or 0)
+        r = effective_rate(self.product, self.lender)          # ← was self.lender.interest_rate
         factor = Decimal("1") + (r / Decimal("100"))
         if factor <= 0 or not term:
             return None
         amount = (target_installment * Decimal(term)) / factor
         return max(amount, Decimal("0")).quantize(TWO_DP)
-
-    def _sorted_terms(self):
-        """The lender's allowed loan terms as a sorted list of ints."""
-        try:
-            return sorted(int(t) for t in self.lender.loan_terms if int(t) > 0)
-        except (TypeError, ValueError):
-            return []
-
+    
+    
+    # ── 3. Replace _min_term_for_amount ────────────────────────────────────────
     def _min_term_for_amount(self, amount, target_installment: Decimal):
         """
-        Smallest of the lender's allowed terms whose installment for `amount`
-        is at or below target_installment. Returns None if none qualify.
+        Smallest allowed term whose installment for `amount` is at or below
+        target_installment. Uses the PRODUCT rate + the PRODUCT's term range.
         """
         if not amount or target_installment <= 0:
             return None
-        r = Decimal(self.lender.interest_rate or 0)
+        r = effective_rate(self.product, self.lender)          # ← was self.lender.interest_rate
         total = Decimal(amount) * (Decimal("1") + r / Decimal("100"))
         for t in self._sorted_terms():
             if (total / Decimal(t)) <= target_installment:
                 return t
-        return None  # even the longest term isn't enough
+        return None
+    
+    
+    # ── 4. Replace _sorted_terms ───────────────────────────────────────────────
+    def _sorted_terms(self):
+        """
+        The allowed loan terms as a sorted list of ints — the PRODUCT's term range
+        when a product is chosen, else the lender's profile loan_terms.
+    
+        NOTE: a single_month_end product returns [] (no month term). The advisor's
+        instalment math doesn't apply to those; see the guard note below.
+        """
+        try:
+            return sorted(int(t) for t in effective_terms(self.product, self.lender) if int(t) > 0)
+        except (TypeError, ValueError):
+            return []
+
+    
 
     def _not_assessable(self, income, expenses, installment,
                         existing_commitments, active_loans) -> dict:
@@ -335,3 +354,104 @@ class AffordabilityAdvisor:
             "lender_terms": self._sorted_terms(),
             "assessable": False,
         }
+
+SINGLE_COMFORTABLE_FRACTION = Decimal("0.60") 
+
+def _build_single_repayment(self) -> dict:
+    """Affordability for a month-end single-repayment product."""
+    from loans.loan_terms_resolver import effective_rate  # (adjust path)
+ 
+    income = _money(getattr(self.borrower, "income", 0))
+    expenses = self._sum_expenses()
+    existing_commitments, active_loans = self._existing_exposure()
+ 
+    # Not assessable without income (same guard as instalment path).
+    if income <= 0:
+        base = self._not_assessable(
+            income, expenses, Decimal("0.00"),
+            existing_commitments, active_loans)
+        base["repayment_structure"] = "single_month_end"
+        return base
+ 
+    disposable_before = income - expenses - existing_commitments
+ 
+    # The single lump the borrower must repay at month-end.
+    amount = _money(self.app.loan_amount)
+    fee_rate = effective_rate(self.product, self.lender)   # flat monthly fee %
+    fee = _money(amount * fee_rate / Decimal("100"))
+    total_repayable = _money(amount + fee)
+ 
+    # Disposable AFTER clearing the lump this month.
+    disposable_after = disposable_before - total_repayable
+ 
+    # Classify against the month's room, not an installment.
+    if total_repayable > disposable_before:
+        outcome = "unaffordable"
+    elif total_repayable > (disposable_before * SINGLE_COMFORTABLE_FRACTION):
+        outcome = "tight"
+    else:
+        outcome = "comfortable"
+ 
+    # Recommended max amount: the amount whose TOTAL (incl. fee) sits at the
+    # comfortable fraction of disposable. Invert total = amount*(1+fee/100):
+    #   amount = (disposable * fraction) / (1 + fee_rate/100)
+    rec_max = None
+    advice = []
+    if outcome == "comfortable":
+        advice.append(
+            f"This is a single repayment of M{total_repayable:,.2f} "
+            f"(M{amount:,.2f} plus a M{fee:,.2f} fee), due at month-end. "
+            f"It fits comfortably within this month's budget.")
+    else:
+        factor = Decimal("1") + fee_rate / Decimal("100")
+        if factor > 0 and disposable_before > 0:
+            rec_max = _money(
+                (disposable_before * SINGLE_COMFORTABLE_FRACTION) / factor)
+            rec_max = max(rec_max, Decimal("0"))
+ 
+        if outcome == "unaffordable":
+            advice.append(
+                f"This loan needs a single repayment of M{total_repayable:,.2f} "
+                f"at month-end, which is more than your available budget this "
+                f"month (M{disposable_before:,.2f}).")
+        else:  # tight
+            advice.append(
+                f"This loan needs a single repayment of M{total_repayable:,.2f} "
+                f"at month-end. It's within reach but would use most of this "
+                f"month's available budget.")
+ 
+        if rec_max and rec_max > 0:
+            advice.append(
+                f"A loan up to about M{rec_max:,.2f} would keep the month-end "
+                f"repayment comfortable.")
+        else:
+            advice.append(
+                "There isn't room for a month-end repayment this month. You "
+                "could apply to another lender from the home page.")
+            self._needs_other_lender = True
+ 
+    return {
+        "income": income,
+        "expenses": expenses,
+        "existing_monthly_commitments": existing_commitments,
+        "existing_active_loans": active_loans,
+        # No monthly installment for a single-repayment loan.
+        "installment": Decimal("0.00"),
+        "disposable_before": disposable_before,
+        "disposable_after": disposable_after,
+        # Instalment-only ratios don't apply — zeroed, not faked.
+        "installment_to_income": Decimal("0.00"),
+        "debt_to_income_ratio": self._pct(existing_commitments, income),
+        "affordability_index_after": self._pct(disposable_after, income),
+        "outcome": outcome,
+        "recommended_max_loan": rec_max,
+        "recommended_term": None,          # no term to recommend
+        "advice": advice,
+        "needs_other_lender": self._needs_other_lender,
+        "lender_terms": [],                # month-end has no term list
+        "assessable": True,
+        # So template/snapshot can tell which model produced this.
+        "repayment_structure": "single_month_end",
+        "single_repayment_total": total_repayable,
+        "single_repayment_fee": fee,
+    }
