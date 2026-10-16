@@ -23,6 +23,24 @@
     .repayment-details h4 { font-size: 16px; }
 </style>
 
+<style>
+    .loan-terms {
+        display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
+    }
+    .loan-terms .loan-term {
+        flex: 0 0 auto; min-width: 64px; padding: 8px 10px;
+        border: 1px solid #dee2e6; border-radius: 6px;
+        background-color: #f1f1f1; cursor: pointer; font-size: .9rem;
+        text-align: center; transition: background-color .15s ease;
+    }
+    .loan-terms .loan-term:hover { background-color: #e2e2e2; }
+    .loan-terms .loan-term.active {
+        background-color: #ff5733; color: #fff; border-color: #ff5733;
+    }
+    .term-custom { margin-top: 12px; display: flex; align-items: center; gap: 8px; }
+    .term-custom input { width: 90px; padding: 6px 8px; }
+</style>
+
 <div class="container">
   <form id="loanApplicationForm" method="POST" action="{% url 'borrowers:loan-calculator' %}">
     {% csrf_token %}
@@ -50,7 +68,35 @@
       </p>
 
       <br><br>
-      <h3>Select Loan Term</h3>
+
+
+<h3>Select Loan Term</h3>
+<p class="text-muted" style="font-size:.85rem;margin:2px 0 8px;">
+    Pick a common term, or enter a specific number of months
+    ({{ term_min }}–{{ term_max }}).
+</p>
+ 
+<div class="loan-terms">
+    {% for term in curated_terms %}
+        <button type="button"
+                class="loan-term {% if forloop.first %}active{% endif %}"
+                data-term="{{ term }}">
+            {{ term }} mo{{ term|pluralize }}
+        </button>
+    {% endfor %}
+</div>
+ 
+<div class="term-custom">
+    <label for="term_custom" class="text-muted" style="font-size:.85rem;">Or exactly</label>
+    <input type="number" id="term_custom"
+           min="{{ term_min }}" max="{{ term_max }}" step="1"
+           placeholder="months">
+    <small id="term_error" style="color:red;"></small>
+</div>
+ 
+{# The single source of truth submitted + sent to the calculator. #}
+<input type="hidden" name="loan_term" id="selected_loan_term" value="{{ curated_terms.0 }}">
+      <!--<h3>Select Loan Term</h3>
       <div class="loan-terms">
         {% for term in available_terms %}
           <button type="button" class="loan-term {% if forloop.first %}active{% endif %}" data-term="{{ term }}">
@@ -58,7 +104,7 @@
           </button>
         {% endfor %}
       </div>
-      <input type="hidden" name="loan_term" id="selected_loan_term" value="{{ available_terms.0 }}">
+      <input type="hidden" name="loan_term" id="selected_loan_term" value="{{ available_terms.0 }}">-->
 
       <br><br>
       {# Rate shown is the PRODUCT's rate (via calc_rate), not the profile rate #}
@@ -79,30 +125,34 @@
   </form>
 </div>
 
+
 <script>
 $(document).ready(function () {
-    let amountInput = $("#loan_amount");
-    let termButtons = $(".loan-term");
-    let loanTermInput = $("#selected_loan_term");
-
+    var amountInput = $("#loan_amount");
+    var buttons     = $(".loan-term");
+    var custom      = $("#term_custom");
+    var hidden      = $("#selected_loan_term");
+    var termErr     = $("#term_error");
+ 
+    var tmin = parseInt("{{ term_min }}", 10);
+    var tmax = parseInt("{{ term_max }}", 10);
+ 
+    // --- the calculator reads the HIDDEN term, not the active button ---------
     function fetchLoanDetails() {
-        let amount = parseFloat(amountInput.val());
-        let min = parseFloat(amountInput.data("min"));
-        let max = parseFloat(amountInput.data("max"));
+        var amount = parseFloat(amountInput.val());
+        var min = parseFloat(amountInput.data("min"));
+        var max = parseFloat(amountInput.data("max"));
         if (isNaN(amount)) return;
-
+ 
         if (amount < min || amount > max) {
             $("#loan_error").text("Amount must be between M" + min + " and M" + max);
             return;
-        } else {
-            $("#loan_error").text("");
         }
-
-        let term = $(".loan-term.active").data("term");
-        loanTermInput.val(term);
-
-        // calculate_loan reads product + amount + term from the SESSION + query.
-        // No lender_id needed — the session already holds lender_id and product_id.
+        $("#loan_error").text("");
+ 
+        var term = parseInt(hidden.val(), 10);     // ← single source of truth
+        if (isNaN(term) || term <= 0) return;
+ 
         $.ajax({
             url: "/borrowers/calculate-loan/",
             type: "GET",
@@ -114,15 +164,38 @@ $(document).ready(function () {
             }
         });
     }
-
-    amountInput.on("input", fetchLoanDetails);
-    termButtons.on("click", function () {
-        termButtons.removeClass("active");
-        $(this).addClass("active");
+ 
+    // --- set the term from anywhere, sync UI, recalc ------------------------
+    function setTerm(value, fromButton) {
+        hidden.val(value);
+        buttons.removeClass("active");
+        buttons.each(function () {
+            if (parseInt($(this).data("term"), 10) === parseInt(value, 10)) {
+                $(this).addClass("active");
+            }
+        });
+        if (fromButton) custom.val("");   // clicking clears the custom box
         fetchLoanDetails();
+    }
+ 
+    buttons.on("click", function () {
+        setTerm($(this).data("term"), true);
     });
-
-    fetchLoanDetails();
+ 
+    custom.on("input", function () {
+        var v = parseInt(custom.val(), 10);
+        if (isNaN(v)) { termErr.text(""); return; }
+        if (v < tmin || v > tmax) {
+            termErr.text("Enter " + tmin + "–" + tmax + " months");
+            return;
+        }
+        termErr.text("");
+        setTerm(v, false);                // no button match -> buttons clear, hidden = v
+    });
+ 
+    amountInput.on("input", fetchLoanDetails);
+ 
+    fetchLoanDetails();  // initial load (hidden already has curated_terms.0)
 });
 </script>
 {% endblock %}
