@@ -3,8 +3,6 @@ from borrowers.models import ExpenseAnalysis, BorrowerDocs
 from loans.loan_terms_resolver import effective_rate, effective_terms
 from loans.models import Loan
 
-
-from decimal import Decimal
 from django.db.models import Sum
 from decimal import Decimal, ROUND_HALF_UP
 

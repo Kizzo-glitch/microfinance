@@ -776,7 +776,7 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 						amount=Decimal(loan_amount),
 						loan_term=loan_application.loan_term,
 						interest_rate=interest,
-						first_payment=Decimal(loan_application.first_payment),
+						first_payment= Decimal(loan_application.monthly_installment), #Decimal(loan_application.first_payment) if loan_application.first_payment is not None else Decimal('0'),
 						monthly_installment=Decimal(loan_application.monthly_installment),
 						total_repayable=total_repayable,
 						outstanding_balance=total_repayable,
@@ -844,7 +844,7 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 		email = EmailMultiAlternatives(subject, "", settings.EMAIL_HOST_USER,
 									   [borrower_user.email_address])
 		email.attach_alternative(body, "text/html")
-		email.send()
+		#email.send()
 
 		return super().form_valid(form)
 	

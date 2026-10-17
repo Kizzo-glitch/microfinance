@@ -1,7 +1,9 @@
 from django.shortcuts import render
+from decimal import Decimal
 
+from lenders.kfs_layer3_schedule import build_schedule
 from rest_framework import generics
-from .models import Loan, Notification
+from .models import KeyFactsStatement, Loan, Notification
 from .serializers import LoanSerializer
 
 
