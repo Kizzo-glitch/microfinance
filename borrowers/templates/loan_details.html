@@ -60,8 +60,15 @@
         {% else %}
         <a href="{% url 'borrowers:record-payment' loan.id %}" class="btn btn-success mt-3">Record Payment</a>
         {% endif %}
+        
         <a href="{% url 'borrowers:my_active_loans' %}" class="btn btn-primary mt-3">Back to Loans</a>
+        
+        
     </div>
+  
+        <div class="card p-3">
+        {% include "loans/_kfs_button.html" with loan=loan role="borrower" %}
+        </div>
 
 
 

@@ -181,6 +181,7 @@ class ExpenseAnalysis(models.Model):
 		return f"{self.borrower.user.username} - {self.expense_type}: {self.amount}"
 
 
+
 """
 Layer 6 — DocumentCheckRun model.
 

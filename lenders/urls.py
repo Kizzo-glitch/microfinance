@@ -52,6 +52,7 @@ urlpatterns = [
     path('overdue-loans/', OverdueLoansView.as_view(), name='overdue-loans'), 
     path('fully-paid-loans/', FullyPaidLoansView.as_view(), name='fully-paid-loans'),
 
+
     path('loans/', LoanListView.as_view(), name='loan-list'),
 
     path('loan/<int:loan_id>/borrower-payment-history/', views.my_borrower_payment_history, name='my-borrower-payment-history'),

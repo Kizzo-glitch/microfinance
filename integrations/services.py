@@ -305,6 +305,7 @@ def check_salary_lands_in_account(extracted, context):
                 f"date — worth checking."))
 
 
+
 # ── helpers ────────────────────────────────────────────────────────────────
 
 def _match(a, b, context):

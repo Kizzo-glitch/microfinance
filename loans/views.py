@@ -2,6 +2,7 @@ from django.shortcuts import render
 from decimal import Decimal
 
 from lenders.kfs_layer3_schedule import build_schedule
+from micro.views import notify_borrower_kfs_ready
 from rest_framework import generics
 from .models import KeyFactsStatement, Loan, Notification
 from .serializers import LoanSerializer
@@ -39,6 +40,7 @@ def on_loan_approved(request, loan_application, loan):
         loan.save(update_fields=["product"])
 
     kfs = None
+    notify_borrower_kfs_ready(loan, kfs) 
     # KFS needs a product (for fees) — only auto-generate when one is attached.
     if getattr(loan, "product_id", None):
         kfs = generate_kfs(loan)

@@ -1,0 +1,50 @@
+{# ──────────────────────────────────────────────────────────────────────── #}
+{# KFS entry button — drop in anywhere a loan is shown. Decides its own label #}
+{# and urgency from the KFS status + who's viewing.                           #}
+{#                                                                            #}
+{# Include with the loan and the viewer's role:                               #}
+{#   {% include "loans/_kfs_button.html" with loan=loan role="borrower" %}    #}
+{#   {% include "loans/_kfs_button.html" with loan=loan role="lender" %}      #}
+{#                                                                            #}
+{# `loan.kfs` is the OneToOne (related_name="kfs"). If no KFS exists yet       #}
+{# (loan not approved / not generated), nothing renders.                      #}
+{# ──────────────────────────────────────────────────────────────────────── #}
+
+{% if loan.kfs %}
+  {% with k=loan.kfs %}
+
+    {% if role == "borrower" %}
+      {% if k.status == "generated" %}
+        {# Action needed — borrower must acknowledge first. Make it prominent. #}
+        <a href="{% url 'view_kfs' k.pk %}" class="btn btn-warning btn-sm">
+          <i class="fas fa-file-signature"></i> Review &amp; acknowledge Key Facts Statement
+        </a>
+      {% elif k.status == "borrower_ack" %}
+        <a href="{% url 'view_kfs' k.pk %}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-hourglass-half"></i> Key Facts Statement — awaiting lender
+        </a>
+      {% elif k.status == "acknowledged" %}
+        <a href="{% url 'view_kfs' k.pk %}" class="btn btn-outline-success btn-sm">
+          <i class="fas fa-check-circle"></i> View Key Facts Statement
+        </a>
+      {% endif %}
+
+    {% elif role == "lender" %}
+      {% if k.status == "borrower_ack" %}
+        {# Action needed — lender must confirm. Prominent. #}
+        <a href="{% url 'view_kfs' k.pk %}" class="btn btn-warning btn-sm">
+          <i class="fas fa-file-signature"></i> Confirm Key Facts Statement
+        </a>
+      {% elif k.status == "generated" %}
+        <a href="{% url 'view_kfs' k.pk %}" class="btn btn-outline-secondary btn-sm">
+          <i class="fas fa-hourglass-half"></i> Key Facts Statement — awaiting borrower
+        </a>
+      {% elif k.status == "acknowledged" %}
+        <a href="{% url 'view_kfs' k.pk %}" class="btn btn-outline-success btn-sm">
+          <i class="fas fa-check-circle"></i> View Key Facts Statement
+        </a>
+      {% endif %}
+    {% endif %}
+
+  {% endwith %}
+{% endif %}

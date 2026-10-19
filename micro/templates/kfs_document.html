@@ -1,5 +1,6 @@
 {% extends 'micro_base.html' %}
 {% block content %}
+
 <div class="container my-4" style="max-width: 900px;">
 
   <!-- Header -->
@@ -88,7 +89,87 @@
   </div>
 
   <!-- 10. Acknowledgement -->
-  <h5 class="mt-4">Borrower Acknowledgement</h5>
+
+ 
+<hr class="my-4">
+ 
+<div class="card">
+  <div class="card-header fw-semibold">Acknowledgement</div>
+  <div class="card-body">
+ 
+    <p class="small text-muted">
+      By typing your full name and acknowledging, you confirm you have read and
+      understood the Key Facts above. This records who acknowledged, when, and
+      which version of the statement.
+    </p>
+ 
+    {# ── Current state, both parties ──────────────────────────────────── #}
+    <div class="row mb-3">
+      <div class="col-md-6">
+        <div class="small text-muted">Borrower</div>
+        {% if kfs.borrower_ack_at %}
+          <span class="badge bg-success">Acknowledged</span>
+          <div class="small">
+            {{ kfs.borrower_ack_name }} · {{ kfs.borrower_ack_at|date:"d M Y H:i" }}
+          </div>
+        {% else %}
+          <span class="badge bg-secondary">Awaiting acknowledgement</span>
+        {% endif %}
+      </div>
+      <div class="col-md-6">
+        <div class="small text-muted">Lender</div>
+        {% if kfs.lender_ack_at %}
+          <span class="badge bg-success">Confirmed</span>
+          <div class="small">
+            {{ kfs.lender_ack_name }} · {{ kfs.lender_ack_at|date:"d M Y H:i" }}
+          </div>
+        {% elif kfs.borrower_ack_at %}
+          <span class="badge bg-warning text-dark">Awaiting lender confirmation</span>
+        {% else %}
+          <span class="badge bg-light text-muted border">Pending borrower first</span>
+        {% endif %}
+      </div>
+    </div>
+ 
+    {# ── The viewer's action ──────────────────────────────────────────── #}
+    {% if can_borrower_sign or can_lender_sign %}
+      <form method="post" action="{% url 'loans:acknowledge_kfs' kfs.pk %}">
+        {% csrf_token %}
+        <div class="mb-2">
+          <label class="form-label fw-semibold">
+            Type your full name to {% if role == 'borrower' %}acknowledge{% else %}confirm{% endif %}
+          </label>
+          <input type="text" name="typed_name" class="form-control"
+                 placeholder="Your full name" required>
+        </div>
+        <button type="submit" class="btn btn-success">
+          {% if role == 'borrower' %}I acknowledge this Key Facts Statement
+          {% else %}Confirm — I've seen the borrower's acknowledgement{% endif %}
+        </button>
+      </form>
+ 
+    {% elif role == 'lender' and not kfs.borrower_ack_at %}
+      <div class="alert alert-light border mb-0">
+        You'll be able to confirm once the borrower has acknowledged the statement.
+      </div>
+ 
+    {% elif fully_acknowledged %}
+      <div class="alert alert-success mb-0">
+        <i class="fas fa-check-circle"></i>
+        Both parties have acknowledged this Key Facts Statement.
+      </div>
+ 
+    {% else %}
+      <div class="alert alert-light border mb-0">
+        You've already acknowledged this statement.
+      </div>
+    {% endif %}
+ 
+  </div>
+</div>
+
+
+  <!--<h5 class="mt-4">Borrower Acknowledgement</h5>
   <p class="small">I confirm that I have received and had an opportunity to review this Key Facts
      Statement before entering into the credit agreement. I understand that the credit provider,
      not Fedha-Grow, is responsible for the lending decision and the terms of the credit agreement.</p>
@@ -111,7 +192,7 @@
         {% if can_ack_borrower %}Acknowledge as borrower{% else %}Acknowledge as credit provider{% endif %}
       </button>
     </form>
-  {% endif %}
+  {% endif %}-->
 
   <!-- acknowledgement record -->
   {% if kfs.acknowledgements.all %}
@@ -132,4 +213,5 @@
     credit decision, originate the loan, or hold or disburse funds.
   </div>
 </div>
+
 {% endblock %}

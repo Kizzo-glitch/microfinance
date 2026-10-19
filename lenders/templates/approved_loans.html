@@ -19,6 +19,7 @@
 					<th>Status</th>
 
 					<th>Payment History</th>
+					<th>Key Facts Statement</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -33,6 +34,9 @@
 						<td><span class="badge bg-success">Approved</span></td> 
 						
 						<td><a href="{% url 'lenders:my-borrower-payment-history' loan.id %}" class="btn btn-sm btn-outline-primary">View</a></td>
+						<td>
+                        {% include "loans/_kfs_button.html" with loan=loan role="lender" %}
+                    </td>
 					</tr>
 				{% endfor %}
 			</tbody>
