@@ -170,7 +170,7 @@
             <div class="card-body">
                 <p>KFS <strong>{{ loan_application.linked_loan.kfs.reference }}</strong> —
                 {{ loan_application.linked_loan.kfs.get_status_display }}</p>
-                <a href="{% url 'loans:view_kfs' loan_application.linked_loan.kfs.id %}" class="btn btn-outline-primary">
+                <a href="{% url 'view_kfs' loan_application.linked_loan.kfs.id %}" class="btn btn-outline-primary">
                 View / acknowledge statement
                 </a>
                 <div class="small text-muted mt-2">

@@ -152,7 +152,7 @@ No field guessing left.
 
 @login_required
 def view_kfs(request, kfs_id):
-    from loans.models import KeyFactsStatement
+    #from loans.models import KeyFactsStatement
     kfs = get_object_or_404(KeyFactsStatement, pk=kfs_id)
 
     loan = kfs.loan
@@ -171,6 +171,7 @@ def view_kfs(request, kfs_id):
     return render(request, "kfs_document.html", {
         "kfs": kfs,
         "snapshot": kfs.snapshot,
+        "data": kfs.snapshot, 
         "loan": loan,
         "borrower": borrower,
         "lender": lender,
@@ -267,9 +268,14 @@ def view_kfs(request, kfs_id):
     can_borrower_sign = role == "borrower" and kfs.status == "generated"
     can_lender_sign = role == "lender" and kfs.status == "borrower_ack"
 
+    print("KFS DEBUG — context keys going to template:", list({
+    "kfs": kfs, "data": kfs.snapshot}.keys()))
+    print("KFS DEBUG — data has provider?:", "provider" in (kfs.snapshot or {}))
+
     return render(request, "kfs_document.html", {
         "kfs": kfs,
         "snapshot": kfs.snapshot,
+        "data": kfs.snapshot,
         "loan": loan,
         "borrower": borrower,
         "lender": lender,
@@ -278,6 +284,7 @@ def view_kfs(request, kfs_id):
         "can_lender_sign": can_lender_sign,
         "fully_acknowledged": kfs.status == "acknowledged",
     })
+
 
 
 @login_required

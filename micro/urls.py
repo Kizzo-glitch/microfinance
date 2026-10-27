@@ -4,7 +4,7 @@ from . import views
 from .views import (
 		landing, register, CustomLoginView, 
 		role_based_redirect, lender_compliance,
-		logout_user, RegulatorPasswordChangeView
+		logout_user, RegulatorPasswordChangeView, view_kfs, acknowledge_kfs
     )
 from django.contrib.auth import views as auth_views 
 
@@ -53,8 +53,8 @@ urlpatterns = [
 		), 
 		name='password_reset_complete'),
 
-	path('kfs/<int:kfs_id>/', views.view_kfs, name='view_kfs'), 
-    path('kfs/<int:kfs_id>/acknowledge/', views.acknowledge_kfs, name='acknowledge_kfs'),
+	path('kfs/<int:kfs_id>/', view_kfs, name='view_kfs'), 
+    path('kfs/<int:kfs_id>/acknowledge/', acknowledge_kfs, name='acknowledge_kfs'),
 	
    
 ]

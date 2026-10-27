@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from decimal import Decimal
 
+from comms.sms.service import send_sms
 from lenders.kfs_layer3_schedule import build_schedule
 from micro.views import notify_borrower_kfs_ready
 from rest_framework import generics
@@ -40,10 +41,13 @@ def on_loan_approved(request, loan_application, loan):
         loan.save(update_fields=["product"])
 
     kfs = None
-    notify_borrower_kfs_ready(loan, kfs) 
+    #notify_borrower_kfs_ready(loan, kfs) 
     # KFS needs a product (for fees) — only auto-generate when one is attached.
     if getattr(loan, "product_id", None):
         kfs = generate_kfs(loan)
+
+    if kfs is not None:
+        notify_borrower_kfs_ready(loan, kfs)
 
     # disbursement status: can't disburse until the borrower acknowledges the KFS
     if hasattr(loan, "disbursement_status"):
@@ -59,9 +63,9 @@ def on_loan_approved(request, loan_application, loan):
                      f"Please review and acknowledge your Key Facts Statement "
                      f"({kfs.reference}) before it is disbursed."),
             loan=loan)
-        # send_sms(loan.borrower.phone_number, "loan_approved_kfs",
-        #          {"name": loan.borrower.full_name, "lender": loan.lender.company_name,
-        #           "ref": kfs.reference, "url": request.build_absolute_uri(...)})
+        send_sms(loan.borrower.phone_number, "loan_approved_kfs",
+                  {"name": loan.borrower.full_name, "lender": loan.lender.company_name,
+                   "ref": kfs.reference, "url": request.build_absolute_uri(...)})
 
     return kfs
 
@@ -106,11 +110,11 @@ def generate_kfs(loan, *, product=None):
         "provider": {
             "name": lender.company_name,
             "registered_name": getattr(lender, "registered_name", "") or lender.company_name,
-            "cbl_licence_number": getattr(lender, "cbl_licence_number", ""),
-            "registered_address": getattr(lender, "registered_address", ""),
-            "service_phone": getattr(lender, "service_phone", ""),
-            "service_email": getattr(lender, "service_email", ""),
-            "complaints_phone": getattr(lender, "complaints_phone", ""),
+            "cbl_licence_number": getattr(lender, "cbl_licence_number", "") or lender.compliance.cbl_licence_number,
+            "registered_address": getattr(lender, "business_address", ""),
+            "service_phone": getattr(lender, "phone_number", ""),
+            "service_email": getattr(lender, "business_email", ""),
+            "complaints_phone": getattr(lender, "phone_number", ""),
             "complaints_email": getattr(lender, "complaints_email", ""),
         },
         "borrower": {

@@ -1,6 +1,7 @@
 {% extends 'micro_base.html' %}
 {% block content %}
 
+
 <div class="container my-4" style="max-width: 900px;">
 
   <!-- Header -->
@@ -44,7 +45,7 @@
     <tr><th>Repayment Frequency</th><td>{{ data.product.repayment_frequency }}</td></tr>
     <tr><th>Annual Interest Rate</th><td>{{ data.terms.annual_interest_rate }} % per annum</td></tr>
     <tr><th>Monthly Interest Rate</th><td>{{ data.terms.monthly_interest_rate }} % per month</td></tr>
-    <tr><th>Interest Calculation</th><td>{{ data.product.interest_calculation_note|default:data.product.interest_type }}</td></tr>
+    <tr><th>Interest Calculation</th><td>{{ data.product.interest_calculation_note}}</td></tr>
   </table>
 
   <!-- 4. Fees -->
@@ -133,7 +134,7 @@
  
     {# ── The viewer's action ──────────────────────────────────────────── #}
     {% if can_borrower_sign or can_lender_sign %}
-      <form method="post" action="{% url 'loans:acknowledge_kfs' kfs.pk %}">
+      <form method="post" action="{% url 'acknowledge_kfs' kfs.pk %}">
         {% csrf_token %}
         <div class="mb-2">
           <label class="form-label fw-semibold">
@@ -195,13 +196,25 @@
   {% endif %}-->
 
   <!-- acknowledgement record -->
-  {% if kfs.acknowledgements.all %}
-  <table class="table table-sm table-bordered mt-3">
+  {% if kfs.borrower_ack_at or kfs.lender_ack_at %}
+  <h6 class="mt-4">Acknowledgement record</h6>
+  <table class="table table-sm table-bordered">
     <thead class="table-light"><tr><th>Party</th><th>Name</th><th>Date</th></tr></thead>
     <tbody>
-      {% for a in kfs.acknowledgements.all %}
-      <tr><td>{{ a.get_party_display }}</td><td>{{ a.typed_name }}</td><td>{{ a.acknowledged_at|date:"d M Y, H:i" }}</td></tr>
-      {% endfor %}
+      {% if kfs.borrower_ack_at %}
+      <tr>
+        <td>Borrower</td>
+        <td>{{ kfs.borrower_ack_name }}</td>
+        <td>{{ kfs.borrower_ack_at|date:"d M Y, H:i" }}</td>
+      </tr>
+      {% endif %}
+      {% if kfs.lender_ack_at %}
+      <tr>
+        <td>Credit provider</td>
+        <td>{{ kfs.lender_ack_name }}</td>
+        <td>{{ kfs.lender_ack_at|date:"d M Y, H:i" }}</td>
+      </tr>
+      {% endif %}
     </tbody>
   </table>
   {% endif %}
