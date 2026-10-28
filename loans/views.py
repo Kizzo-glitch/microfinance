@@ -69,6 +69,21 @@ def on_loan_approved(request, loan_application, loan):
 
     return kfs
 
+def _verified_licence_number(lender):
+    """
+    The CBL licence number ONLY if verified — else "". Reads the authoritative
+    field on the ComplianceProfile (lender.compliance), the same source the
+    profile/product-list/borrower-detail use. Never shows an unverified claim.
+    """
+    from django.core.exceptions import ObjectDoesNotExist
+    try:
+        cp = lender.compliance            # reverse OneToOne -> may raise
+    except ObjectDoesNotExist:
+        return ""
+    if cp and cp.license_verification_state == "verified":
+        return cp.cbl_license_number or ""
+    return ""
+
 # =====================================================================
 # Generation — assemble the frozen snapshot from the approved loan
 # =====================================================================
@@ -110,13 +125,26 @@ def generate_kfs(loan, *, product=None):
         "provider": {
             "name": lender.company_name,
             "registered_name": getattr(lender, "registered_name", "") or lender.company_name,
-            "cbl_licence_number": getattr(lender, "cbl_licence_number", "") or lender.compliance.cbl_licence_number,
-            "registered_address": getattr(lender, "business_address", ""),
+            
+            "cbl_licence_number": _verified_licence_number(lender),
+            
+            "registered_address": getattr(lender, "business_address", "") or getattr(lender, "physical_address", ""),
             "service_phone": getattr(lender, "phone_number", ""),
             "service_email": getattr(lender, "business_email", ""),
             "complaints_phone": getattr(lender, "phone_number", ""),
-            "complaints_email": getattr(lender, "complaints_email", ""),
+            "complaints_email": getattr(lender, "complaints_email", "")
+                                or getattr(lender, "business_email", ""),
         },
+        #"provider": {
+        #    "name": lender.company_name,
+        #    "registered_name": getattr(lender, "registered_name", "") or lender.company_name,
+        #    "cbl_licence_number": getattr(lender, "cbl_licence_number", ""),
+        #    "registered_address": getattr(lender, "business_address", ""),
+        #    "service_phone": getattr(lender, "phone_number", ""),
+        #    "service_email": getattr(lender, "business_email", ""),
+        #    "complaints_phone": getattr(lender, "phone_number", ""),
+        #    "complaints_email": getattr(lender, "complaints_email", ""),
+        #},
         "borrower": {
             "full_name": borrower.full_name,
             "id_number_masked": _mask(getattr(borrower, "id_number", "")),

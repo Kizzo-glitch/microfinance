@@ -331,7 +331,7 @@ def acknowledge_kfs(request, kfs_id):
             messages.success(request, "Confirmed. Both parties have acknowledged "
                                       "the Key Facts Statement.")
 
-    return redirect("loans:view_kfs", kfs_id=kfs_id)
+    return redirect("view_kfs", kfs_id=kfs_id)
 
 
 def _viewer_role(user, borrower, lender):
