@@ -20,14 +20,56 @@
   {% endif %}
 
   <!-- 1. Credit provider -->
-  <h5 class="mt-4">1. Credit Provider Details</h5>
+
+<h5 class="mt-4">1. Credit Provider Details</h5>
+<table class="table table-sm table-bordered">
+  <tr>
+    <th style="width:40%">Credit Provider</th>
+    <td>{{ data.provider.registered_name|default:"—" }}</td>
+  </tr>
+  <tr>
+    <th>CBL Licence / Registration No.</th>
+    <td>
+      {% if data.provider.cbl_licence_number %}
+        {{ data.provider.cbl_licence_number }}
+      {% else %}
+        <span class="text-muted">Not verified at time of issue</span>
+      {% endif %}
+    </td>
+  </tr>
+  <tr>
+    <th>Registered Address</th>
+    <td>{{ data.provider.registered_address|default:"Not provided" }}</td>
+  </tr>
+  <tr>
+    <th>Customer Service</th>
+    <td>
+      {% if data.provider.service_phone or data.provider.service_email %}
+        {{ data.provider.service_phone }}{% if data.provider.service_phone and data.provider.service_email %} · {% endif %}{{ data.provider.service_email }}
+      {% else %}
+        <span class="text-muted">Not provided</span>
+      {% endif %}
+    </td>
+  </tr>
+  <tr>
+    <th>Complaints</th>
+    <td>
+      {% if data.provider.complaints_phone or data.provider.complaints_email %}
+        {{ data.provider.complaints_phone }}{% if data.provider.complaints_phone and data.provider.complaints_email %} · {% endif %}{{ data.provider.complaints_email }}
+      {% else %}
+        <span class="text-muted">Not provided</span>
+      {% endif %}
+    </td>
+  </tr>
+</table>
+  <!--<h5 class="mt-4">1. Credit Provider Details</h5>
   <table class="table table-sm table-bordered">
     <tr><th style="width:40%">Credit Provider</th><td>{{ data.provider.registered_name }}</td></tr>
     <tr><th>CBL Licence / Registration No.</th><td>{{ data.provider.cbl_licence_number }}</td></tr>
     <tr><th>Registered Address</th><td>{{ data.provider.registered_address }}</td></tr>
     <tr><th>Customer Service</th><td>{{ data.provider.service_phone }} · {{ data.provider.service_email }}</td></tr>
     <tr><th>Complaints</th><td>{{ data.provider.complaints_phone }} · {{ data.provider.complaints_email }}</td></tr>
-  </table>
+  </table>-->
 
   <!-- 2. Borrower -->
   <h5 class="mt-4">2. Borrower & Application Details</h5>
