@@ -385,6 +385,7 @@ def product_list(request):
 	return render(request, "product_list.html", {
 		"lender": lender, "products": products,
 	})
+
  
  
 @login_required
@@ -928,7 +929,7 @@ def run_checks_view(request, doc_id):
 	# Adjust to your model graph (e.g. via an approved LoanApplication).
 	if not _lender_may_view(request.user, document):
 		messages.error(request, "You don't have access to this document.")
-		return redirect("home")
+		return redirect("landing")
 
 	if request.method == "POST":
 		# Pull the declared expenses + names the engine cross-checks against.

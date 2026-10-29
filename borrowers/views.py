@@ -47,6 +47,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.timezone import now
 
+from lenders.kfs_layer3_schedule import build_schedule
 from lenders.views import available_methods
 
 from loans.loan_terms_resolver import curated_terms_for, effective_amount_bounds, effective_rate, effective_terms, get_or_create_draft, resolve_product
@@ -848,15 +849,6 @@ def select_employment_type(request):
 			"Supplier Invoice",
 		],
 	}
-
-	'''
-	loan_app, created = LoanApplication.objects.get_or_create(
-		borrower=profile,
-		lender=lender,  
-		status="draft",
-		defaults={"current_stage": "employment"}
-	)
-	'''
 	loan_app = get_or_create_draft(request, profile, lender, stage="employment")
 
 	if request.method == "POST":
@@ -975,14 +967,6 @@ def upload_documents_self_employed(request):
 	lender_id = request.session.get('lender_id')
 	lender = LenderProfile.objects.get(id=lender_id)
 
-	'''
-	loan_app, created = LoanApplication.objects.get_or_create(
-		borrower=borrower,
-		lender=lender,  # ✅ This is correct
-		status="draft",
-		defaults={"current_stage": "documents"}
-	)
-	'''
 	loan_app = get_or_create_draft(request, borrower, lender, stage="documents")
 
 	if request.method == 'POST':
@@ -1053,15 +1037,6 @@ def upload_documents_registered_business(request):
 	borrower = request.user.borrower
 	lender_id = request.session.get('lender_id')
 	lender = LenderProfile.objects.get(id=lender_id)
-
-	'''
-	loan_app, created = LoanApplication.objects.get_or_create(
-		borrower=borrower,
-		lender=lender,  # ✅ This is correct
-		status="draft",
-		defaults={"current_stage": "documents"}
-	)
-	'''
 
 	loan_app = get_or_create_draft(request, borrower, lender, stage="documents")
 
@@ -1137,15 +1112,6 @@ def update_expenses(request):
 
 	lender_id = request.session.get('lender_id')
 	lender = LenderProfile.objects.get(id=lender_id)
-	
-	'''
-	loan_app, created = LoanApplication.objects.get_or_create(
-		borrower=borrower,
-		lender=lender,  # ✅ This is correct
-		status="draft",
-		defaults={"current_stage": "affordability"}
-	)
-	'''
 
 	loan_app = get_or_create_draft(request, borrower, lender, stage="affordability")
 
@@ -1223,11 +1189,6 @@ def loan_application(request):
 				loan_application.interest_rate = interest_rate
 				loan_application.save()
 
-				# Notify lender
-				#lender.notifications.create(
-				#	message=f"New loan application from {borrower.full_name}"
-				#)
-
 				# Notify the lender
 				Notification.objects.create(
 					user=lender,
@@ -1251,7 +1212,191 @@ def loan_application(request):
 
 
 
+def _money(x) -> Decimal:
+    return Decimal(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
+def _product_fee_rows(product):
+    """Product fees as the plain dicts build_schedule expects (amount Decimal)."""
+    rows = []
+    if product:
+        for f in product.fees.all():
+            rows.append({
+                "fee_type": f.fee_type,
+                "amount": Decimal(str(f.amount)),
+                "basis": f.basis,
+                "applicable": f.applicable,
+            })
+    return rows
+
+
+def _quote_instalment(amount, annual_rate, term, product):
+    """
+    Lawful declining-balance quote, fees included — the same engine and inputs
+    generate_kfs uses, so the calculator and the KFS agree to the cent.
+
+    Returns (emi, total_repayable, monthly_outflow):
+      emi             : level principal+interest payment.
+      total_repayable : principal + total interest + total fees (== KFS total).
+      monthly_outflow : emi plus any per-instalment (monthly) fee — the real
+                        typical monthly payment. (Upfront fees land on row 1,
+                        so they're in total_repayable but not in this figure.)
+    """
+    res = build_schedule(
+        principal=amount,
+        annual_rate=annual_rate,
+        term_months=term,
+        fees=_product_fee_rows(product),
+        interest_type="reducing",
+    )
+    # Per-month fee = a middle row's fee (row 1 may carry an upfront fee).
+    mid = res.instalments[len(res.instalments) // 2] if res.instalments else None
+    monthly_fee = mid.fees if mid is not None else Decimal("0.00")
+    monthly_outflow = _money(res.emi + monthly_fee)
+    return res.emi, res.total_payable, monthly_outflow
+
+
+# ───────────────────────────── calculator view ─────────────────────────────
+
 def loan_calculator(request):
+    borrower = request.user.borrower
+    lender = get_object_or_404(LenderProfile, id=request.session.get("lender_id"))
+    loan_app = get_or_create_draft(request, borrower, lender, stage="loan_calculator")
+
+    product = resolve_product(request, lender)
+    allowed = effective_terms(product, lender)
+
+    if request.method == "POST":
+        amount = request.POST.get("loan_amount")
+        term = request.POST.get("loan_term")
+        action = request.POST.get("action")
+
+        try:
+            term = int(term)
+        except (TypeError, ValueError):
+            term = None
+        try:
+            amount = Decimal(amount)
+        except (InvalidOperation, TypeError, ValueError):
+            amount = None
+
+        if not amount or amount <= 0 or term not in allowed:
+            messages.error(request, "Please choose a valid amount and term.")
+            return redirect("borrowers:loan-calculator")
+
+        rate = effective_rate(product, lender)
+
+        if product and getattr(product, "repayment_structure", "") == "single_month_end":
+            # Flat monthly fee, single repayment, no term division.
+            fee = _money(amount * rate / Decimal("100"))
+            total = _money(amount + fee)
+            monthly = total                      # one repayment == the total
+        else:
+            # LAWFUL declining-balance, fees included — matches the KFS.
+            _emi, total, monthly = _quote_instalment(amount, rate, term, product)
+
+        loan_app.loan_amount = _money(amount)
+        loan_app.loan_term = term
+        loan_app.monthly_installment = monthly          # EMI (+ per-month fee)
+        loan_app.total_repayable = total                # == eventual KFS total
+        loan_app.current_stage = "apply_loan"
+        loan_app.save(update_fields=[
+            "loan_amount", "loan_term",
+            "monthly_installment", "total_repayable",
+            "current_stage",
+        ])
+
+        if action == "save_exit":
+            return redirect("borrowers:borrower_index")
+        return redirect("borrowers:apply-loan")
+
+    # ───────────────────────── GET ──────────────────────────
+    amount_min, amount_max = effective_amount_bounds(product, lender)
+    calc_rate = effective_rate(product, lender)
+    curated = curated_terms_for(product, lender)
+
+    context = {
+        "loan_app": loan_app,
+        "lender": lender,
+        "product": product,
+        "calc_rate": calc_rate,
+        "amount_min": amount_min,
+        "amount_max": amount_max,
+        "available_terms": allowed,
+        "curated_terms": curated,
+        "term_min": min(allowed) if allowed else None,
+        "term_max": max(allowed) if allowed else None,
+    }
+    return render(request, "loan_calculator.html", context)
+
+
+# ───────────────────────────── AJAX quote ──────────────────────────────────
+
+def calculate_loan(request):
+    lender_id = request.session.get("lender_id")
+    if not lender_id:
+        return JsonResponse({"error": "No lender selected."}, status=400)
+
+    lender = get_object_or_404(LenderProfile, id=lender_id)
+    product = resolve_product(request, lender)
+
+    try:
+        amount = Decimal(request.GET.get("amount", "0"))
+        term = int(request.GET.get("term", "0"))
+    except (InvalidOperation, ValueError, TypeError):
+        return JsonResponse({"error": "Invalid amount or term."}, status=400)
+
+    if amount <= 0:
+        return JsonResponse({"error": "Amount must be greater than zero."}, status=400)
+
+    # --- month-end products don't use a month term: handle separately ---
+    if product is not None and getattr(product, "repayment_structure", "") == "single_month_end":
+        fee_rate = effective_rate(product, lender)   # flat monthly %
+        fee = _money(amount * fee_rate / Decimal("100"))
+        total = _money(amount + fee)
+        return JsonResponse({
+            "currency": "M",
+            "amount": float(_money(amount)),
+            "structure": "single_month_end",
+            "flat_fee": float(fee),
+            "total_repayable": float(total),
+            "note": "One repayment, due at month-end. Flat fee of "
+                    f"{fee_rate}% of the amount.",
+        })
+
+    # --- instalment products (and legacy profile-rate lenders) ---
+    if term <= 0:
+        return JsonResponse({"error": "Term must be greater than zero."}, status=400)
+
+    allowed_terms = [str(t) for t in effective_terms(product, lender)]
+    if allowed_terms and str(term) not in allowed_terms:
+        return JsonResponse(
+            {"error": f"Invalid loan term. Allowed terms: {', '.join(allowed_terms)}."},
+            status=400,
+        )
+
+    interest_rate = effective_rate(product, lender)   # product rate, not profile
+
+    # LAWFUL declining-balance, fees included — matches the KFS to the cent.
+    emi, total_repayable, monthly_outflow = _quote_instalment(
+        amount, interest_rate, term, product)
+
+    return JsonResponse({
+        "currency": "M",
+        "amount": float(_money(amount)),
+        "term": term,
+        "interest_rate": float(_money(interest_rate)),
+        "structure": "instalment",
+        "method": "declining_balance",
+        "emi": float(emi),                              # level principal+interest
+        "monthly_installment": float(monthly_outflow),  # emi + per-month fee
+        "total_repayable": float(total_repayable),      # == eventual KFS total
+        "product": product.name if product else None,
+    })
+
+
+
+'''def loan_calculator(request):
 	borrower = request.user.borrower
 	lender = get_object_or_404(LenderProfile, id=request.session.get("lender_id"))
 	loan_app = get_or_create_draft(request, borrower, lender, stage="loan_calculator")
@@ -1262,34 +1407,6 @@ def loan_calculator(request):
 	
 	def _money(x):
 		return Decimal(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)               
-
-	# ───────────────────────── POST ─────────────────────────
-	'''
-	if request.method == "POST":
-		amount = request.POST.get("loan_amount")
-		term = request.POST.get("loan_term")
-		action = request.POST.get("action")
-
-		try:
-			term = int(term)
-		except (TypeError, ValueError):
-			term = None
-
-		# Validate against the FULL allowed range (not the curated buttons).
-		if not amount or term not in allowed:
-			messages.error(request, "Please choose a valid amount and term.")
-			return redirect("borrowers:loan-calculator")
-
-		# Save onto the draft.
-		loan_app.loan_amount = Decimal(amount)
-		loan_app.loan_term = term
-		loan_app.current_stage = "apply_loan"
-		loan_app.save(update_fields=["loan_amount", "loan_term", "current_stage"])
-
-		# Branch on which button was clicked.
-		if action == "save_exit":
-			return redirect("borrowers:borrower_index")
-		return redirect("borrowers:apply-loan")'''
 
 	if request.method == "POST":
 		amount = request.POST.get("loan_amount")
@@ -1361,73 +1478,9 @@ def loan_calculator(request):
 	return render(request, "loan_calculator.html", context)
 
 
-'''
-@login_required
-def loan_calculator2(request):
-	borrower = request.user.borrower
-	lender_id = request.session.get('lender_id')
-	lender = get_object_or_404(LenderProfile, id=lender_id)
-
-
-	loan_app = get_or_create_draft(request, borrower, lender, stage="loan_calculator")
-
-	BorrowerDocs.objects.filter(
-		borrower=borrower, loan_application=None
-	).update(loan_application=loan_app)
-
-	ExpenseAnalysis.objects.filter(
-		borrower=borrower, loan_application=None
-	).update(loan_application=loan_app)
-
-	if request.method == "POST":
-		action = request.POST.get("action")
-
-		# Always save loan values if provided
-		loan_amount = request.POST.get("loan_amount")
-		loan_term = request.POST.get("loan_term")
-
-		if loan_amount and loan_term:
-			loan_amount = Decimal(loan_amount)
-			loan_term = int(loan_term)
-			interest_rate = lender.interest_rate
-
-			total_repayable = loan_amount * Decimal(1 + (interest_rate / 100))
-			monthly_installment = total_repayable / loan_term
-			first_payment = monthly_installment
-
-			# ✅ Update draft with loan values
-			loan_app.loan_amount = loan_amount
-			loan_app.loan_term = loan_term
-			loan_app.total_repayable = total_repayable
-			loan_app.monthly_installment = monthly_installment
-			loan_app.first_payment = first_payment
-			loan_app.save()
-
-		# Handle Save & Exit
-		if action == "save_exit":
-			loan_app.current_stage = "loan_calculator"
-			loan_app.save(update_fields=["current_stage"])
-			messages.success(request, "Loan calculator draft saved. You can resume later.")
-			return redirect("borrowers:borrower_index")
-
-		# Handle Save & Continue → move to apply_loan step
-		elif action == "save_continue":
-			loan_app.current_stage = "apply_loan"
-			loan_app.save(update_fields=["current_stage"])
-			return redirect("borrowers:apply-loan")
-
-	return render(request, "loan_calculator.html", {
-		"lender": lender,
-		"available_terms": lender.loan_terms or [],
-		"loan_app": loan_app
-	})
-'''
-
-
 # =====================================================================
 # Loan calculator (AJAX endpoint)
 # =====================================================================
-
 def calculate_loan(request):
 	lender_id = request.session.get("lender_id")
 	if not lender_id:
@@ -1482,48 +1535,8 @@ def calculate_loan(request):
 		"monthly_installment": round(monthly_installment, 2),
 		# So the UI can show WHICH product's rate this is.
 		"product": product.name if product else None,
-	})
+	})'''
 
-'''
-def calculate_loan2(request):
-	lender_id = request.session.get("lender_id")
-	if not lender_id:
-		return JsonResponse({"error": "No lender selected."}, status=400)
- 
-	lender = get_object_or_404(LenderProfile, id=lender_id)
- 
-	# --- parse inputs defensively ---
-	try:
-		amount = Decimal(request.GET.get("amount", "0"))
-		term = int(request.GET.get("term", "0"))
-	except (InvalidOperation, ValueError, TypeError):
-		return JsonResponse({"error": "Invalid amount or term."}, status=400)
- 
-	if amount <= 0 or term <= 0:
-		return JsonResponse({"error": "Amount and term must be greater than zero."}, status=400)
- 
-	# --- validate term against the lender's allowed terms ---
-	allowed_terms = [str(t) for t in lender.loan_terms]
-	if str(term) not in allowed_terms:
-		return JsonResponse(
-			{"error": f"Invalid loan term. Allowed terms: {', '.join(allowed_terms)}."},
-			status=400,
-		)
- 
-	# --- flat-interest calculation ---
-	interest_rate = Decimal(lender.interest_rate or 0)
-	total_repayable = amount * (Decimal("1") + interest_rate / Decimal("100"))
-	monthly_installment = total_repayable / Decimal(term)
- 
-	return JsonResponse({
-		"currency": "M",
-		"amount": round(amount, 2),
-		"term": term,
-		"interest_rate": round(interest_rate, 2),
-		"total_repayable": round(total_repayable, 2),
-		"monthly_installment": round(monthly_installment, 2),
-	})
-''' 
  
 # =====================================================================
 # Apply for a loan
@@ -1558,7 +1571,7 @@ def apply_loan(request):
 				"Please adjust the amount or term before submitting.",
 			)
 			# FIX: namespace — match the rest of the flow (borrowers:), not loans:
-			return redirect("borrowers:apply_loan")
+			return redirect("borrowers:apply-loan")
 
 		# Immutable audit snapshot (created once, never overwritten).
 		reconciliation = _run_document_verification(borrower, loan_app, result)
@@ -1621,111 +1634,9 @@ def apply_loan(request):
 		"payment_form": payment_form,
 		"profile": current_user,
 		"mm_formset": mm_formset,
-		"borrower": current_user,   # template uses `borrower.has_payment_details`
-	})        # ← FIX: no trailing "." (that was a SyntaxError)
+		"borrower": current_user,  
+	})       
 
-
-@login_required
-def apply_loan2(request):
-	borrower = request.user.borrower
-	lender_id = request.session.get("lender_id")
-	lender = get_object_or_404(LenderProfile, id=lender_id)
- 
-	loan_app = get_or_create_draft(request, borrower, lender, stage="affordability")
- 
-	# Attach any loose docs/expenses captured before the app existed.
-	BorrowerDocs.objects.filter(borrower=borrower, loan_application=None).update(loan_application=loan_app)
-	ExpenseAnalysis.objects.filter(borrower=borrower, loan_application=None).update(loan_application=loan_app)
- 
-	advisor = AffordabilityAdvisor(loan_app)
- 
-	# ---------------- POST: submit ----------------
-	if request.method == "POST":
-		# Block second concurrent application.
-		if LoanApplication.objects.filter(borrower=borrower, status="pending").exists():
-			messages.error(request, "You cannot apply for a new loan while you have a pending one.")
-			return redirect("borrowers:pending_loan")
- 
-		result = advisor.build()
- 
-		# Don't let an unaffordable loan through — send them back to adjust.
-		if result["outcome"] == "unaffordable":
-			messages.error(
-				request,
-				"This loan doesn't fit your budget yet. "
-				"Please adjust the amount or term before submitting.",
-			)
-			return redirect("loans:apply_loan")
- 
-		# Immutable audit snapshot (created once, never overwritten).
-		# Optionally fold in OCR document verification if a statement was uploaded.
-		reconciliation = _run_document_verification(borrower, loan_app, result)
-		advisor.snapshot(result, reconciliation=reconciliation)
-
-		# --- resolve group + consent BEFORE saving ---
-		group = None
-		chosen_group_id = request.POST.get("apply_group_id")
-		if chosen_group_id:
-			group = BorrowerGroup.objects.filter(
-				id=chosen_group_id,
-				memberships__borrower=borrower, memberships__status="active"
-			).first()
-		loan_app.group = group
-		loan_app.group_data_consent = bool(group and request.POST.get("group_data_consent"))
- 
-		loan_app.status = "pending"
-		loan_app.date_applied = now()
-		loan_app.current_stage = "submitted"
-		loan_app.save(update_fields=["status", "date_applied", "current_stage",
-							   "group", "group_data_consent",])
-		
-
-		Notification.objects.create(
-			user=lender.user,
-			message=(
-				f"New loan application from {borrower.full_name} "
-				f"for M{loan_app.loan_amount}."
-			),
-			category="loan_application",
-			loan_application=loan_app,
-		)
-
-		send_sms(
-			borrower.phone_number,
-			"loan_submitted",
-			{
-				"name": borrower.full_name,
-				"amount": loan_app.loan_amount,
-				"lender": lender.company_name,
-				"ref": loan_app.reference_number,      
-			},
-		)
- 
-		messages.success(request, f"Loan application submitted to {lender.company_name}.")
-		return redirect("borrowers:borrower_index")
- 
-	# ---------------- GET: advise ----------------
-	assessment = advisor.build()  
-
-	# load the borrower's active groups for selection in the template
-	my_groups = BorrowerGroup.objects.filter(          
-		memberships__borrower=borrower, memberships__status="active"
-	).distinct()
-
-	payment_form = make_payment_details_form(BorrowerProfile)(instance=borrower)
-	
-	current_user, _ = BorrowerProfile.objects.get_or_create(user=request.user)
-	mm_formset = get_mobile_money_formset(current_user, is_lender=False)
-
-	return render(request, "apply_loan.html", {
-		"loan_app": loan_app,
-		"assessment": assessment,
-		"my_groups": my_groups,
-		"payment_form": payment_form,
-		'profile': current_user,
-		'mm_formset': mm_formset,
-	})
- 
 
  
 def _run_document_verification(borrower, loan_app, result):

@@ -205,6 +205,8 @@ class Loan(models.Model):
 	)
 	group = models.ForeignKey('groups.BorrowerGroup', on_delete=models.SET_NULL,null=True, blank=True, 
 							   related_name='member_loans',help_text="Set when the loan is taken as a member of this group. ")
+	
+	disbursement_date = models.DateField(null=True, blank=True)
 	disbursement_status = models.CharField(max_length=16, choices=DISBURSEMENT_STATUS_CHOICES, default="pending_kfs", blank=True)
 
 	product = models.ForeignKey(

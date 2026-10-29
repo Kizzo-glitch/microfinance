@@ -103,17 +103,16 @@ class LenderInfoForm(CblStatusLockMixin, forms.ModelForm):
 	) 
 	
 	# 5. LENDING PARAMETERS (FIXED: min_loan/max_loan -> min_loan_amount/max_loan_amount)
-	min_loan_amount = forms.DecimalField(label="", widget=forms.NumberInput(attrs={'class':'form-control', 'placeholder':'Minimum Loan Amount', 'min': '0.01'}), required=False)
-	max_loan_amount = forms.DecimalField(label="", widget=forms.NumberInput(attrs={'class':'form-control', 'placeholder':'Maximum Loan Amount'}), required=False)
-	interest_rate = forms.DecimalField(label="", widget=forms.NumberInput(attrs={'class':'form-control', 'placeholder':'Annual Interest Rate (%)', 'min': '0', 'max': '100'}), required=False)
+	#min_loan_amount = forms.DecimalField(label="", widget=forms.NumberInput(attrs={'class':'form-control', 'placeholder':'Minimum Loan Amount', 'min': '0.01'}), required=False)
+	#max_loan_amount = forms.DecimalField(label="", widget=forms.NumberInput(attrs={'class':'form-control', 'placeholder':'Maximum Loan Amount'}), required=False)
+	#interest_rate = forms.DecimalField(label="", widget=forms.NumberInput(attrs={'class':'form-control', 'placeholder':'Annual Interest Rate (%)', 'min': '0', 'max': '100'}), required=False)
 	
 	# LOAN TERMS (Use model choices for consistency)
-	loan_terms = forms.MultipleChoiceField(
-		choices=LenderProfile.LOAN_TERM_CHOICES, 
-		widget=forms.CheckboxSelectMultiple,
-		required=False,
-		label="Available Loan Terms"
-	)
+	#loan_terms = forms.MultipleChoiceField(choices=LenderProfile.LOAN_TERM_CHOICES, 
+	#	widget=forms.CheckboxSelectMultiple,
+	#	required=False,
+	#	label="Available Loan Terms"
+	#)
 
 	# 6. CBL COMPLIANCE (FIXED: licence_no -> cbl_license_number, regulatory_body_no -> regulatory_body_membership_number)
 	cbl_license_number = forms.CharField(label="", widget=forms.TextInput(attrs={'class':'form-control', 'placeholder':'CBL License Number'}), required=False)
@@ -149,7 +148,7 @@ class LenderInfoForm(CblStatusLockMixin, forms.ModelForm):
 	submits_regulatory_reports = forms.BooleanField(label="Submits Regulatory Reports?", widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}), required=False) # Changed to match model
 
 	# 10. LENDING POLICY
-	missed_payment_policy = forms.ChoiceField(label="", choices=LenderProfile.MISSED_PAYMENT_POLICY_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}), required=True)
+	#missed_payment_policy = forms.ChoiceField(label="", choices=LenderProfile.MISSED_PAYMENT_POLICY_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}), required=True)
 	
 	# 11. AGREEMENTS (New agree_to_cbl_compliance field added)
 	agrees_to_terms = forms.BooleanField(widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}), required=True,)

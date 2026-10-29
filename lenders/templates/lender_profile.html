@@ -87,34 +87,7 @@
         </div>
         
 
-        <div class="border p-4 mb-4 shadow-sm">
-            <h4 class="text-center mb-3">Lending Parameters</h4>
-            <div class="row mb-3">
-                <div class="col-md-4">
-                    <label>Minimum Loan (M)</label>
-                    {{ form.min_loan_amount }}
-                    {{ form.min_loan_amount.errors }}
-                </div>
-                <div class="col-md-4"><label>Maximum Loan (M)</label>{{ form.max_loan_amount }}</div>
-                <div class="col-md-4"><label>Annual Interest Rate (%)</label>{{ form.interest_rate }}</div>
-            </div>
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label>Missed Payment Policy</label>{{ form.missed_payment_policy }}
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label d-block">Available Loan Terms</label>
-                    <div class="d-flex flex-wrap gap-2">
-                        {% for choice in form.loan_terms %}
-                            <div class="form-check form-check-inline term-box">
-                                {{ choice.tag }}
-                                <label class="form-check-label" for="{{ choice.id_for_label }}">{{ choice.choice_label }}</label>
-                            </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
+
 
         <div class="border p-4 mb-4 shadow-sm">
             <h4 class="text-center mb-3">CBL Tier Classification</h4>

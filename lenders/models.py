@@ -552,7 +552,7 @@ class LenderProduct(models.Model):
 			# ("single_fixed_term", "Single repayment after a fixed number of days"),
 		]
 	INTEREST_TYPE_CHOICES = [
-			("flat", "Flat"),
+			#("flat", "Flat"),
 			("reducing", "Reducing balance"),
 		]
 	REPAYMENT_FREQUENCY_CHOICES = [
