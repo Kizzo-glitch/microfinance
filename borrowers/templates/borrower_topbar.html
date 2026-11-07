@@ -48,6 +48,91 @@
                     </div>
                 </li>
 
+                {# ============ BORROWER TOPBAR — add these TWO <li> blocks ============ #}
+                {# 1. KFS ready to review #}
+                <li class="nav-item dropdown no-arrow mx-1">
+                    <a class="nav-link dropdown-toggle" href="#" id="kfsReadyDropdown" role="button"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-file-signature text-success"></i>
+                        <span class="badge badge-danger badge-counter">
+                            {{ unread_kfs_ready_count }}
+                        </span>
+                    </a>
+                    <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                        aria-labelledby="kfsReadyDropdown">
+                        <h6 class="dropdown-header">Key Facts Statement — Review &amp; Acknowledge</h6>
+                
+                        {% if unread_kfs_ready %}
+                            {% for notification in unread_kfs_ready %}
+                                <a class="dropdown-item d-flex align-items-center" href="{% url 'borrowers:my_loan_list' %}">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        <span class="font-weight-bold">{{ notification.message }}</span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No new notifications</a>
+                        {% endif %}
+                
+                        <h6 class="dropdown-header">Read Notifications</h6>
+                        {% if read_kfs_ready %}
+                            {% for notification in read_kfs_ready %}
+                                <a class="dropdown-item d-flex align-items-center" href="{% url 'borrowers:my_loan_list' %}">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        {{ notification.message }}
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No read notifications</a>
+                        {% endif %}
+                    </div>
+                </li>
+                
+                {# 2. KFS fully acknowledged #}
+                <li class="nav-item dropdown no-arrow mx-1">
+                    <a class="nav-link dropdown-toggle" href="#" id="kfsCompleteDropdown" role="button"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-check-double text-success"></i>
+                        <span class="badge badge-danger badge-counter">
+                            {{ unread_kfs_complete_count }}
+                        </span>
+                    </a>
+                    <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                        aria-labelledby="kfsCompleteDropdown">
+                        <h6 class="dropdown-header">Key Facts Statement — Finalised</h6>
+                
+                        {% if unread_kfs_complete %}
+                            {% for notification in unread_kfs_complete %}
+                                <a class="dropdown-item d-flex align-items-center" href="{% url 'borrowers:my_loan_list' %}">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        <span class="font-weight-bold">{{ notification.message }}</span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No new notifications</a>
+                        {% endif %}
+                
+                        <h6 class="dropdown-header">Read Notifications</h6>
+                        {% if read_kfs_complete %}
+                            {% for notification in read_kfs_complete %}
+                                <a class="dropdown-item d-flex align-items-center" href="{% url 'borrowers:my_loan_list' %}">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        {{ notification.message }}
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No read notifications</a>
+                        {% endif %}
+                    </div>
+                </li>
+
                 <!-- Loan Applications Notification -->
                 <li class="nav-item dropdown no-arrow mx-1">
                     <a class="nav-link dropdown-toggle" href="#" id="loanApplicationDropdown" role="button"

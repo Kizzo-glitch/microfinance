@@ -23,6 +23,8 @@ urlpatterns = [
 
     path('documents/<int:doc_id>/checks/', views.run_checks_view, name='run_checks'),
     path('applications/<int:application_id>/documents/<int:doc_id>/check/', run_doc_check_ajax, name='run_doc_check'),
+
+    path('applications/<int:application_id>/acknowledge-doc-flags/', views.acknowledge_doc_flags, name='acknowledge_doc_flags'),
     
 
     # Lender Documents

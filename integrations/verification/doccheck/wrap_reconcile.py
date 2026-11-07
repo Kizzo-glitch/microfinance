@@ -22,10 +22,10 @@ from decimal import Decimal
 from .framework import CheckResult, Outcome, run_checks
 
 
+
 # ---------------------------------------------------------------------------
 # Checks read context['ocr'] (the OCRAnalysis) -> .reconciliation / .statement.
 # ---------------------------------------------------------------------------
-
 def check_expense_coverage(extracted, context):
     """
     STRONG-ish. Does declared spending line up with what the statement shows?

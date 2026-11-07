@@ -1,3 +1,4 @@
+import logging
 import os
 import json
 import calendar
@@ -30,12 +31,12 @@ from django.template.loader import render_to_string
 from django.core.mail import send_mail, EmailMultiAlternatives, EmailMessage
 from collections import OrderedDict
 
+from django.db import transaction
 
 from compliance.compliace_services import ComplianceDashboardService
 from compliance.models import ComplianceProfile, PersonnelProfile
 
 from micro.forms import MobileMoneyAccountForm, get_mobile_money_formset, make_payment_details_form, save_mobile_money_formset
-from micro.views import notify_borrower_kfs_ready
 
 from .forms import (LenderInfoForm, LenderProductForm, LoanApplicationStatusForm, 
 					LoanStatusForm, LenderDocumentsForm, ProductFeeFormSet, _compliance_of)
@@ -45,8 +46,8 @@ from integrations.verification.doccheck_ajax import unacknowledged_flags
 from integrations.verification.affordability_overlay import build_affordability_overlay
 from integrations.services import run_document_checks 
 
-from loans.models import Notification, LoanApplication, Loan, LoanPayment
-from loans.views import on_loan_approved
+from loans.models import DocFlagAcknowledgement, Notification, LoanApplication, Loan, LoanPayment
+from loans.views import _approve_loan_db, on_loan_approved_notify
 from loans.utils import get_loans_by_risk_category, send_sms_smsportal, calculate_affordability
 from loans.loan_terms_resolver import approval_rate_block
 
@@ -54,7 +55,9 @@ from borrowers.models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
 from comms.sms.service import send_sms
 			  
 from groups.group_credit_profile import build_group_credit_profile
- 
+
+
+logger = logging.getLogger(__name__)
 
 
 # ==================
@@ -731,7 +734,232 @@ class LoanApplicationListView(ListView):
 		).order_by('-date_applied')
 
 
+from django.db import transaction
+logger = logging.getLogger(__name__)
 
+class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
+	model = LoanApplication
+	form_class = LoanApplicationStatusForm
+	template_name = "loan_application_update.html"
+ 
+	# ---- access control ----------------------------------------------------
+	def get_queryset(self):
+		return LoanApplication.objects.filter(lender=self.request.user.lender)
+ 
+	# ---- status update workflow (approve / reject / pending) ---------------
+	def form_valid(self, form):
+		loan_application = form.save(commit=False)
+		old_status = LoanApplication.objects.get(pk=loan_application.pk).status
+ 
+		# ── Document-flag acknowledgement guard ──────────────────────────
+		if (form.cleaned_data.get("status") == "approved"
+				and unacknowledged_flags(loan_application, self.request)):
+			form.add_error(None,
+				"This applicant has flagged documents. Please review and "
+				"acknowledge them before approving.")
+			return self.form_invalid(form)
+ 
+		loan_amount = loan_application.loan_amount
+		borrower_user = loan_application.borrower
+		phone_number = borrower_user.phone_number
+ 
+		# Deferred side effects: collected during the atomic block, fired only
+		# AFTER a successful commit. Each entry is a zero-arg callable.
+		after_commit = []
+		status_changed = loan_application.status != old_status
+		new_status = loan_application.status
+ 
+		# ───────────────────────── atomic DB section ─────────────────────────
+		# Loan creation, KFS generation and the application status change commit
+		# together or not at all. Nothing here reaches an SMS gateway or email.
+		try:
+			with transaction.atomic():
+				created_loan = None
+				created_kfs = None
+ 
+				if status_changed and new_status == "approved":
+					if not loan_application.linked_loan:
+						interest, total_repayable = approval_rate_block(
+							loan_application, loan_amount)
+ 
+						loan = Loan.objects.create(
+							borrower=borrower_user,
+							lender=loan_application.lender,
+							amount=Decimal(loan_amount),
+							loan_term=loan_application.loan_term,
+							interest_rate=interest,
+							first_payment=Decimal(loan_application.monthly_installment),
+							monthly_installment=Decimal(loan_application.monthly_installment),
+							total_repayable=total_repayable,
+							outstanding_balance=total_repayable,
+							due_date=loan_application.date_applied + timedelta(days=365),
+							status="approved",
+							group=loan_application.group,
+							product=loan_application.product,
+						)
+						loan_application.linked_loan = loan
+						created_loan = loan
+						# KFS generation only — on_loan_approved's DB work runs
+						# here; its notifications are returned to fire post-commit.
+						created_kfs = _approve_loan_db(loan_application, loan)
+ 
+				# Persist the application (status + linked_loan + m2m).
+				loan_application.save()
+				form.save_m2m()
+ 
+				# Queue borrower-facing effects for after the commit.
+				if status_changed and new_status == "approved":
+					kfs = created_kfs
+					after_commit.append(lambda: self._notify_approved(
+						loan_application, borrower_user, phone_number,
+						loan_amount, created_loan, kfs))
+				elif status_changed and new_status == "rejected":
+					after_commit.append(lambda: self._notify_rejected(
+						loan_application, borrower_user, phone_number, loan_amount))
+				elif status_changed and new_status == "pending":
+					after_commit.append(lambda: self._notify_pending(
+						loan_application, borrower_user, phone_number, loan_amount))
+ 
+				# Notification letter email, also deferred.
+				after_commit.append(lambda: self._send_letter(loan_application))
+ 
+		except Exception:
+			# A real DB failure (or a bug in the approval math) rolls back the
+			# whole thing — no half-created Loan — and the form re-renders with
+			# an error instead of silently bouncing.
+			logger.exception("Loan approval DB transaction failed for application %s",
+							 loan_application.pk)
+			form.add_error(None,
+				"Something went wrong while processing this decision. "
+				"No changes were saved — please try again.")
+			return self.form_invalid(form)
+ 
+		# ───────────────────── post-commit side effects ──────────────────────
+		# The decision is committed. From here nothing may roll it back; each
+		# side effect is isolated so one failing gateway can't break the others
+		# or the redirect.
+		for effect in after_commit:
+			try:
+				effect()
+			except Exception:
+				logger.exception("Post-approval side effect failed for application %s "
+								 "(decision already committed)", loan_application.pk)
+ 
+		return super().form_valid(form)
+
+	def form_invalid(self, form):             # <- NEW, separate method
+		print("=== FORM INVALID ===")
+		print("field errors:", form.errors.as_json())
+		print("non-field   :", form.non_field_errors())
+		return super().form_invalid(form)
+ 
+	# ---- side-effect helpers (no DB-critical work) -------------------------
+ 
+	def _notify_approved(self, loan_application, borrower_user, phone_number,
+						 loan_amount, loan, kfs):
+		Notification.objects.create(
+			user=borrower_user.user,
+			message=(f"Your loan application from {loan_application.lender.company_name} "
+					 f"for M{loan_amount} has been approved."),
+			category="loan_approved",
+		)
+		send_sms(phone_number, "loan_approved", {
+			"name": borrower_user.full_name, "amount": loan_amount,
+			"lender": loan_application.lender.company_name,
+			"ref": loan_application.reference_number})
+		# KFS-specific notification + SMS (the part that used to crash on `...`).
+		if loan is not None and kfs is not None:
+			on_loan_approved_notify(self.request, loan, kfs)
+ 
+	def _notify_rejected(self, loan_application, borrower_user, phone_number, loan_amount):
+		reasons = loan_application.get_rejection_reasons_display()
+		Notification.objects.create(
+			user=borrower_user.user,
+			message=(f"Your loan of M{loan_amount} from "
+					 f"{loan_application.lender.company_name} was rejected. "
+					 f"Reasons: {reasons}"),
+			category="loan_rejected",
+		)
+		send_sms(phone_number, "loan_rejected", {
+			"name": borrower_user.full_name, "amount": loan_amount,
+			"lender": loan_application.lender.company_name,
+			"reasons": reasons, "ref": loan_application.reference_number})
+ 
+	def _notify_pending(self, loan_application, borrower_user, phone_number, loan_amount):
+		reasons = loan_application.get_pending_reasons_display()
+		Notification.objects.create(
+			user=borrower_user.user,
+			message=(f"Your loan application from {loan_application.lender.company_name} "
+					 f"is pending. Reasons: {reasons}"),
+			category="loan_pending",
+		)
+		send_sms(phone_number, "loan_pending", {
+			"name": borrower_user.full_name, "amount": loan_amount,
+			"lender": loan_application.lender.company_name,
+			"reasons": reasons, "ref": loan_application.reference_number})
+ 
+	def _send_letter(self, loan_application):
+		reasons = []
+		if loan_application.status == "rejected":
+			reasons = loan_application.rejection_reasons
+		elif loan_application.status == "pending":
+			reasons = loan_application.pending_reasons
+ 
+		subject = f"Loan Application {loan_application.status.capitalize()}"
+		body = render_to_string("loan_notification_letter.html", {
+			"loan_application": loan_application,
+			"status": loan_application.status,
+			"reasons": reasons,
+		})
+		email = EmailMultiAlternatives(subject, "", settings.EMAIL_HOST_USER,
+									   [loan_application.borrower.email_address])
+		email.attach_alternative(body, "text/html")
+		# email.send()   # still commented, as in the original
+ 
+	# ---- context (unchanged) -----------------------------------------------
+	def get_context_data(self, **kwargs):
+		context = super().get_context_data(**kwargs)
+		loan_application = self.object
+		borrower = loan_application.borrower
+ 
+		documents = BorrowerDocs.objects.filter(
+			borrower=borrower, loan_application=loan_application)
+ 
+		outstanding_loans = Loan.objects.filter(
+			borrower=borrower, outstanding_balance__gt=0).count()
+		overdue_loans = Loan.objects.filter(
+			borrower=borrower, due_date__lt=date.today(), outstanding_balance__gt=0).count()
+		total_debt = Loan.objects.filter(borrower=borrower).aggregate(
+			total=models.Sum("outstanding_balance"))["total"] or 0
+ 
+		assessment = getattr(loan_application, "affordability_assessment", None)
+		compat = compatibility(borrower, self.request.user.lender)
+ 
+		context.update({
+			"application": loan_application,
+			"doc_rows": build_doc_rows(loan_application),
+			"borrower": borrower,
+			"loan_amount": loan_application.loan_amount,
+			"loan_term": loan_application.loan_term,
+			"total_repayable": loan_application.total_repayable,
+			"first_payment": loan_application.first_payment,
+			"monthly_installment": loan_application.monthly_installment,
+			"outstanding_loans": outstanding_loans,
+			"overdue_loans": overdue_loans,
+			"total_debt": total_debt,
+			"documents": documents,
+			"assessment": assessment,
+			"compat": compat,
+			"group_profile": _build_group_standing(loan_application),
+			"affordability_overlay": build_affordability_overlay(loan_application),
+		})
+		return context
+ 
+	def get_success_url(self):
+		return reverse("lenders:loan-application-list")
+
+
+'''
 class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 	model = LoanApplication
 	form_class = LoanApplicationStatusForm  
@@ -905,7 +1133,8 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 
  
 	def get_success_url(self):
-		return reverse("lenders:loan-application-list")
+		return reverse("lenders:loan-application-list")'''
+
 
 
 """
@@ -968,6 +1197,7 @@ def _borrower_of(document):
 
 # Document types this engine can meaningfully assess.
 CHECKABLE_DOC_TYPES = {"bank_statement", "payslip", "id_proof"}
+
  
  
 def build_doc_rows(application):
@@ -1076,6 +1306,96 @@ def compatibility(borrower_profile, lender_profile) -> dict:
 		"warn_borrower_none": not b,
 	}
 	
+
+
+def _flagged_run_ids(application):
+    """
+    The ids of the LATEST check run per document whose band is 'flagged'.
+    This is the set that must be acknowledged for approval to proceed.
+    """
+    ids = []
+    for d in application.loan_documents.all():
+        latest = d.check_runs.first()        # newest via DocumentCheckRun.Meta.ordering
+        if latest and latest.band == "flagged":
+            ids.append(latest.id)
+    return sorted(ids)
+ 
+ 
+def _has_flagged_documents(application):
+    """True if any document's latest check run is 'flagged'."""
+    return bool(_flagged_run_ids(application))
+ 
+ 
+def _current_flags_acknowledged(application):
+    """
+    True if a persisted acknowledgement covers EVERY currently-flagged run.
+    A re-run that produces a new flagged run id won't be covered by an older
+    ack, so this correctly re-blocks until the new flags are acknowledged.
+    """
+    current = set(_flagged_run_ids(application))
+    if not current:
+        return True   # nothing flagged -> nothing to acknowledge
+    for ack in application.doc_flag_acknowledgements.all():
+        covered = set(ack.acknowledged_run_ids or [])
+        if current.issubset(covered):
+            return True
+    return False
+ 
+ 
+# ───────────────────────── the upgraded guard ─────────────────────────
+ 
+def unacknowledged_flags(application, request):
+    """
+    Returns True (block approval) when the application has flagged documents
+    that have NOT been acknowledged.
+ 
+    Acknowledged means EITHER:
+      - a persisted DocFlagAcknowledgement covers the current flagged runs, OR
+      - the approve POST carries ack_doc_flags == "1" (back-compat / inline path).
+ 
+    With the separate explicit acknowledge step, the persisted path is the
+    primary one; the POST path is kept so the inline checkbox keeps working.
+    """
+    if not _has_flagged_documents(application):
+        return False
+    if _current_flags_acknowledged(application):
+        return False
+    acked_in_post = request.POST.get("ack_doc_flags") == "1"
+    return not acked_in_post
+ 
+ 
+# ───────────────────── the explicit acknowledge view ─────────────────────
+ 
+def acknowledge_doc_flags(request, application_id):
+    """
+    POST-only. The lender's explicit 'Acknowledge flagged documents' action.
+    Writes a DocFlagAcknowledgement covering the application's current flagged
+    runs, then redirects back to the application update page.
+    """
+    lender = getattr(request.user, "lender", None)
+    if lender is None:
+        messages.error(request, "Lenders only.")
+        return redirect("home")
+ 
+    # Ownership: the application must belong to this lender.
+    application = get_object_or_404(
+        LoanApplication, pk=application_id, lender=lender)
+ 
+    flagged = _flagged_run_ids(application)
+    if not flagged:
+        messages.info(request, "There are no flagged documents to acknowledge.")
+        return redirect("lenders:loan-application-update", pk=application_id)
+ 
+    DocFlagAcknowledgement.objects.create(
+        application=application,
+        acknowledged_run_ids=flagged,
+        acknowledged_by=request.user,
+        note=(request.POST.get("ack_note") or "").strip(),
+    )
+    messages.success(
+        request,
+        "Flagged documents acknowledged. You can now approve this application.")
+    return redirect("lenders:loan-application-update", pk=application_id)
 
 
 

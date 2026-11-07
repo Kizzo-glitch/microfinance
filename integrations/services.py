@@ -11,9 +11,30 @@ which callers must treat as "not verified / not settled" — never as success.
 """
 
 from decimal import Decimal
+
+from integrations.verification.doccheck.payslip_parser import parse_payslip
 from .registry import get_adapter
 from .base import VerificationResult, PaymentResult
 
+from decimal import Decimal
+from integrations.verification.doccheck.framework import CheckResult, Outcome, BAND_LABELS, run_checks
+
+from dataclasses import asdict, is_dataclass
+
+from django.utils import timezone
+
+# pure engine
+
+from integrations.verification.doccheck.wrap_reconcile import assess_statement, check_expense_coverage, check_id_name, check_parse_confidence, check_statement_name
+from integrations.verification.doccheck.pdf_signals import (
+    pdf_signal_checks, is_pdf,
+)
+
+# your existing OCR adapter
+from integrations.verification.documents.ocr import TesseractDocumentAdapter  
+
+# the model from Layer 6
+from borrowers.models import DocumentCheckRun  
 
 # ---- verification -------------------------------------------------
 def verify_identity(national_id: str, **kwargs) -> VerificationResult:
@@ -49,34 +70,117 @@ Flow when the lender clicks "Run checks":
          -> (+ PDF signals if it's a PDF) -> freeze a DocumentCheckRun row.
 """
 
-from dataclasses import asdict, is_dataclass
-
-from django.utils import timezone
-
-# pure engine
-from integrations.verification.doccheck.framework import BAND_LABELS, Outcome
-from integrations.verification.doccheck.wrap_reconcile import assess_statement
-from integrations.verification.doccheck.pdf_signals import (
-    pdf_signal_checks, is_pdf,
-)
-
-# your existing OCR adapter
-from integrations.verification.documents.ocr import TesseractDocumentAdapter  
-
-# the model from Layer 6
-from borrowers.models import DocumentCheckRun   
 
 
+def _ocr_text(ocr):
+    """
+    Pull the raw extracted text from the OCR result for parse_payslip().
+    (ADJUST) confirm which attribute your OCRAnalysis exposes — commonly .text
+    or .raw_text. Falls back to "" so the payslip parser honestly reports
+    'no text' rather than crashing.
+    """
+    for attr in ("text", "raw_text", "full_text", "ocr_text"):
+        val = getattr(ocr, attr, None)
+        if val:
+            return val
+    return ""
+ 
+ 
 def run_document_checks(document, *, run_by=None,
                         declared_expenses=None,
                         profile_name="", id_name=""):
     """
-    document : a BorrowerDocs instance (has a FileField — adjust `.file` below)
-    run_by   : the User who triggered this (for the audit trail)
-
-    Returns the created DocumentCheckRun. Always creates a NEW row (never edits
-    an old one) so each run is an immutable record of what was assessed.
+    Runs the checks appropriate to document.document_type and returns a new
+    DocumentCheckRun. Always creates a fresh row (immutable audit record).
     """
+    #from .engine import run_checks, Outcome
+    #from .adapters import TesseractDocumentAdapter
+    #from .pdf_signals import is_pdf, pdf_signal_checks
+    #from .models import DocumentCheckRun, BAND_LABELS
+    #from .checks import ( check_expense_coverage, check_statement_name, check_id_name,
+    #    check_parse_confidence, check_payslip_math, check_payslip_name,
+    #)
+    #from .payslip_parser import parse_payslip     
+ 
+    file_field = getattr(document, "file", None)
+    file_path = file_field.path if file_field else None
+ 
+    raw_type = getattr(document, "document_type", "") or ""   # source of truth
+    doc_type = _map_doc_type(document)                        # stored on the run
+ 
+    # --- OCR (produces text + reconciliation used by statement/ID checks) ---
+    adapter = TesseractDocumentAdapter()
+    ocr = adapter.analyse_statement(
+        file_path,
+        declared_expenses=declared_expenses or 0,
+        profile_name=profile_name,
+        id_name=id_name,
+    )
+ 
+    # --- route context + check suite by document type ---
+    if raw_type == "bank_statement":
+        context = {"ocr": ocr}
+        checks = [check_expense_coverage, check_statement_name,
+                  check_id_name, check_parse_confidence]
+ 
+    elif raw_type == "payslip":
+        # Payslip checks read a ParsedPayslip, not the statement reconciliation.
+        parsed = parse_payslip(_ocr_text(ocr))
+        context = {"ocr": ocr, "payslip": parsed, "profile_name": profile_name}
+        checks = [check_payslip_math, check_payslip_name, check_parse_confidence]
+ 
+    elif raw_type == "id_proof":
+        # Name match + readability ONLY. No expense coverage, no statement name.
+        context = {"ocr": ocr}
+        checks = [check_id_name, check_parse_confidence]
+ 
+    else:
+        # chief_letter, invoices, registration, tax clearance, business docs...
+        # Nothing statement/payslip/ID-specific is asserted — just readability.
+        context = {"ocr": ocr}
+        checks = [check_parse_confidence]
+ 
+    # --- PDF structural signals, only for native PDFs of statement/payslip ---
+    pdf_ran = False
+    if raw_type in ("bank_statement", "payslip") and file_path and is_pdf(file_path):
+        checks = list(checks) + list(pdf_signal_checks(file_path))
+        pdf_ran = True
+ 
+    # --- run the engine ---
+    results, band = run_checks(checks, extracted={}, context=context)
+ 
+    # --- freeze the result as data ---
+    results_data = [_result_to_dict(r) for r in results]
+    flag_count = sum(1 for r in results if r.outcome == Outcome.FAIL)
+    inconclusive_count = sum(1 for r in results if r.outcome == Outcome.INCONCLUSIVE)
+ 
+    run = DocumentCheckRun.objects.create(
+        document=document,
+        doc_type=doc_type,
+        band=band,
+        results=results_data,
+        flag_count=flag_count,
+        inconclusive_count=inconclusive_count,
+        run_by=run_by,
+        run_at=timezone.now(),
+        meta={
+            "band_label": BAND_LABELS.get(band, band),
+            "ocr_confidence": getattr(ocr, "ocr_confidence", None),
+            "pdf_signals_ran": pdf_ran,
+            "ocr_ok": getattr(ocr, "ok", None),
+            "ocr_error": getattr(ocr, "error", "") or "",
+            "routed_as": raw_type or "unknown",   # audit: which suite ran
+        },
+    )
+    return run
+ 
+
+
+'''
+def run_document_checks(document, *, run_by=None,
+                        declared_expenses=None,
+                        profile_name="", id_name=""):
+
     # BorrowerDocs.file is a FileField.
     file_field = getattr(document, "file", None)
     file_path = file_field.path if file_field else None
@@ -124,7 +228,7 @@ def run_document_checks(document, *, run_by=None,
             "ocr_error": getattr(ocr, "error", "") or "",
         },
     )
-    return run
+    return run'''
 
 
 # ---------------------------------------------------------------------------
@@ -170,8 +274,6 @@ Shaped like the other checks ((extracted, context) -> CheckResult) so they slot
 into run_checks / assess_*.
 """
 
-from decimal import Decimal
-from integrations.verification.doccheck.framework import CheckResult, Outcome
 
 CENT = Decimal("0.01")
 TOLERANCE = Decimal("1.00")   # allow M1 for OCR rounding on payslip arithmetic

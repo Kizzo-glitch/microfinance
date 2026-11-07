@@ -55,6 +55,48 @@
                 </li>
 
 
+                {# ============ LENDER TOPBAR — add this ONE <li> block ============ #}
+                {# KFS: borrower acknowledged, lender must confirm #}
+                <li class="nav-item dropdown no-arrow mx-1">
+                    <a class="nav-link dropdown-toggle" href="#" id="kfsConfirmDropdown" role="button"
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-file-signature fa-fw"></i>
+                        <span class="badge badge-danger badge-counter">
+                            {{ unread_kfs_confirm_count }}
+                        </span>
+                    </a>
+                    <div class="dropdown-list dropdown-menu dropdown-menu-right shadow animated--grow-in"
+                        aria-labelledby="kfsConfirmDropdown">
+                        <h6 class="dropdown-header">KFS — Awaiting Your Confirmation</h6>
+                
+                        {% if unread_kfs_confirm %}
+                            {% for notification in unread_kfs_confirm %}
+                                <a class="dropdown-item d-flex align-items-center" href="{% url 'lenders:loan-application-list' %}">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        <span class="font-weight-bold">{{ notification.message }}</span>
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No new notifications</a>
+                        {% endif %}
+                
+                        <h6 class="dropdown-header">Read Notifications</h6>
+                        {% if read_kfs_confirm %}
+                            {% for notification in read_kfs_confirm %}
+                                <a class="dropdown-item d-flex align-items-center" href="{% url 'lenders:loan-application-list' %}">
+                                    <div>
+                                        <div class="small text-gray-500">{{ notification.date_created|date:"F j, Y, g:i a" }}</div>
+                                        {{ notification.message }}
+                                    </div>
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <a class="dropdown-item text-center small text-gray-500" href="#">No read notifications</a>
+                        {% endif %}
+                    </div>
+                </li>
 
                 <!-- Loan Applications Notification -->
                 <li class="nav-item dropdown no-arrow mx-1">

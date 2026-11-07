@@ -626,26 +626,30 @@ class LoanPayment(models.Model):
 
 class Notification(models.Model):
 	CATEGORY_CHOICES = [
-		('loan_application', 'Loan Application'),
-		('loan_payment', 'Loan Payment'),
-		('payment_update', 'Payment Update'),
-		('loan_approved', 'Loan Approved'),
-		('loan_rejected', 'Loan Rejected'),
-		
-		('loan_update', 'Loan Update'),
-		('document_update', 'Documents Updated'),
-		('loan_deleted', 'Loan Deleted'),
-	
-	]
+        ('loan_application', 'Loan Application'),
+        ('loan_payment', 'Loan Payment'),
+        ('payment_update', 'Payment Update'),
+        ('loan_approved', 'Loan Approved'),
+        ('loan_rejected', 'Loan Rejected'),
+        ('loan_pending', 'Loan Pending'),          
+        ('loan_update', 'Loan Update'),
+        ('document_update', 'Documents Updated'),
+        ('loan_deleted', 'Loan Deleted'),
+        # ---- KFS acknowledgement flow ----
+        ('kfs_ready', 'Key Facts Statement Ready'),
+        ('kfs_borrower_acknowledged', 'KFS — Borrower Acknowledged'),
+        ('kfs_complete', 'KFS — Fully Acknowledged'),
+        # Sent by on_loan_approved_notify (approval SMS path); register too.
+        ('loan_approved_kfs', 'Loan Approved — KFS Ready'),
+    ]
 	user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications", null=True, blank=True)
-	loan_application = models.ForeignKey(LoanApplication, null=True, blank=True, on_delete=models.CASCADE)  # ✅ For loan applications
+	loan_application = models.ForeignKey(LoanApplication, null=True, blank=True, on_delete=models.CASCADE)  
 	loan = models.ForeignKey(Loan, null=True, blank=True, on_delete=models.CASCADE)
-	#lender = models.ForeignKey(LenderProfile, on_delete=models.CASCADE, related_name='lender_notifications')
-	#borrower = models.ForeignKey(BorrowerProfile, on_delete=models.CASCADE, related_name='borrower_notifications', null=True)
+	
 	message = models.TextField()
 	date_created = models.DateTimeField(auto_now_add=True)
 	is_read = models.BooleanField(default=False)
-	category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='loan_application')
+	category = models.CharField(max_length=64, choices=CATEGORY_CHOICES, default='loan_application')
 
 	def __str__(self):
 		return f"Notification for {self.user.username} - {self.category} - {self.message[:50]}"
@@ -793,4 +797,31 @@ class ResponsibleLendingAssessment(models.Model):
 		return self.disposable_income_after >= 0 and self.outcome != "unaffordable"
 
 
+
+
+class DocFlagAcknowledgement(models.Model):
+    """
+    A lender's acknowledgement that they reviewed the flagged documents on an
+    application and accept responsibility for proceeding. Immutable audit record.
+    """
+    application = models.ForeignKey(
+        LoanApplication, on_delete=models.CASCADE,
+        related_name="doc_flag_acknowledgements")
+    # The flagged check-runs this acknowledgement covers (snapshot of ids that
+    # were 'flagged' at the moment of acknowledgement).
+    acknowledged_run_ids = models.JSONField(default=list)
+    acknowledged_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="doc_flag_acks")
+    acknowledged_at = models.DateTimeField(default=timezone.now)
+    # Freeform note the lender can leave (optional), kept for the audit trail.
+    note = models.TextField(blank=True)
+ 
+    class Meta:
+        ordering = ["-acknowledged_at"]
+ 
+    def __str__(self):
+        return (f"Doc-flag ack for application {self.application_id} "
+                f"by {self.acknowledged_by_id} at {self.acknowledged_at:%Y-%m-%d %H:%M}")
+ 
  

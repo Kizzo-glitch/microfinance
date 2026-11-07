@@ -154,13 +154,6 @@
         </div>
     {% endif %}
 
-    <!--{%if compat %}
-        {% include '_payment_compatibility.html' with compat=compat %}
-    {% else %}
-        <div class="alert alert-info">
-            No payment compatibility information available for this application.
-        </div>
-    {% endif %}-->
     {% include '_payment_compatibility.html' %}
 
     <br>
@@ -170,7 +163,7 @@
             <div class="card-body">
                 <p>KFS <strong>{{ loan_application.linked_loan.kfs.reference }}</strong> —
                 {{ loan_application.linked_loan.kfs.get_status_display }}</p>
-                <a href="{% url 'view_kfs' loan_application.linked_loan.kfs.id %}" class="btn btn-outline-primary">
+                <a href="{% url 'loans:view_kfs' loan_application.linked_loan.kfs.id %}" class="btn btn-outline-primary">
                 View / acknowledge statement
                 </a>
                 <div class="small text-muted mt-2">
@@ -179,6 +172,58 @@
             </div>
         </div>
     {% endif %}
+
+
+    {% if has_flagged_docs %}
+        {% if not flags_acknowledged %}
+            
+            <div class="card border-warning mb-3">
+            <div class="card-body">
+                <h6 class="card-title text-warning mb-2">
+                <i class="fas fa-exclamation-triangle"></i> Flagged documents — review required
+                </h6>
+                <p class="small text-muted mb-3">
+                One or more documents were flagged by the automated checks (see the
+                <strong>Document checks</strong> panel above). These flag possible issues for
+                your review — they do not confirm a document is genuine. You must review them
+                and explicitly acknowledge before this application can be approved.
+                </p>
+        
+                {# Separate POST — its own action, not mixed into approve. #}
+                <form method="post" action="{% url 'lenders:acknowledge_doc_flags' application.pk %}">
+                {% csrf_token %}
+                <div class="form-group mb-2">
+                    <label class="small font-weight-bold" for="ack_note">
+                    Note (optional) — record why you're proceeding
+                    </label>
+                    <textarea class="form-control form-control-sm" id="ack_note" name="ack_note"
+                            rows="2" placeholder="e.g. Verified bank statement with borrower by phone."></textarea>
+                </div>
+                <button type="submit" class="btn btn-warning btn-sm">
+                    <i class="fas fa-check"></i> I've reviewed the flagged documents — acknowledge
+                </button>
+                </form>
+            </div>
+            </div>
+        
+            
+            <div class="alert alert-light border small mb-3">
+            Approval is disabled until you acknowledge the flagged documents above.
+            </div>
+        
+        {% else %}
+            
+            <div class="alert alert-success d-flex align-items-center mb-3">
+            <i class="fas fa-check-circle mr-2"></i>
+            <div class="small">
+                Flagged documents acknowledged. You may approve this application.
+            </div>
+            </div>
+            
+            <input type="hidden" name="ack_doc_flags" value="1" form="approveForm">
+        {% endif %}
+    {% endif %}
+  
 
     <!-- ===================== Status Update ===================== -->
     <center>
@@ -199,9 +244,14 @@
                     {{ form.pending_reasons }}
                 </div>
 
-                <button type="submit" id="statusButton" class="btn btn-success mt-3">
-                    Approve Loan
+                <button type="submit" name="status" value="approved"
+                        {% if has_flagged_docs and not flags_acknowledged %}disabled{% endif %}>
+                Approve
                 </button>
+
+                <!--<button type="submit" id="statusButton" class="btn btn-success mt-3">
+                    Approve Loan
+                </button>-->
             </form>
         </div>
     </center>

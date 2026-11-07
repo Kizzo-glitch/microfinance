@@ -176,7 +176,7 @@
  
     {# ── The viewer's action ──────────────────────────────────────────── #}
     {% if can_borrower_sign or can_lender_sign %}
-      <form method="post" action="{% url 'acknowledge_kfs' kfs.pk %}">
+      <form method="post" action="{% url 'loans:acknowledge_kfs' kfs.pk %}">
         {% csrf_token %}
         <div class="mb-2">
           <label class="form-label fw-semibold">

@@ -1,0 +1,83 @@
+{% comment %}
+emails/kfs_borrower_ack.html — sent to the LENDER when the borrower has
+acknowledged the KFS (status == "borrower_ack"), asking them to confirm so the
+loan can proceed to disbursement. Context:
+  borrower, lender, loan, kfs
+Renders from the frozen snapshot (kfs.snapshot) — never recomputes figures.
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0; padding:0; background:#f4f5f7; font-family:Arial, Helvetica, sans-serif; color:#1a1a1a;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f5f7; padding:24px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background:#ffffff; border-radius:8px; overflow:hidden; border:1px solid #e3e6ea;">
+
+          <tr>
+            <td style="background:#0b6b3a; padding:20px 28px;">
+              <div style="color:#ffffff; font-size:18px; font-weight:bold;">Borrower acknowledged — your confirmation needed</div>
+              <div style="color:#cfe9da; font-size:13px; margin-top:4px;">Reference {{ kfs.reference }}</div>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:28px;">
+              <p style="margin:0 0 14px; font-size:15px;">Hello {{ lender.company_name }},</p>
+
+              <p style="margin:0 0 14px; font-size:14px; line-height:1.55;">
+                <strong>{{ borrower.full_name }}</strong> has acknowledged the Key Facts Statement for
+                their loan. Please confirm the statement to proceed to disbursement.
+                <strong>The loan cannot be disbursed until you confirm.</strong>
+              </p>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                     style="margin:18px 0; border:1px solid #e3e6ea; border-radius:6px; font-size:14px;">
+                <tr style="background:#f7f9fa;">
+                  <td style="padding:10px 14px; color:#5a636c; width:55%;">Borrower</td>
+                  <td style="padding:10px 14px; text-align:right; font-weight:bold;">{{ borrower.full_name }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 14px; color:#5a636c;">Approved amount</td>
+                  <td style="padding:10px 14px; text-align:right;">M {{ kfs.snapshot.terms.approved_amount }}</td>
+                </tr>
+                <tr style="background:#f7f9fa;">
+                  <td style="padding:10px 14px; color:#5a636c;">Term</td>
+                  <td style="padding:10px 14px; text-align:right;">{{ kfs.snapshot.terms.term_months }} months</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px 14px; color:#5a636c;">Total amount payable</td>
+                  <td style="padding:10px 14px; text-align:right; font-weight:bold;">M {{ kfs.snapshot.cost.total_payable }}</td>
+                </tr>
+                <tr style="background:#f7f9fa;">
+                  <td style="padding:10px 14px; color:#5a636c;">Acknowledged by borrower</td>
+                  <td style="padding:10px 14px; text-align:right;">
+                    {{ kfs.borrower_ack_name }}{% if kfs.borrower_ack_at %}<br>{{ kfs.borrower_ack_at|date:"d M Y, H:i" }}{% endif %}
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 6px; font-size:14px; line-height:1.55;">
+                Open the Fedha-Grow app, go to this application, and confirm the Key Facts Statement.
+              </p>
+
+              <p style="margin:18px 0 0; font-size:13px; line-height:1.55; color:#5a636c;">
+                Reference <strong>{{ kfs.reference }}</strong>.
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding:18px 28px; background:#fafbfc; border-top:1px solid #e3e6ea; font-size:11px; color:#8a929b; line-height:1.5;">
+              Fedha-Grow provides the disclosure and record-keeping infrastructure for this loan. It does not
+              make the credit decision, originate the loan, or hold or disburse funds. This is an automated
+              message — please do not reply.
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
