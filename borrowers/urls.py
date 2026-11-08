@@ -60,10 +60,14 @@ urlpatterns = [
     path('loan/<int:loan_id>/record-payment/', views.record_payment, name='record-payment'),
     path('borrower/payment-history/', views.borrower_payment_history, name='borrower_payment_history'),
 
+    # Notifications
     path('mark_loan_approved_read/', views.mark_loan_approved_read, name='mark_loan_approved_read'),
     path('mark_loan_rejected_read/', views.mark_loan_rejected_read, name='mark_loan_rejected_read'),
     path('mark_loan_pending_read/', views.mark_loan_pending_read, name='mark_loan_pending_read'),
     path('mark_payment_update_read/', views.mark_payment_update_read, name='mark_payment_update_read'),
+
+    path('mark_kfs_ready_read/', views.mark_kfs_ready_read, name='mark_kfs_ready_read'),
+    path('mark_kfs_complete_read/', views.mark_kfs_complete_read, name='mark_kfs_complete_read'),
 
     path('notification/read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'),
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),

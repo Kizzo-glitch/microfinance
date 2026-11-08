@@ -38,6 +38,10 @@ urlpatterns = [
     path('mark-loan-payment-notifications-read/', views.mark_loan_payment_notifications_read, name="mark_loan_payment_notifications_read"),
     path('notifications/mark-pending-loan-updates-read/', views.mark_pending_loan_update_notifications_read, name='mark_pending_loan_update_notifications_read'),
 
+    path('notifications/mark-kfs-confirm-read/', views.mark_kfs_confirm_read, name='mark_kfs_confirm_read'),
+
+
+
     # Side-bar notification
     path('notification/read/<int:notification_id>/', views.mark_notification_read, name='mark_notification_read'), 
     path('notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),

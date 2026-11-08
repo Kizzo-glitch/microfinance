@@ -48,8 +48,8 @@
                     </div>
                 </li>
 
-                {# ============ BORROWER TOPBAR — add these TWO <li> blocks ============ #}
-                {# 1. KFS ready to review #}
+                
+                <!--1. KFS ready to review -->
                 <li class="nav-item dropdown no-arrow mx-1">
                     <a class="nav-link dropdown-toggle" href="#" id="kfsReadyDropdown" role="button"
                         data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -356,24 +356,74 @@
 
         <style>
             /* ---------- Screen-reader utility (BS4 .sr-only | BS5 .visually-hidden) ----- */
-/* Both ship their own definition; nothing to restyle. Listed for reference. */
+            /* Both ship their own definition; nothing to restyle. Listed for reference. */
 
-/* Notification count badge — exempt from the brand .badge padding/pill bloat */
-.topbar .nav-item .nav-link .badge-counter {
-    position: absolute;
-    transform: scale(0.7);
-    transform-origin: top right;
-    right: 0.25rem;
-    top: 0.85rem;
-    z-index: 10;
-    padding: 0.25em 0.5em;   /* override the .4em .85em brand padding */
-    line-height: 1;
-}
+            /* Notification count badge — exempt from the brand .badge padding/pill bloat */
+            .topbar .nav-item .nav-link .badge-counter {
+                position: absolute;
+                transform: scale(0.7);
+                transform-origin: top right;
+                right: 0.25rem;
+                top: 0.85rem;
+                z-index: 10;
+                padding: 0.25em 0.5em;   /* override the .4em .85em brand padding */
+                line-height: 1;
+            }
 
         </style>
-            
 
 <script>
+(function () {
+  var CSRF = "{{ csrf_token }}";
+
+  // Wire a dropdown toggle to its mark-read endpoint, and zero its badge on success.
+  //   dropdownId : the <a> toggle's id (its <li> holds the .badge-counter)
+  //   url        : the mark-read endpoint
+  function wireMarkRead(dropdownId, url, label) {
+    var toggle = document.getElementById(dropdownId);
+    if (!toggle) return;                    // dropdown not on this page -> skip
+
+    toggle.addEventListener("click", function () {
+      fetch(url, {
+        method: "POST",
+        headers: { "X-CSRFToken": CSRF },
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data && data.success) {
+            // Zero (or hide) the badge on this dropdown.
+            var li = toggle.closest("li");
+            var badge = li ? li.querySelector(".badge-counter") : null;
+            if (badge) {
+              var remaining = (typeof data.unread === "number") ? data.unread : 0;
+              if (remaining > 0) {
+                badge.textContent = remaining;   // defensive; normally 0 here
+              } else {
+                badge.textContent = "";
+                badge.style.display = "none";
+              }
+            }
+            if (label) console.log(label + " marked as read");
+          }
+        })
+        .catch(function () { /* non-fatal: badge just stays until reload */ });
+    });
+  }
+
+  // Existing dropdowns.
+  wireMarkRead("loanApplicationDropdown", "{% url 'borrowers:mark_loan_approved_read' %}", "Approved-loan notifications");
+  wireMarkRead("loanRejectedDropdown",    "{% url 'borrowers:mark_loan_rejected_read' %}", "Rejected-loan notifications");
+  wireMarkRead("pendingLoanUpdateDropdown","{% url 'borrowers:mark_loan_pending_read' %}", "Pending-loan notifications");
+  wireMarkRead("loanPaymentUpdateDropdown","{% url 'borrowers:mark_payment_update_read' %}", "Payment-update notifications");
+
+  // NEW: KFS dropdowns (ids match the borrower topbar blocks).
+  wireMarkRead("kfsReadyDropdown",    "{% url 'borrowers:mark_kfs_ready_read' %}",    "KFS-ready notifications");
+  wireMarkRead("kfsCompleteDropdown", "{% url 'borrowers:mark_kfs_complete_read' %}", "KFS-complete notifications");
+})();
+</script>
+
+
+<!--<script>
     document.getElementById('loanApplicationDropdown').addEventListener('click', function () {
         fetch("{% url 'borrowers:mark_loan_approved_read' %}", {
             method: 'POST',
@@ -429,7 +479,7 @@
             }
         });
     });
-</script>
+</script>-->
 
 
 

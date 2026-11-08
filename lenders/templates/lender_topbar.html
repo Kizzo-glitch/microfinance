@@ -292,6 +292,51 @@
         </style>
 
 <script>
+(function () {
+  var CSRF = "{{ csrf_token }}";
+
+  // Wire a dropdown toggle to its mark-read endpoint and zero its badge on success.
+  function wireMarkRead(dropdownId, url, label) {
+    var toggle = document.getElementById(dropdownId);
+    if (!toggle) return;                    // dropdown not on this page -> skip
+
+    toggle.addEventListener("click", function () {
+      fetch(url, {
+        method: "POST",
+        headers: { "X-CSRFToken": CSRF },
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data && data.success) {
+            var li = toggle.closest("li");
+            var badge = li ? li.querySelector(".badge-counter") : null;
+            if (badge) {
+              var remaining = (typeof data.unread === "number") ? data.unread : 0;
+              if (remaining > 0) {
+                badge.textContent = remaining;
+              } else {
+                badge.textContent = "";
+                badge.style.display = "none";
+              }
+            }
+            if (label) console.log(label + " marked as read");
+          }
+        })
+        .catch(function () { /* non-fatal: badge stays until reload */ });
+    });
+  }
+
+  // Existing lender dropdowns.
+  wireMarkRead("loanApplicationDropdown",  "{% url 'lenders:mark_loan_application_notifications_read' %}", "Loan-application notifications");
+  wireMarkRead("loanPaymentDropdown",       "{% url 'lenders:mark_loan_payment_notifications_read' %}", "Loan-payment notifications");
+  wireMarkRead("pendingLoanUpdateDropdown", "{% url 'lenders:mark_pending_loan_update_notifications_read' %}", "Pending-loan-update notifications");
+
+  // NEW: KFS — borrower acknowledged, lender must confirm.
+  wireMarkRead("kfsConfirmDropdown", "{% url 'lenders:mark_kfs_confirm_read' %}", "KFS-confirm notifications");
+})();
+</script>
+
+<!--<script>
     document.getElementById('loanApplicationDropdown').addEventListener('click', function () {
         fetch("{% url 'lenders:mark_loan_application_notifications_read' %}", {
             method: 'POST',
@@ -333,7 +378,7 @@
             }
         });
     });
-</script>
+</script>-->
 
 
 

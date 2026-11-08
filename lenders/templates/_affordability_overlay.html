@@ -1,10 +1,11 @@
 {% comment %}
-  Verification overlay — renders NEXT TO the frozen affordability snapshot on
-  the review screen. Shows whether the documents behind the affordability
-  figures held up to checking. Never restates or rewrites the snapshot's numbers.
+  Verification overlay — renders NEXT TO the frozen affordability snapshot.
+  Now shows the short reason behind each flag/inconclusive under the band pill,
+  so the lender sees WHAT was flagged without opening the Document-checks panel.
 
-  Context: affordability_overlay (from build_affordability_overlay(application)).
-  Include it right after your existing affordability card.
+  Context: affordability_overlay (from build_affordability_overlay(application)),
+  where each support entry now carries `reasons`:
+    [ {severity: "fail"|"inconclusive", text: "<short>", detail: "<full>"} ]
 {% endcomment %}
 
 {% with ov=affordability_overlay %}
@@ -19,12 +20,29 @@
 
     {% if ov.has_checks %}
       {% if ov.income_support %}
-        <div class="mb-2">
+        <div class="mb-3">
           <span class="small text-muted">Income evidence:</span>
           {% for e in ov.income_support %}
-            <span class="badge badge-{{ e.tone }} ms-1">
-              {{ e.doc_type }}: {{ e.get_band_label|default:e.band_label }}
-            </span>
+            <div class="d-inline-block align-top ms-1 mb-1">
+              <span class="badge badge-{{ e.tone }}">
+                {{ e.doc_type }}: {{ e.band_label }}
+              </span>
+              {% if e.reasons %}
+                <ul class="list-unstyled small mb-0 mt-1">
+                  {% for r in e.reasons %}
+                    <li class="{% if r.severity == 'fail' %}text-danger{% else %}text-muted{% endif %}"
+                        title="{{ r.detail }}">
+                      {% if r.severity == 'fail' %}
+                        <i class="fas fa-exclamation-circle"></i>
+                      {% else %}
+                        <i class="fas fa-question-circle"></i>
+                      {% endif %}
+                      {{ r.text }}
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+            </div>
           {% endfor %}
         </div>
       {% endif %}
@@ -33,9 +51,26 @@
         <div class="mb-0">
           <span class="small text-muted">Expense evidence:</span>
           {% for e in ov.expense_support %}
-            <span class="badge badge-{{ e.tone }} ms-1">
-              {{ e.doc_type }}: {{ e.band_label }}
-            </span>
+            <div class="d-inline-block align-top ms-1 mb-1">
+              <span class="badge badge-{{ e.tone }}">
+                {{ e.doc_type }}: {{ e.band_label }}
+              </span>
+              {% if e.reasons %}
+                <ul class="list-unstyled small mb-0 mt-1">
+                  {% for r in e.reasons %}
+                    <li class="{% if r.severity == 'fail' %}text-danger{% else %}text-muted{% endif %}"
+                        title="{{ r.detail }}">
+                      {% if r.severity == 'fail' %}
+                        <i class="fas fa-exclamation-circle"></i>
+                      {% else %}
+                        <i class="fas fa-question-circle"></i>
+                      {% endif %}
+                      {{ r.text }}
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+            </div>
           {% endfor %}
         </div>
       {% endif %}

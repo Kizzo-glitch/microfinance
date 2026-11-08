@@ -1396,146 +1396,6 @@ def calculate_loan(request):
 
 
 
-'''def loan_calculator(request):
-	borrower = request.user.borrower
-	lender = get_object_or_404(LenderProfile, id=request.session.get("lender_id"))
-	loan_app = get_or_create_draft(request, borrower, lender, stage="loan_calculator")
-
-	# Product-derived figures — needed by BOTH POST (validation) and GET (render).
-	product = resolve_product(request, lender)
-	allowed = effective_terms(product, lender)
-	
-	def _money(x):
-		return Decimal(x).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)               
-
-	if request.method == "POST":
-		amount = request.POST.get("loan_amount")
-		term = request.POST.get("loan_term")
-		action = request.POST.get("action")
-
-		try:
-			term = int(term)
-		except (TypeError, ValueError):
-			term = None
-		try:
-			amount = Decimal(amount)
-		except Exception:
-			amount = None
-
-		allowed = effective_terms(product, lender)
-		if not amount or amount <= 0 or term not in allowed:
-			messages.error(request, "Please choose a valid amount and term.")
-			return redirect("borrowers:loan-calculator")
-
-		# --- compute the money at the PRODUCT rate (or profile fallback) ---
-		rate = effective_rate(product, lender)
-
-		if product and getattr(product, "repayment_structure", "") == "single_month_end":
-			# Flat monthly fee, single repayment, no term division.
-			fee = _money(amount * rate / Decimal("100"))
-			total = _money(amount + fee)
-			monthly = total                      # one repayment == the total
-		else:
-			total = _money(amount * (Decimal("1") + rate / Decimal("100")))
-			monthly = _money(total / Decimal(term))
-
-		loan_app.loan_amount = _money(amount)
-		loan_app.loan_term = term
-		loan_app.monthly_installment = monthly          # ← was never saved
-		loan_app.total_repayable = total                # ← was never saved
-		loan_app.current_stage = "apply_loan"
-		loan_app.save(update_fields=[
-			"loan_amount", "loan_term",
-			"monthly_installment", "total_repayable",
-			"current_stage",
-		])
-
-		if action == "save_exit":
-			return redirect("borrowers:borrower_index")
-		return redirect("borrowers:apply-loan")
-
-	# ───────────────────────── GET ──────────────────────────
-	# (Reached only when NOT a POST — the block below used to be dead code
-	#  trapped inside the POST branch, which is why the page never rendered.)
-	amount_min, amount_max = effective_amount_bounds(product, lender)
-	calc_rate = effective_rate(product, lender)
-	curated = curated_terms_for(product, lender)
-
-	context = {
-		"loan_app": loan_app,
-		"lender": lender,
-		"product": product,
-		"calc_rate": calc_rate,
-		"amount_min": amount_min,
-		"amount_max": amount_max,
-		# Keep available_terms if your template still references it anywhere;
-		# the curated buttons use curated_terms + term_min/max.
-		"available_terms": allowed,
-		"curated_terms": curated,
-		"term_min": min(allowed) if allowed else None,
-		"term_max": max(allowed) if allowed else None,
-	}
-	return render(request, "loan_calculator.html", context)
-
-
-# =====================================================================
-# Loan calculator (AJAX endpoint)
-# =====================================================================
-def calculate_loan(request):
-	lender_id = request.session.get("lender_id")
-	if not lender_id:
-		return JsonResponse({"error": "No lender selected."}, status=400)
- 
-	lender = get_object_or_404(LenderProfile, id=lender_id)
-	product = resolve_product(request, lender)   
- 
-	try:
-		amount = Decimal(request.GET.get("amount", "0"))
-		term = int(request.GET.get("term", "0"))
-	except (InvalidOperation, ValueError, TypeError):
-		return JsonResponse({"error": "Invalid amount or term."}, status=400)
- 
-	if amount <= 0 or term <= 0:
-		return JsonResponse({"error": "Amount and term must be greater than zero."}, status=400)
- 
-	# --- month-end products don't use a month term: handle separately ---
-	if product is not None and getattr(product, "repayment_structure", "") == "single_month_end":
-		# One repayment, flat monthly fee. No term selection applies.
-		fee_rate = effective_rate(product, lender)   # flat monthly %
-		fee = (amount * fee_rate / Decimal("100")).quantize(Decimal("0.01"))
-		total = (amount + fee).quantize(Decimal("0.01"))
-		return JsonResponse({
-			"currency": "M",
-			"amount": round(amount, 2),
-			"structure": "single_month_end",
-			"flat_fee": round(fee, 2),
-			"total_repayable": round(total, 2),
-			"note": "One repayment, due at month-end. Flat fee of "
-					f"{fee_rate}% of the amount.",
-		})
- 
-	# --- instalment products (and legacy profile-rate lenders) ---
-	allowed_terms = [str(t) for t in effective_terms(product, lender)]
-	if allowed_terms and str(term) not in allowed_terms:
-		return JsonResponse(
-			{"error": f"Invalid loan term. Allowed terms: {', '.join(allowed_terms)}."},
-			status=400,
-		)
- 
-	interest_rate = effective_rate(product, lender)   # ← product rate, not profile
-	total_repayable = amount * (Decimal("1") + interest_rate / Decimal("100"))
-	monthly_installment = total_repayable / Decimal(term)
- 
-	return JsonResponse({
-		"currency": "M",
-		"amount": round(amount, 2),
-		"term": term,
-		"interest_rate": round(interest_rate, 2),
-		"total_repayable": round(total_repayable, 2),
-		"monthly_installment": round(monthly_installment, 2),
-		# So the UI can show WHICH product's rate this is.
-		"product": product.name if product else None,
-	})'''
 
  
 # =====================================================================
@@ -2014,6 +1874,65 @@ def calculate_adjusted_payment(loan):
 # ===========================
 # Top-bar notifications
 # ===========================
+
+def _mark_category_read(request, *categories):
+    """
+    Mark THIS user's unread notifications in the given categories as read.
+    Returns the JsonResponse with success + the remaining unread count for those
+    categories (which will be 0 right after, letting the JS zero the badge).
+    """
+    Notification.objects.filter(
+        user=request.user,                 
+        category__in=categories,
+        is_read=False,
+    ).update(is_read=True)
+ 
+    remaining = Notification.objects.filter(
+        user=request.user, category__in=categories, is_read=False,
+    ).count()
+    return JsonResponse({"success": True, "unread": remaining})
+ 
+ 
+@login_required
+@require_POST
+def mark_loan_approved_read(request):
+    return _mark_category_read(request, "loan_approved")
+ 
+ 
+@login_required
+@require_POST
+def mark_loan_rejected_read(request):
+    return _mark_category_read(request, "loan_rejected")
+ 
+ 
+@login_required
+@require_POST
+def mark_loan_pending_read(request):
+    return _mark_category_read(request, "loan_pending")
+ 
+ 
+@login_required
+@require_POST
+def mark_payment_update_read(request):
+    return _mark_category_read(request, "payment_update")
+ 
+ 
+# ---- NEW: KFS notifications (borrower side) ----
+ 
+@login_required
+@require_POST
+def mark_kfs_ready_read(request):
+    return _mark_category_read(request, "kfs_ready")
+ 
+ 
+@login_required
+@require_POST
+def mark_kfs_complete_read(request):
+    return _mark_category_read(request, "kfs_complete")
+ 
+
+
+'''
 def mark_loan_approved_read(request):
 	Notification.objects.filter(category="loan_approved", is_read=False).update(is_read=True)
 	return JsonResponse({"success": True})
@@ -2030,7 +1949,7 @@ def mark_loan_pending_read(request):
 
 def mark_payment_update_read(request):
 	Notification.objects.filter(category="payment_update", is_read=False).update(is_read=True)
-	return JsonResponse({"success": True})
+	return JsonResponse({"success": True})'''
 
 
 # Remember to add this to individual clicks of notification

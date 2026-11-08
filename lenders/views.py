@@ -612,6 +612,53 @@ class LenderVerificationDetailView(UpdateView):
 # ==================
 # Notififations
 # ==================
+
+def _mark_category_read(request, *categories):
+    """Mark THIS lender's unread notifications in these categories read; return
+    success + remaining unread count for them."""
+    Notification.objects.filter(
+        user=request.user,                 # <-- the fix
+        category__in=categories,
+        is_read=False,
+    ).update(is_read=True)
+ 
+    remaining = Notification.objects.filter(
+        user=request.user, category__in=categories, is_read=False,
+    ).count()
+    return JsonResponse({"success": True, "unread": remaining})
+ 
+ 
+@login_required
+@require_POST
+def mark_loan_application_notifications_read(request):
+    return _mark_category_read(request, "loan_application")
+ 
+ 
+@login_required
+@require_POST
+def mark_loan_payment_notifications_read(request):
+    return _mark_category_read(request, "loan_payment")
+ 
+ 
+@login_required
+@require_POST
+def mark_pending_loan_update_notifications_read(request):
+    # Was already correct; kept here so all three share the helper + shape.
+    return _mark_category_read(
+        request, "loan_update", "document_update", "loan_deleted")
+ 
+ 
+# ---- NEW: KFS notification (lender side) ----
+# Borrower acknowledged -> lender must confirm. Category: kfs_borrower_acknowledged.
+ 
+@login_required
+@require_POST
+def mark_kfs_confirm_read(request):
+    return _mark_category_read(request, "kfs_borrower_acknowledged")
+ 
+
+
+'''
 def mark_loan_application_notifications_read(request):
 	Notification.objects.filter(category="loan_application", is_read=False).update(is_read=True)
 	return JsonResponse({"success": True})
@@ -630,7 +677,7 @@ def mark_pending_loan_update_notifications_read(request):
 			is_read=False
 		).update(is_read=True)
 		return JsonResponse({'success': True})
-	return JsonResponse({'success': False}, status=400)
+	return JsonResponse({'success': False}, status=400)'''
 
 
 # Side-bar notifications
@@ -733,9 +780,6 @@ class LoanApplicationListView(ListView):
 			status='pending'
 		).order_by('-date_applied')
 
-
-from django.db import transaction
-logger = logging.getLogger(__name__)
 
 class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 	model = LoanApplication
@@ -957,184 +1001,6 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
  
 	def get_success_url(self):
 		return reverse("lenders:loan-application-list")
-
-
-'''
-class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
-	model = LoanApplication
-	form_class = LoanApplicationStatusForm  
-	template_name = "loan_application_update.html"
- 
-	# ---- access control ------------------------------------------------
-	def get_queryset(self):
-		"""
-		Restrict to applications belonging to the logged-in lender. A wrong or
-		someone-else's application id now 404s instead of loading.
-		"""
-		return LoanApplication.objects.filter(lender=self.request.user.lender)
- 
-
-	# ---- status update workflow (approve / reject / pending) -----------
-	def form_valid(self, form):
-		loan_application = form.save(commit=False)
-		old_status = LoanApplication.objects.get(pk=loan_application.pk).status
-
-		# ── Document-flag acknowledgement guard ──────────────────────────
-		if (form.cleaned_data.get("status") == "approved"
-				and unacknowledged_flags(loan_application, self.request)):
-			form.add_error(None,
-				"This applicant has flagged documents. Please review and "
-				"acknowledge them before approving.")
-			return self.form_invalid(form)
-
-		# Define these BEFORE using them.
-		loan_amount = loan_application.loan_amount
-		borrower_user = loan_application.borrower
-		phone_number = borrower_user.phone_number
-
-		if loan_application.status != old_status:
-			if loan_application.status == "approved":
-				# Guard against creating a second Loan for the same application.
-				if not loan_application.linked_loan:
-					# Resolve rate/total from the CHOSEN PRODUCT, right where used.
-					interest, total_repayable = approval_rate_block(
-						loan_application, loan_amount)
-
-					loan = Loan.objects.create(
-						borrower=borrower_user,
-						lender=loan_application.lender,
-						amount=Decimal(loan_amount),
-						loan_term=loan_application.loan_term,
-						interest_rate=interest,
-						first_payment= Decimal(loan_application.monthly_installment), #Decimal(loan_application.first_payment) if loan_application.first_payment is not None else Decimal('0'),
-						monthly_installment=Decimal(loan_application.monthly_installment),
-						total_repayable=total_repayable,
-						outstanding_balance=total_repayable,
-						due_date=loan_application.date_applied + timedelta(days=365),
-						status="approved",
-						group=loan_application.group,
-						product=loan_application.product,
-					)
-					loan_application.linked_loan = loan
-					on_loan_approved(self.request, loan_application, loan)
-					
-
-				Notification.objects.create(
-					user=borrower_user.user,
-					message=f"Your loan application from {loan_application.lender.company_name} "
-							f"for M{loan_amount} has been approved.",
-					category="loan_approved",
-				)
-				send_sms(phone_number, "loan_approved", {
-					"name": borrower_user.full_name, "amount": loan_amount,
-					"lender": loan_application.lender.company_name,
-					"ref": loan_application.reference_number})
-
-			elif loan_application.status == "rejected":
-				reasons = loan_application.get_rejection_reasons_display()
-				Notification.objects.create(
-					user=borrower_user.user,
-					message=f"Your loan of M{loan_amount} from "
-							f"{loan_application.lender.company_name} was rejected. "
-							f"Reasons: {reasons}",
-					category="loan_rejected",
-				)
-				send_sms(phone_number, "loan_rejected", {
-					"name": borrower_user.full_name, "amount": loan_amount,
-					"lender": loan_application.lender.company_name,
-					"reasons": reasons, "ref": loan_application.reference_number})
-
-			elif loan_application.status == "pending":
-				reasons = loan_application.get_pending_reasons_display()
-				Notification.objects.create(
-					user=borrower_user.user,
-					message=f"Your loan application from {loan_application.lender.company_name} "
-							f"is pending. Reasons: {reasons}",
-					category="loan_pending",
-				)
-				send_sms(phone_number, "loan_pending", {
-					"name": borrower_user.full_name, "amount": loan_amount,
-					"lender": loan_application.lender.company_name,
-					"reasons": reasons, "ref": loan_application.reference_number})
-
-		loan_application.save()
-		form.save_m2m()
-
-		reasons = []
-		if loan_application.status == "rejected":
-			reasons = loan_application.rejection_reasons
-		elif loan_application.status == "pending":
-			reasons = loan_application.pending_reasons
-
-		subject = f"Loan Application {loan_application.status.capitalize()}"
-		body = render_to_string("loan_notification_letter.html", {
-			"loan_application": loan_application,
-			"status": loan_application.status,
-			"reasons": reasons,
-		})
-		email = EmailMultiAlternatives(subject, "", settings.EMAIL_HOST_USER,
-									   [borrower_user.email_address])
-		email.attach_alternative(body, "text/html")
-		#email.send()
-
-		return super().form_valid(form)
-
-
-	# ---- context: read the snapshot, don't recompute -------------------
-	def get_context_data(self, **kwargs):
-		context = super().get_context_data(**kwargs)        # ONE super() call
-		loan_application = self.object
-		borrower = loan_application.borrower
-
-		documents = BorrowerDocs.objects.filter(
-			borrower=borrower, loan_application=loan_application
-		)
-
-		# Borrower loan-history signals (lender-review facts, fine to compute).
-		outstanding_loans = Loan.objects.filter(
-			borrower=borrower, outstanding_balance__gt=0
-		).count()
-		overdue_loans = Loan.objects.filter(
-			borrower=borrower, due_date__lt=date.today(), outstanding_balance__gt=0
-		).count()
-		total_debt = Loan.objects.filter(borrower=borrower).aggregate(
-			total=models.Sum("outstanding_balance")
-		)["total"] or 0
-
-		# Affordability verdict from the IMMUTABLE snapshot, not recomputed.
-		assessment = getattr(loan_application, "affordability_assessment", None)
-
-		compat = compatibility(borrower, self.request.user.lender)
-		
-		# Document-check panel rows (statement / payslip / ID, with latest run).
-		context.update({
-			"application": loan_application,          # the panel/AJAX use this
-			"doc_rows": build_doc_rows(loan_application),
-
-			"borrower": borrower,
-			"loan_amount": loan_application.loan_amount,
-			"loan_term": loan_application.loan_term,
-			"total_repayable": loan_application.total_repayable,
-			"first_payment": loan_application.first_payment,
-			"monthly_installment": loan_application.monthly_installment,
-
-			"outstanding_loans": outstanding_loans,
-			"overdue_loans": overdue_loans,
-			"total_debt": total_debt,
-
-			"documents": documents,
-			"assessment": assessment,
-			"compat": compat,
-			"group_profile": _build_group_standing(loan_application),
-
-			"affordability_overlay": build_affordability_overlay(loan_application),
-		})
-		return context
-
- 
-	def get_success_url(self):
-		return reverse("lenders:loan-application-list")'''
-
 
 
 """
