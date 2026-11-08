@@ -16,15 +16,15 @@
     {% if role == "borrower" %}
       {% if k.status == "generated" %}
         {# Action needed — borrower must acknowledge first. Make it prominent. #}
-        <a href="{% url 'view_kfs' k.pk %}" class="btn btn-warning btn-sm">
+        <a href="{% url 'loans:view_kfs' k.pk %}" class="btn btn-warning btn-sm">
           <i class="fas fa-file-signature"></i> Review &amp; acknowledge Key Facts Statement
         </a>
       {% elif k.status == "borrower_ack" %}
-        <a href="{% url 'view_kfs' k.pk %}" class="btn btn-outline-secondary btn-sm">
+        <a href="{% url 'loans:view_kfs' k.pk %}" class="btn btn-outline-secondary btn-sm">
           <i class="fas fa-hourglass-half"></i> Key Facts Statement — awaiting lender
         </a>
       {% elif k.status == "acknowledged" %}
-        <a href="{% url 'view_kfs' k.pk %}" class="btn btn-outline-success btn-sm">
+        <a href="{% url 'loans:view_kfs' k.pk %}" class="btn btn-outline-success btn-sm">
           <i class="fas fa-check-circle"></i> View Key Facts Statement
         </a>
       {% endif %}
@@ -32,15 +32,15 @@
     {% elif role == "lender" %}
       {% if k.status == "borrower_ack" %}
         {# Action needed — lender must confirm. Prominent. #}
-        <a href="{% url 'view_kfs' k.pk %}" class="btn btn-warning btn-sm">
+        <a href="{% url 'loans:view_kfs' k.pk %}" class="btn btn-warning btn-sm">
           <i class="fas fa-file-signature"></i> Confirm Key Facts Statement
         </a>
       {% elif k.status == "generated" %}
-        <a href="{% url 'view_kfs' k.pk %}" class="btn btn-outline-secondary btn-sm">
+        <a href="{% url 'loans:view_kfs' k.pk %}" class="btn btn-outline-secondary btn-sm">
           <i class="fas fa-hourglass-half"></i> Key Facts Statement — awaiting borrower
         </a>
       {% elif k.status == "acknowledged" %}
-        <a href="{% url 'view_kfs' k.pk %}" class="btn btn-outline-success btn-sm">
+        <a href="{% url 'loans:view_kfs' k.pk %}" class="btn btn-outline-success btn-sm">
           <i class="fas fa-check-circle"></i> View Key Facts Statement
         </a>
       {% endif %}

@@ -417,11 +417,6 @@ def acknowledge_kfs(request, kfs_id):
     if request.method != "POST":
         return redirect("loans:view_kfs", kfs_id=kfs_id)
 
-    from loans.models import KeyFactsStatement
-    from .kfs_notifications import (
-        notify_lender_of_borrower_ack, notify_borrower_fully_acknowledged,
-    )
-
     kfs = get_object_or_404(KeyFactsStatement, pk=kfs_id)
     loan = kfs.loan
     borrower = loan.borrower
