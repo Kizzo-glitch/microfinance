@@ -102,7 +102,9 @@ def approval_rate_block(loan_application, loan_amount):
         fee = (Decimal(loan_amount) * interest / Decimal("100")).quantize(Decimal("0.01"))
         total_repayable = (Decimal(loan_amount) + fee).quantize(Decimal("0.01"))
     else:
-        total_repayable = Decimal(loan_amount) * (Decimal("1") + interest / Decimal("100"))
+        # Lawful declining-balance total, product fees included (== the KFS).
+        from loans.pricing import quote
+        total_repayable, _monthly = quote(loan_amount, interest, loan_application.loan_term, product)
  
     return interest, total_repayable
 

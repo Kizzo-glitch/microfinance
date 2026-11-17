@@ -348,6 +348,13 @@ def generate_kfs(loan, *, product=None):
         total_payable=sched["total_payable"],
         product_code=product.product_code if product else "",
     )
+
+    # The KFS is the binding disclosure, so the loan must charge exactly what it
+    # states. Align the total and the outstanding balance with it.
+    if kfs.total_payable is not None and loan.total_repayable != kfs.total_payable:
+        loan.total_repayable = kfs.total_payable
+        loan.save(update_fields=["total_repayable"])
+        loan.update_outstanding_balance()
     return kfs
 
 

@@ -836,7 +836,6 @@ class LoanApplicationUpdateView(LoginRequiredMixin, UpdateView):
 							monthly_installment=Decimal(loan_application.monthly_installment),
 							total_repayable=total_repayable,
 							outstanding_balance=total_repayable,
-							due_date=loan_application.date_applied + timedelta(days=365),
 							status="approved",
 							group=loan_application.group,
 							product=loan_application.product,
@@ -1127,19 +1126,22 @@ Design:
 """
 def available_methods(profile) -> set:
 	"""
-	The set of payment methods this profile can transact by.
-	Returns a set of {"bank", "mpesa", "ecocash"}.
+	The set of payment methods this profile can transact by, e.g.
+	{"bank", "mpesa", "ecocash", "cpay"}. Bank details live on the profile;
+	mobile money comes from the profile's MobileMoneyAccount rows.
 	"""
 	methods = set()
+	if profile is None:
+		return methods
 	if getattr(profile, "bank_account_number", "") and getattr(profile, "bank_name", ""):
 		methods.add("bank")
-	prov = getattr(profile, "mobile_money_provider", "")
-	if getattr(profile, "mobile_money_number", "") and prov:
-		methods.add(prov)   # "mpesa" or "ecocash"
+	accounts = getattr(profile, "mobile_money_accounts", None)
+	if accounts is not None:
+		methods.update(acct.provider for acct in accounts.all() if acct.number)
 	return methods
 
 
-_LABELS = {"bank": "Bank transfer", "mpesa": "M-Pesa", "ecocash": "EcoCash"}
+_LABELS = {"bank": "Bank transfer", "mpesa": "M-Pesa", "ecocash": "EcoCash", "cpay": "C-Pay"}
 
 
 def methods_label(methods: set) -> str:
@@ -1299,56 +1301,49 @@ class PendingLoansView(ListView):
 @require_POST
 @login_required
 def update_pending_loans(request):
+	"""
+	Quick status changes from the Pending loans list.
+
+	Only the lender who owns an application can change it, and only while it
+	is still pending. Approval is NOT done here: it redirects to the full
+	review page, where the document-flag check, the declining-balance totals,
+	the KFS and the atomic approval all apply.
+	"""
 	submit_id = request.POST.get("submit_id")
-
-	try:
-		app = LoanApplication.objects.get(id=submit_id)
-
-		# Reason and status update
-		app.status_reason = request.POST.get(f"reason_{app.id}", app.status_reason)
-		new_status = request.POST.get(f"status_{app.id}", app.status)
-
-		if new_status == 'approved' and app.status != 'approved':
-			loan = Loan.objects.create(
-				borrower=app.borrower,
-				lender=app.lender,
-				amount=Decimal(app.loan_amount),
-				loan_term=app.loan_term,
-				interest_rate=Decimal(app.lender.interest_rate),
-				first_payment=Decimal(app.first_payment),
-				monthly_installment=Decimal(app.monthly_installment),
-				total_repayable=app.loan_amount * (1 + Decimal(app.lender.interest_rate) / Decimal(100)),
-				outstanding_balance=app.loan_amount * (1 + Decimal(app.lender.interest_rate) / Decimal(100)),
-				due_date=app.date_applied + timedelta(days=365),
-				status='approved'
-			)
-			app.application = loan
-			Notification.objects.create(
-				user=app.borrower.user,
-				message=f"🎉 Your Loan application from {app.lender.company_name} for R{app.loan_amount} has been approved.",
-				category="loan_approved"
-			)
-
-		elif new_status == 'rejected':
-			Notification.objects.create(
-				user=app.borrower.user,
-				message=f"❌ Your loan of R{app.loan_amount} was rejected. Reason: {app.status_reason}",
-				category="loan_rejected"
-			)
-
-		elif new_status == 'pending':
-			Notification.objects.create(
-				user=app.borrower.user,
-				message=f"⏳ Your loan application is pending. Reason: {app.status_reason}",
-				category="loan_pending"
-			)
-
-		app.status = new_status
-		app.save()
-		messages.success(request, "Loan application updated.")
-	except LoanApplication.DoesNotExist:
+	app = LoanApplication.objects.filter(
+		id=submit_id, lender__user=request.user, status="pending").first()
+	if app is None:
 		messages.error(request, "Application not found.")
+		return redirect('lenders:pending-loans')
 
+	new_status = request.POST.get(f"status_{app.id}", app.status)
+
+	if new_status == "approved":
+		messages.info(request, "Please complete the approval on the full review page.")
+		return redirect('lenders:loan-application-update', pk=app.id)
+
+	if new_status not in ("pending", "rejected"):
+		messages.error(request, "That status can't be set from this page.")
+		return redirect('lenders:pending-loans')
+
+	app.status_reason = request.POST.get(f"reason_{app.id}", app.status_reason)
+
+	if new_status == "rejected":
+		Notification.objects.create(
+			user=app.borrower.user,
+			message=f"❌ Your loan of M{app.loan_amount} was rejected. Reason: {app.status_reason}",
+			category="loan_rejected"
+		)
+	else:
+		Notification.objects.create(
+			user=app.borrower.user,
+			message=f"⏳ Your loan application is pending. Reason: {app.status_reason}",
+			category="loan_pending"
+		)
+
+	app.status = new_status
+	app.save()
+	messages.success(request, "Loan application updated.")
 	return redirect('lenders:pending-loans')
 
 

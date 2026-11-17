@@ -22,14 +22,14 @@
                     {% for app in pending_loans %}
                         <tr>
                             <td>{{ app.borrower.user.username }}</td>
-                            <td>R{{ app.loan_amount }}</td>
+                            <td>M{{ app.loan_amount }}</td>
                             <td>
                                 <input type="text" name="reason_{{ app.id }}" class="form-control" value="{{ app.status_reason }}">
                             </td>
                             <td>
                                 <select name="status_{{ app.id }}" class="form-select">
                                     <option value="pending" {% if app.status == 'pending' %}selected{% endif %}>Pending</option>
-                                    <option value="approved">Approve</option>
+                                    <option value="approved">Approve (opens full review)</option>
                                     <option value="rejected">Reject</option>
                                 </select>
                             </td>

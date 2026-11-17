@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 
 #from micro.models import User
 from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
 from django.db.models import Sum
 from django.utils.timezone import now
 from datetime import date
@@ -227,8 +228,13 @@ class Loan(models.Model):
 				Loan, "reference_number", prefix="FGL"
 			)
 		
-		# 2. Calculate totals and balances
-		self.calculate_total_repayable()
+		# 2. The total is set at approval from the lawful declining-balance
+		#    quote and then aligned with the KFS (loans.pricing). It is NOT
+		#    recalculated here: the old flat formula overcharged borrowers.
+
+		# 2b. Final repayment date (drives the overdue / late / default checks)
+		if not self.due_date:
+			self.due_date = self.compute_due_date()
 		
 		if not self.outstanding_balance:
 			self.outstanding_balance = 0
@@ -236,9 +242,32 @@ class Loan(models.Model):
 		# 3. Call the parent save method EXACTLY ONCE
 		super().save(*args, **kwargs)
 
+	def compute_due_date(self):
+		"""
+		The final repayment date, which the overdue, late and default checks use.
+
+		Instalment loans: the last instalment, i.e. the first payment date plus
+		(term - 1) months. A 3-month loan whose first payment is 15 Jan is due
+		15 Mar (instalments on 15 Jan, 15 Feb, 15 Mar).
+		Single month-end loans: the product's month-end repayment date.
+		"""
+		start = self.date_created or timezone.localdate()
+		product = self.product
+		if product is not None and getattr(product, "is_single_repayment", False):
+			return product.month_end_due_date(self.disbursement_date or start)
+
+		first = self.first_payment_day or (start + timedelta(days=30))
+		try:
+			term = max(int(self.loan_term), 1)
+		except (TypeError, ValueError):
+			term = 1
+		return first + relativedelta(months=term - 1)
+
 	def calculate_total_repayable(self):
-		"""Calculate the total amount to be repaid including interest."""
-		self.total_repayable = self.amount * (1 + (self.interest_rate / 100))
+		"""Set the total from the lawful source: the KFS if one exists, else the
+		declining-balance calculation. See loans.pricing."""
+		from loans.pricing import lawful_total
+		self.total_repayable, _source = lawful_total(self)
 
 	def remaining_months(self):
 		"""Calculate months left until the due date."""

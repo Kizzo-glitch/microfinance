@@ -52,6 +52,7 @@ from lenders.views import available_methods
 
 from loans.loan_terms_resolver import curated_terms_for, effective_amount_bounds, effective_rate, effective_terms, get_or_create_draft, resolve_product
 from loans.models import LenderProfile, LoanApplication, Loan, LoanPayment, Notification, Rating, ResponsibleLendingAssessment
+from loans.pricing import product_fee_rows, quote, quote_instalment
 
 from loans.views import generate_kfs
 
@@ -1217,43 +1218,17 @@ def _money(x) -> Decimal:
 
 
 def _product_fee_rows(product):
-    """Product fees as the plain dicts build_schedule expects (amount Decimal)."""
-    rows = []
-    if product:
-        for f in product.fees.all():
-            rows.append({
-                "fee_type": f.fee_type,
-                "amount": Decimal(str(f.amount)),
-                "basis": f.basis,
-                "applicable": f.applicable,
-            })
-    return rows
+    """Product fees as build_schedule expects them. See loans.pricing."""
+    return product_fee_rows(product)
 
 
 def _quote_instalment(amount, annual_rate, term, product):
     """
-    Lawful declining-balance quote, fees included — the same engine and inputs
-    generate_kfs uses, so the calculator and the KFS agree to the cent.
-
-    Returns (emi, total_repayable, monthly_outflow):
-      emi             : level principal+interest payment.
-      total_repayable : principal + total interest + total fees (== KFS total).
-      monthly_outflow : emi plus any per-instalment (monthly) fee — the real
-                        typical monthly payment. (Upfront fees land on row 1,
-                        so they're in total_repayable but not in this figure.)
+    Lawful declining-balance quote, fees included. Returns
+    (emi, total_repayable, monthly_outflow). One engine for the calculator,
+    the application, the loan record and the KFS: see loans.pricing.
     """
-    res = build_schedule(
-        principal=amount,
-        annual_rate=annual_rate,
-        term_months=term,
-        fees=_product_fee_rows(product),
-        interest_type="reducing",
-    )
-    # Per-month fee = a middle row's fee (row 1 may carry an upfront fee).
-    mid = res.instalments[len(res.instalments) // 2] if res.instalments else None
-    monthly_fee = mid.fees if mid is not None else Decimal("0.00")
-    monthly_outflow = _money(res.emi + monthly_fee)
-    return res.emi, res.total_payable, monthly_outflow
+    return quote_instalment(amount, annual_rate, term, product)
 
 
 # ───────────────────────────── calculator view ─────────────────────────────
@@ -1683,6 +1658,7 @@ def pending_loan_application(request):
 # Loan updates
 # =========================================
 
+@login_required
 def update_loan_application(request, application_id):
 	application = get_object_or_404(LoanApplication, id=application_id, borrower__user=request.user)
 
@@ -1695,13 +1671,13 @@ def update_loan_application(request, application_id):
 		if form.is_valid():
 			updated_application = form.save(commit=False)
 
-			# Recalculate repayment details
-			interest_rate = float(application.lender.interest_rate) / 100
-			loan_amount = float(updated_application.loan_amount)
-			loan_term = updated_application.loan_term
-
-			total_repayable = loan_amount * float((1 + (interest_rate * (loan_term / 12))))
-			monthly_installment = total_repayable / loan_term
+			# Recalculate repayment details with the lawful declining-balance
+			# quote — the same figures the calculator and the KFS use.
+			product = updated_application.product
+			rate = effective_rate(product, updated_application.lender)
+			total_repayable, monthly_installment = quote(
+				updated_application.loan_amount, rate,
+				int(updated_application.loan_term), product)
 
 			# Update fields
 			updated_application.total_repayable = total_repayable
