@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from django.forms import modelformset_factory
+from django.db import IntegrityError, transaction
+from django.forms import BaseModelFormSet, modelformset_factory
 
 from .models import MobileMoneyAccount, User
 
@@ -101,6 +102,8 @@ PAYMENT_DETAIL_FIELDS = [
     "payment_instructions",
 ]
 
+BANK_FIELDS = ["bank_name", "bank_account_name", "bank_account_number", "bank_branch_code"]
+
 PAYMENT_DETAIL_WIDGETS = {
     "bank_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "e.g. Standard Lesotho Bank"}),
     "bank_account_name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Account holder name"}),
@@ -124,15 +127,15 @@ def make_payment_details_form(model_cls):
 
         def clean(self):
             cleaned = super().clean()
-            # at least one method should be complete, if any details entered
-            bank_ok = cleaned.get("bank_account_number") and cleaned.get("bank_name")
-            #mm_ok = cleaned.get("mobile_money_number") and cleaned.get("mobile_money_provider")
-            any_entered = any(cleaned.get(f) for f in PAYMENT_DETAIL_FIELDS)
-            if any_entered and not (bank_ok):
-                raise forms.ValidationError(
-                    "Please complete at least one full payment method — either a "
-                    "bank account (name + number) or a mobile-money account "
-                    "(provider + number).")
+            # A bank account is optional (mobile money is saved separately), but
+            # if any bank detail is entered, the bank name and number are needed.
+            bank_entered = any(cleaned.get(f) for f in BANK_FIELDS)
+            if bank_entered:
+                if not cleaned.get("bank_name"):
+                    self.add_error("bank_name", "Add the bank name, or clear the bank details.")
+                if not cleaned.get("bank_account_number"):
+                    self.add_error("bank_account_number",
+                                   "Add the account number, or clear the bank details.")
             return cleaned
 
     return _PaymentDetailsForm
@@ -159,11 +162,35 @@ class MobileMoneyAccountForm(forms.ModelForm):
         return cleaned
  
  
+class BaseMobileMoneyFormSet(BaseModelFormSet):
+    """Allows one account per provider (the database enforces it too)."""
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        labels = dict(MobileMoneyAccount.PROVIDER_CHOICES)
+        seen = set()
+        for form in self.forms:
+            data = getattr(form, "cleaned_data", None) or {}
+            if data.get("DELETE"):
+                continue
+            provider = data.get("provider")
+            if not provider:
+                continue
+            if provider in seen:
+                raise forms.ValidationError(
+                    f"You can only add one {labels.get(provider, provider)} account. "
+                    "Remove the duplicate row.")
+            seen.add(provider)
+
+
 # Formset: shows existing + 2 blank rows to add, allows delete.
 MobileMoneyFormSet = modelformset_factory(
     MobileMoneyAccount,
     form=MobileMoneyAccountForm,
-    extra=2,            
+    formset=BaseMobileMoneyFormSet,
+    extra=2,
     can_delete=True,
 )
  
@@ -179,22 +206,29 @@ def get_mobile_money_formset(profile, is_lender=False, data=None):
                               prefix="mm")   # prefix keeps it separate from other forms
  
  
-def save_mobile_money_formset(formset, profile, is_lender=False):
-    """
-    Save the formset: create/update accounts owned by this profile, honour
-    deletes, and skip blank rows. Returns True if valid+saved, False if invalid.
-    """
-    if not formset.is_valid():
-        return False
- 
+def _retire_collection(account, reason):
+    """A lender's instant collection is tied to this account's provider: turn it
+    off (here, and in the payment gateway once saved) if the row goes away or
+    the provider changes. Changing only the number keeps it: collection goes to
+    the verified merchant code, not the phone number."""
+    if getattr(account, "lender_id", None) is None:
+        return
+    from integrations.collection import retire_for_account
+    retire_for_account(account, reason)
+
+
+def _save_mobile_money_rows(formset, profile, is_lender):
     for form in formset:
         # skip entirely blank extra rows
         if not form.has_changed():
             continue
         if formset.can_delete and form.cleaned_data.get("DELETE"):
             if form.instance.pk:
+                _retire_collection(form.instance, "The account was removed.")
                 form.instance.delete()
             continue
+        if form.instance.pk and "provider" in form.changed_data:
+            _retire_collection(form.instance, "The account's provider changed.")
         acct = form.save(commit=False)
         # attach to the correct owner
         if is_lender:
@@ -204,6 +238,50 @@ def save_mobile_money_formset(formset, profile, is_lender=False):
             acct.borrower = profile
             acct.lender = None
         acct.save()
+
+
+def _conflict_error(formset):
+    # Rare: two rows swapped providers in one save. Validation passes (the end
+    # state is unique) but the rows can't be saved one at a time.
+    formset.non_form_errors().append(
+        "Those changes conflict with each other (two accounts swapped providers). "
+        "Please make the change in two steps.")
+
+
+def save_mobile_money_formset(formset, profile, is_lender=False):
+    """
+    Save the formset: create/update accounts owned by this profile, honour
+    deletes, and skip blank rows. All-or-nothing: if any row fails, none are
+    saved. Returns True if saved, False if invalid or not saved.
+    """
+    if not formset.is_valid():
+        return False
+    try:
+        with transaction.atomic():
+            _save_mobile_money_rows(formset, profile, is_lender)
+    except IntegrityError:
+        _conflict_error(formset)
+        return False
+    return True
+
+
+def save_payment_details(payment_form, formset, profile, is_lender=False):
+    """
+    Validate and save a profile's bank details and mobile-money accounts
+    together, all-or-nothing. Returns True if saved. On False, the errors are
+    on the form and formset, ready to re-render.
+    """
+    bank_ok = payment_form.is_valid()
+    mm_ok = formset.is_valid()
+    if not (bank_ok and mm_ok):
+        return False
+    try:
+        with transaction.atomic():
+            payment_form.save()
+            _save_mobile_money_rows(formset, profile, is_lender)
+    except IntegrityError:
+        _conflict_error(formset)
+        return False
     return True
 
 

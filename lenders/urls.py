@@ -9,6 +9,7 @@ from .views import (
     LenderVerificationDetailView, LenderNotificationListView,
     )
 from integrations.verification.doccheck_ajax import run_doc_check_ajax
+from . import collection_views
 
 app_name = 'lenders'
 
@@ -16,6 +17,10 @@ urlpatterns = [
     path('lender_index/', views.lender_index, name='lender_index'),
     
     path('lender_profile/', views.lender_profile, name='lender_profile'),
+    path('collection/<int:account_id>/enable/', collection_views.enable, name='collection_enable'),
+    path('collection/setup/<int:setup_id>/otp/', collection_views.otp, name='collection_otp'),
+    path('collection/setup/<int:setup_id>/resend/', collection_views.resend, name='collection_resend'),
+    path('collection/setup/<int:setup_id>/disable/', collection_views.disable, name='collection_disable'),
     path('product-list/', views.product_list, name='product_list'),
     path("products/new/", views.product_edit, name="product_create"),
     path('product-edit/<int:product_id>/', views.product_edit, name='product_edit'),

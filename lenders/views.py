@@ -36,7 +36,8 @@ from django.db import transaction
 from compliance.compliace_services import ComplianceDashboardService
 from compliance.models import ComplianceProfile, PersonnelProfile
 
-from micro.forms import MobileMoneyAccountForm, get_mobile_money_formset, make_payment_details_form, save_mobile_money_formset
+from lenders.collection_views import collection_rows
+from micro.forms import MobileMoneyAccountForm, get_mobile_money_formset, make_payment_details_form, save_mobile_money_formset, save_payment_details
 
 from .forms import (LenderInfoForm, LenderProductForm, LoanApplicationStatusForm, 
 					LoanStatusForm, LenderDocumentsForm, ProductFeeFormSet, _compliance_of)
@@ -333,6 +334,7 @@ def get_dashboard_cbl_card(lender, compliance_data=None):
 # ======================================
 # Lender Profile and Product Listings
 # ======================================
+@login_required
 def lender_profile(request):
 	profile, created = LenderProfile.objects.get_or_create(user=request.user)
 	PaymentForm = make_payment_details_form(LenderProfile)
@@ -344,14 +346,10 @@ def lender_profile(request):
 			mm_formset = get_mobile_money_formset(profile, is_lender=True, data=request.POST)
 			form = LenderInfoForm(instance=profile)   # keep the main form rendered
 
-			if payment_form.is_valid() and mm_formset.is_valid():
-				payment_form.save()
-				save_mobile_money_formset(mm_formset, profile, is_lender=True)
+			if save_payment_details(payment_form, mm_formset, profile, is_lender=True):
 				messages.success(request, "Payment details saved.")
 				return redirect('lenders:lender_profile')
-			else:
-				messages.error(request, "Please check your payment details.")
-				print(payment_form.errors, mm_formset.errors)
+			messages.error(request, "Your payment details were not saved. Please check the errors below.")
 
 		else:
 			# --- main profile form submitted ---
@@ -377,6 +375,7 @@ def lender_profile(request):
 		"payment_form": payment_form,
 		"mm_formset": mm_formset,
 		"profile": profile,          
+		"collection_rows": collection_rows(profile),
 	})
 
 

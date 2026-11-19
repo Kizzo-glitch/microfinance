@@ -1,0 +1,37 @@
+{% extends 'borrower_base.html' %}
+{% block content %}
+<div class="container py-4" style="max-width: 520px;">
+  {% if c.status == 'succeeded' %}
+    <div class="text-center mb-3"><i class="bi bi-check-circle text-success" style="font-size:3rem"></i></div>
+    <h2 class="h4 text-center">Payment received</h2>
+    <div class="card my-3"><div class="card-body small">
+      <div class="d-flex justify-content-between"><span>Amount</span><strong>M{{ c.amount }}</strong></div>
+      <div class="d-flex justify-content-between"><span>Paid to</span><span>{{ loan.lender.company_name }}</span></div>
+      <div class="d-flex justify-content-between"><span>Reference</span><span>{{ c.loan_payment.reference }}</span></div>
+      {% if c.provider_transaction_id %}<div class="d-flex justify-content-between"><span>{{ c.provider_label }} ref</span><span>{{ c.provider_transaction_id }}</span></div>{% endif %}
+      <div class="d-flex justify-content-between"><span>Balance now</span><strong>M{{ loan.outstanding_balance }}</strong></div>
+    </div></div>
+  {% elif c.status == 'failed' or c.status == 'cancelled' %}
+    <div class="text-center mb-3"><i class="bi bi-x-circle text-danger" style="font-size:3rem"></i></div>
+    <h2 class="h4 text-center">{% if c.status == 'cancelled' %}Payment cancelled{% else %}Payment didn't go through{% endif %}</h2>
+    <p class="text-center text-muted">{{ c.error_message|default:"No money was taken." }}</p>
+    <a href="{% url 'borrowers:pay' loan.id %}" class="btn btn-success w-100">Try again</a>
+  {% else %}
+    <div class="text-center mb-3"><div class="spinner-border text-secondary" role="status"></div></div>
+    <h2 class="h4 text-center">We're confirming your payment</h2>
+    <p class="text-center text-muted">
+      This can take a moment. <strong>Please don't pay again</strong>: we'll update this page,
+      and your balance, as soon as {{ c.provider_label }} confirms.
+    </p>
+    <script>
+      (function poll() {
+        fetch("{% url 'borrowers:pay-status' c.id %}", {credentials: "same-origin"})
+          .then(r => r.json())
+          .then(d => { if (d.final) { location.reload(); } else { setTimeout(poll, 4000); } })
+          .catch(() => setTimeout(poll, 8000));
+      })();
+    </script>
+  {% endif %}
+  <a href="{% url 'borrowers:loan-details' loan.id %}" class="btn btn-link w-100 mt-2">Back to loan</a>
+</div>
+{% endblock %}

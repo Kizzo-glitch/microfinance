@@ -17,6 +17,7 @@ from decimal import Decimal, ROUND_HALF_UP
 
 from lenders.kfs_layer3_schedule import build_schedule
 
+
 CENT = Decimal("0.01")
 
 

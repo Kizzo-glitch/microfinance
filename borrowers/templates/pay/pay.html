@@ -1,0 +1,71 @@
+{% extends 'borrower_base.html' %}
+{% block content %}
+<div class="container py-4" style="max-width: 640px;">
+  <a href="{% url 'borrowers:loan-details' loan.id %}" class="small">&larr; Back to loan</a>
+  <h2 class="h4 mt-2 mb-1">Pay {{ lender.company_name }}</h2>
+  <p class="text-muted small mb-3">Loan {{ loan.reference_number }} · Outstanding M{{ due.outstanding }}</p>
+
+  {% if not options %}
+    <div class="alert alert-success">Nothing is due right now. Thank you!</div>
+  {% endif %}
+
+  {% if options and instant %}
+    {% with setup=instant.0 account=instant.1 %}
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <h3 class="h6 fw-bold mb-1"><i class="bi bi-lightning-charge"></i> Pay instantly with {{ account.get_provider_display }}</h3>
+        <p class="small text-muted">
+          The money goes straight to {{ lender.company_name }}'s account. Fedha-Grow never holds it.
+          You'll get a code on <strong>{{ account.number }}</strong> to approve the payment.
+        </p>
+        <form method="post">
+          {% csrf_token %}
+          {% for value, label, amount, hint in options %}
+            <label class="d-flex justify-content-between align-items-center border rounded p-3 mb-2" style="cursor:pointer">
+              <span>
+                <input class="form-check-input me-2" type="radio" name="option" value="{{ value }}" {% if forloop.first %}checked{% endif %}>
+                <span class="fw-semibold">{{ label }}</span>
+                {% if hint %}<span class="d-block small text-muted ms-4">{{ hint }}</span>{% endif %}
+              </span>
+              <span class="fw-bold">M{{ amount }}</span>
+            </label>
+          {% endfor %}
+          <button type="submit" class="btn btn-success w-100 mt-2">Continue</button>
+        </form>
+      </div>
+    </div>
+    {% endwith %}
+  {% elif options and instant_reason == "borrower" %}
+    <div class="alert alert-info small">
+      {{ lender.company_name }} accepts instant C-Pay payments. Add your C-Pay number to your
+      <a href="{% url 'borrowers:borrower_profile' %}">profile</a> to pay in a few taps.
+    </div>
+  {% endif %}
+
+  {% if options %}
+  <div class="card mb-4">
+    <div class="card-body">
+      <h3 class="h6 fw-bold mb-1">{% if instant %}Or pay {% else %}Pay {% endif %}manually</h3>
+      <p class="small text-muted mb-2">
+        Send the money yourself, then record it. {{ lender.company_name }} confirms it once it arrives.
+        {{ options.0.1 }}: <strong>M{{ options.0.2 }}</strong>.
+      </p>
+      <ul class="list-unstyled small mb-2">
+        {% for acct in lender_accounts %}
+          <li class="mb-1"><strong>{{ acct.get_provider_display }}:</strong> {{ acct.number }}{% if acct.account_name %} ({{ acct.account_name }}){% endif %}</li>
+        {% endfor %}
+        {% if lender.has_bank %}
+          <li class="mb-1"><strong>Bank:</strong> {{ lender.bank_name }} · {{ lender.bank_account_number }}{% if lender.bank_account_name %} ({{ lender.bank_account_name }}){% endif %}{% if lender.bank_branch_code %} · branch {{ lender.bank_branch_code }}{% endif %}</li>
+        {% endif %}
+        {% if not lender_accounts and not lender.has_bank %}
+          <li class="text-muted">{{ lender.company_name }} hasn't added payment details yet. Please contact them.</li>
+        {% endif %}
+      </ul>
+      <p class="small mb-2">Use reference <strong>{{ loan.reference_number }}</strong>.
+        {% if lender.payment_instructions %}<br>{{ lender.payment_instructions }}{% endif %}</p>
+      <a href="{% url 'borrowers:record-payment' loan.id %}" class="btn btn-outline-secondary btn-sm">I've paid: record it</a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -58,7 +58,8 @@
         {% if loan.outstanding_balance == 0 %}
             <p class="text-success"><strong>This loan has been fully paid. No further payments are required.</strong></p>
         {% else %}
-        <a href="{% url 'borrowers:record-payment' loan.id %}" class="btn btn-success mt-3">Record Payment</a>
+        <a href="{% url 'borrowers:pay' loan.id %}" class="btn btn-success mt-3">Pay now</a>
+        <a href="{% url 'borrowers:record-payment' loan.id %}" class="btn btn-outline-success mt-3">Record a payment</a>
         {% endif %}
         
         <a href="{% url 'borrowers:my_active_loans' %}" class="btn btn-primary mt-3">Back to Loans</a>

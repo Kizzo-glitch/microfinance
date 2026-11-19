@@ -1,0 +1,27 @@
+{% extends 'borrower_base.html' %}
+{% block content %}
+<div class="container py-4" style="max-width: 520px;">
+  <h2 class="h4 mb-1">Approve your payment</h2>
+  <p class="mb-3">
+    <strong>M{{ c.amount }}</strong> to <strong>{{ loan.lender.company_name }}</strong><br>
+    <span class="text-muted small">from {{ c.provider_label }} {{ c.payer_number }} · ref {{ c.reference }}</span>
+  </p>
+  <p class="small text-muted">
+    Enter the code {{ c.provider_label }} sent to your phone.
+    {% if c.expires_at %}It expires at <strong>{{ c.expires_at|time:"H:i" }}</strong>.{% endif %}
+  </p>
+  {% if test_otp %}
+    <div class="alert alert-warning small">Test mode: the simulator's code is <strong>{{ test_otp }}</strong>.</div>
+  {% endif %}
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <input type="text" name="otp" class="form-control form-control-lg mb-3" inputmode="numeric"
+           autocomplete="one-time-code" placeholder="Code" autofocus>
+    <button type="submit" class="btn btn-success w-100">Pay M{{ c.amount }}</button>
+  </form>
+  <form method="post" action="{% url 'borrowers:pay-cancel' c.id %}" class="mt-3 text-center">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-link small">Cancel. No money will be taken.</button>
+  </form>
+</div>
+{% endblock %}

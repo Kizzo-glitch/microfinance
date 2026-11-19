@@ -58,7 +58,8 @@ from loans.views import generate_kfs
 
 from micro.utils import generate_otp 
 from micro.models import OTP
-from micro.forms import get_mobile_money_formset, make_payment_details_form, save_mobile_money_formset
+from micro.forms import get_mobile_money_formset, make_payment_details_form, save_mobile_money_formset, save_payment_details
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from .models import BorrowerProfile, BorrowerDocs, ExpenseAnalysis
 from .services import AffordabilityAdvisor
@@ -117,13 +118,10 @@ def borrower_profile(request):
 			payment_form = PaymentForm(request.POST, instance=current_user)
 			mm_formset = get_mobile_money_formset(current_user, is_lender=False, data=request.POST)
 			form = BorrowerProfileForm(instance=current_user, initial=initial_data)   # keep the other form rendered
-			if payment_form.is_valid():
-				payment_form.save()
-				save_mobile_money_formset(mm_formset, current_user, is_lender=False)
+			if save_payment_details(payment_form, mm_formset, current_user, is_lender=False):
 				messages.success(request, "Payment details saved.")
 				return redirect('borrowers:borrower_profile')
-			else:
-				print(payment_form.errors, mm_formset.errors)
+			messages.error(request, "Your payment details were not saved. Please check the errors below.")
 		else:
 			# --- main profile form submitted ---
 			form = BorrowerProfileForm(request.POST, request.FILES, instance=current_user)
@@ -159,17 +157,16 @@ def save_borrower_payment_details(request):
 	profile, _ = BorrowerProfile.objects.get_or_create(user=request.user)
 	PaymentForm = make_payment_details_form(BorrowerProfile)
 	next_url = request.POST.get("next") or request.GET.get("next")
+	# Only follow "next" to a page on this site (prevents open redirects).
+	if next_url and not url_has_allowed_host_and_scheme(
+			next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+		next_url = None
  
 	if request.method == "POST":
 		bank_form = PaymentForm(request.POST, instance=profile)
 		mm_formset = get_mobile_money_formset(profile, is_lender=False, data=request.POST)
  
-		bank_ok = bank_form.is_valid()
-		mm_ok = mm_formset.is_valid()
- 
-		if bank_ok and mm_ok:
-			bank_form.save()
-			save_mobile_money_formset(mm_formset, profile, is_lender=False)
+		if save_payment_details(bank_form, mm_formset, profile, is_lender=False):
 			messages.success(request, "Payment details saved.")
 			return redirect(next_url or "borrowers:borrower_profile")
 		else:

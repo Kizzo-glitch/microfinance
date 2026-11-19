@@ -538,6 +538,7 @@ class LoanPayment(models.Model):
 		("bank",    "Bank transfer"),
 		("mpesa",   "M-Pesa"),
 		("ecocash", "EcoCash"),
+		("cpay",    "C-Pay"),
 		("cash",    "Cash"),
 		("gateway", "In-app payment"),
 	]

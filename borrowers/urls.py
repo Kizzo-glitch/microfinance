@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import pay_views
 from .views import BorrowerNotificationListView 
 
 app_name = 'borrowers'
@@ -58,6 +59,11 @@ urlpatterns = [
     path('loan/<int:loan_id>/', views.loan_details, name='loan-details'),
 
     path('loan/<int:loan_id>/record-payment/', views.record_payment, name='record-payment'),
+    path('loan/<int:loan_id>/pay/', pay_views.pay, name='pay'),
+    path('pay/<int:collection_id>/', pay_views.result, name='pay-result'),
+    path('pay/<int:collection_id>/code/', pay_views.otp, name='pay-otp'),
+    path('pay/<int:collection_id>/status/', pay_views.status, name='pay-status'),
+    path('pay/<int:collection_id>/cancel/', pay_views.cancel, name='pay-cancel'),
     path('borrower/payment-history/', views.borrower_payment_history, name='borrower_payment_history'),
 
     # Notifications

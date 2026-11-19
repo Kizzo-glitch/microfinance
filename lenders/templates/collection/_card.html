@@ -1,0 +1,55 @@
+{% comment %}
+  Instant collection card on the lender profile. Sits OUTSIDE the main profile
+  form (it has its own small forms). Context: collection_rows = [(account, setup), ...]
+{% endcomment %}
+{% if collection_rows is not None %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-light fw-semibold">
+    <i class="bi bi-lightning-charge"></i> Instant collection
+    <span class="text-muted small">— borrowers pay straight into your merchant account</span>
+  </div>
+  <div class="card-body">
+    <p class="small text-muted mb-3">
+      Borrowers' repayments are collected into your own merchant account and confirmed
+      automatically, so you don't have to confirm them by hand. Fedha-Grow never holds the money.
+      To switch it on we make a <strong>M1.00 test payment</strong> from your own number into your
+      merchant account, and you enter the code you receive.
+    </p>
+    {% if not collection_rows %}
+      <p class="small mb-0">Add a C-Pay account under <em>Payment details</em> above to use this.</p>
+    {% endif %}
+    {% for account, setup in collection_rows %}
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 border rounded p-3 mb-2">
+        <div>
+          <div class="fw-semibold">{{ account.get_provider_display }}</div>
+          <div class="small text-muted">{{ account.number }}{% if setup %} · merchant {{ setup.merchant_code }}{% endif %}</div>
+          {% if setup and setup.last_error and not setup.is_verified %}
+            <div class="small text-danger">{{ setup.last_error }}</div>
+          {% endif %}
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          {% if not setup or setup.status == 'disabled' %}
+            <span class="badge bg-secondary">Manual</span>
+            <a class="btn btn-sm btn-primary" href="{% url 'lenders:collection_enable' account.id %}">Enable</a>
+          {% elif setup.is_verified %}
+            <span class="badge bg-success">Instant ✓</span>
+          {% elif setup.awaiting_otp %}
+            <span class="badge bg-warning text-dark">Waiting for code</span>
+            <a class="btn btn-sm btn-primary" href="{% url 'lenders:collection_otp' setup.id %}">Enter code</a>
+          {% else %}
+            <span class="badge bg-danger">Failed</span>
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'lenders:collection_enable' account.id %}">Try again</a>
+          {% endif %}
+          {% if setup and setup.status != 'disabled' %}
+            <form method="post" action="{% url 'lenders:collection_disable' setup.id %}" class="m-0">
+              {% csrf_token %}
+              <button class="btn btn-sm btn-outline-secondary" type="submit">Turn off</button>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% endif %}
