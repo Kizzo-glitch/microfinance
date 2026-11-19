@@ -254,7 +254,7 @@ SMS_TEST_MODE = os.environ.get("SMS_TEST_MODE") == "1"
 # Payment gateway (instant collection). Leave the URL/key unset and the feature
 # shows as "not connected yet" — it never pretends to work.
 PAYMENT_GATEWAY = {
-    "base_url": os.environ.get("PAYMENT_GATEWAY_URL", ""),
+    "base_url": 'https://paymentgateways-production.up.railway.app', #os.environ.get("PAYMENT_GATEWAY_URL", ""),
     "api_key": os.environ.get("PAYMENT_GATEWAY_KEY", ""),
     "timeout": 20,
     # Fedha-Grow provider -> gateway provider. Set PAYMENT_GATEWAY_CPAY_PROVIDER=simulator
